@@ -16,13 +16,16 @@ Key Learning Points:
 import asyncio
 import logging
 import time
+import tempfile
+import os
 from typing import Dict, Any
 from abtree import (
-    BehaviorForest, ForestNode, ForestNodeType, ForestConfig,
+    BehaviorForest, ForestNode, ForestNodeType,
     PubSubMiddleware, SharedBlackboardMiddleware, TaskBoardMiddleware,
     BehaviorTree, Sequence, Selector, Action, Condition, Status,
     Log, Wait, register_node,
 )
+from abtree.parser.xml_parser import XMLParser
 
 
 # Setup logging
@@ -91,196 +94,282 @@ class RobotMonitoringPlugin:
         return self.monitoring_data.get(robot_name, {})
 
 
-def create_robot_tree(robot_id: str) -> BehaviorTree:
-    """Create a behavior tree for a robot."""
-    root = Selector(f"Robot_{robot_id}_Decision")
+def create_advanced_forest_xml() -> str:
+    """Create XML configuration for advanced forest features"""
+    return '''<?xml version="1.0" encoding="UTF-8"?>
+<BehaviorForest name="AdvancedFeaturesForest" description="Advanced Forest Features">
     
-    # Emergency response (highest priority)
-    emergency_sequence = Sequence("Emergency Response")
-    emergency_sequence.add_child(CustomCondition("Check Emergency", "emergency", True))
-    emergency_sequence.add_child(CustomRobotAction("Emergency Stop", robot_id, "emergency_stop"))
-    root.add_child(emergency_sequence)
+    <!-- Robot 01 Behavior Tree -->
+    <BehaviorTree name="Robot_01" description="Robot 01 Service">
+        <Selector name="Robot 01 Decision">
+            <Sequence name="Emergency Response">
+                <CustomCondition name="Check Emergency" check_key="emergency" expected_value="true" />
+                <CustomRobotAction name="Emergency Stop" robot_id="01" action_type="emergency_stop" />
+            </Sequence>
+            <Sequence name="Battery Management">
+                <CustomCondition name="Check Low Battery" check_key="low_battery" expected_value="true" />
+                <CustomRobotAction name="Charge Battery" robot_id="01" action_type="charge" />
+            </Sequence>
+            <Sequence name="Normal Operation">
+                <CustomCondition name="Check Task Available" check_key="task_available" expected_value="true" />
+                <CustomRobotAction name="Execute Task" robot_id="01" action_type="task_execution" />
+            </Sequence>
+            <CustomRobotAction name="Patrol" robot_id="01" action_type="patrol" />
+        </Selector>
+    </BehaviorTree>
     
-    # Battery management
-    battery_sequence = Sequence("Battery Management")
-    battery_sequence.add_child(CustomCondition("Check Low Battery", "low_battery", True))
-    battery_sequence.add_child(CustomRobotAction("Charge Battery", robot_id, "charge"))
-    root.add_child(battery_sequence)
+    <!-- Robot 02 Behavior Tree -->
+    <BehaviorTree name="Robot_02" description="Robot 02 Service">
+        <Selector name="Robot 02 Decision">
+            <Sequence name="Emergency Response">
+                <CustomCondition name="Check Emergency" check_key="emergency" expected_value="true" />
+                <CustomRobotAction name="Emergency Stop" robot_id="02" action_type="emergency_stop" />
+            </Sequence>
+            <Sequence name="Battery Management">
+                <CustomCondition name="Check Low Battery" check_key="low_battery" expected_value="true" />
+                <CustomRobotAction name="Charge Battery" robot_id="02" action_type="charge" />
+            </Sequence>
+            <Sequence name="Normal Operation">
+                <CustomCondition name="Check Task Available" check_key="task_available" expected_value="true" />
+                <CustomRobotAction name="Execute Task" robot_id="02" action_type="task_execution" />
+            </Sequence>
+            <CustomRobotAction name="Patrol" robot_id="02" action_type="patrol" />
+        </Selector>
+    </BehaviorTree>
     
-    # Normal operation
-    normal_sequence = Sequence("Normal Operation")
-    normal_sequence.add_child(CustomCondition("Check Task Available", "task_available", True))
-    normal_sequence.add_child(CustomRobotAction("Execute Task", robot_id, "task_execution"))
-    root.add_child(normal_sequence)
+    <!-- Robot 03 Behavior Tree -->
+    <BehaviorTree name="Robot_03" description="Robot 03 Service">
+        <Selector name="Robot 03 Decision">
+            <Sequence name="Emergency Response">
+                <CustomCondition name="Check Emergency" check_key="emergency" expected_value="true" />
+                <CustomRobotAction name="Emergency Stop" robot_id="03" action_type="emergency_stop" />
+            </Sequence>
+            <Sequence name="Battery Management">
+                <CustomCondition name="Check Low Battery" check_key="low_battery" expected_value="true" />
+                <CustomRobotAction name="Charge Battery" robot_id="03" action_type="charge" />
+            </Sequence>
+            <Sequence name="Normal Operation">
+                <CustomCondition name="Check Task Available" check_key="task_available" expected_value="true" />
+                <CustomRobotAction name="Execute Task" robot_id="03" action_type="task_execution" />
+            </Sequence>
+            <CustomRobotAction name="Patrol" robot_id="03" action_type="patrol" />
+        </Selector>
+    </BehaviorTree>
     
-    # Default patrol
-    patrol_sequence = Sequence("Patrol")
-    patrol_sequence.add_child(CustomRobotAction("Patrol", robot_id, "patrol"))
-    root.add_child(patrol_sequence)
+    <!-- Coordinator Behavior Tree -->
+    <BehaviorTree name="Coordinator" description="Coordinator Service">
+        <Sequence name="Coordinator Behavior">
+            <Log name="Coordinator Active" message="Advanced features coordinator is active" />
+            <Wait name="Coordinator Wait" duration="1.0" />
+        </Sequence>
+    </BehaviorTree>
     
-    tree = BehaviorTree()
-    tree.load_from_root(root)
-    return tree
-
-
-def create_forest_with_advanced_features() -> BehaviorForest:
-    """Create a forest with advanced features."""
-    
-    # Create forest configuration
-    config = ForestConfig(
-        name="Advanced Features Forest",
-        tick_rate=1.0
-    )
-    
-    # Create forest
-    forest = BehaviorForest(config.name)
-    
-    # Add robot nodes
-    for i in range(3):
-        robot_id = f"Robot_{i+1:02d}"
-        tree = create_robot_tree(robot_id)
+    <!-- Communication Configuration -->
+    <Communication>
+        <!-- Pub/Sub Communication -->
+        <ComTopic name="robot_events">
+            <ComPublisher service="Robot_01" />
+            <ComPublisher service="Robot_02" />
+            <ComPublisher service="Robot_03" />
+            <ComSubscriber service="Coordinator" />
+        </ComTopic>
+        <ComTopic name="system_events">
+            <ComPublisher service="Coordinator" />
+            <ComSubscriber service="Robot_01" />
+            <ComSubscriber service="Robot_02" />
+            <ComSubscriber service="Robot_03" />
+        </ComTopic>
         
-        node = ForestNode(
-            name=robot_id,
-            node_type=ForestNodeType.WORKER,
-            tree=tree,
-            capabilities={"patrol", "task_execution", "emergency_response"}
-        )
-        forest.add_node(node)
+        <!-- Shared Blackboard -->
+        <ComShared>
+            <ComKey name="emergency" />
+            <ComKey name="low_battery" />
+            <ComKey name="task_available" />
+            <ComKey name="system_status" />
+            <ComKey name="performance_metrics" />
+        </ComShared>
+        
+        <!-- Task Board -->
+        <ComTask name="patrol_task">
+            <ComPublisher service="Coordinator" />
+            <ComClaimant service="Robot_01" />
+            <ComClaimant service="Robot_02" />
+            <ComClaimant service="Robot_03" />
+        </ComTask>
+        <ComTask name="maintenance_task">
+            <ComPublisher service="Coordinator" />
+            <ComClaimant service="Robot_01" />
+            <ComClaimant service="Robot_02" />
+            <ComClaimant service="Robot_03" />
+        </ComTask>
+    </Communication>
     
-    # Add coordinator node
-    coord_tree = BehaviorTree()
-    coord_root = Sequence("Coordinator")
-    coord_root.add_child(Log("Coordinator Active"))
-    coord_root.add_child(Wait(1.0))
-    coord_tree.load_from_root(coord_root)
-    
-    coord_node = ForestNode(
-        name="Coordinator",
-        node_type=ForestNodeType.COORDINATOR,
-        tree=coord_tree,
-        capabilities={"coordination", "scheduling"}
-    )
-    forest.add_node(coord_node)
-    
-    return forest
+</BehaviorForest>'''
 
 
 async def demonstrate_visualization():
     """Demonstrate visualization capabilities."""
     print("\n=== Visualization Capabilities ===")
     
-    # Create forest
-    forest = create_forest_with_advanced_features()
+    # Create XML configuration
+    xml_config = create_advanced_forest_xml()
     
-    # Simulate visualization
-    print("📊 Forest structure visualization:")
-    print("  └── Advanced Features Forest")
-    print("      ├── Robot_01 (Worker)")
-    print("      ├── Robot_02 (Worker)")
-    print("      ├── Robot_03 (Worker)")
-    print("      └── Coordinator (Coordinator)")
+    # Create temporary XML file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        f.write(xml_config)
+        xml_file_path = f.name
     
-    # Simulate real-time monitoring
-    print("📈 Real-time monitoring data:")
-    for i in range(3):
-        robot_id = f"Robot_{i+1:02d}"
-        health = 85 + i * 5
-        battery = 90 - i * 10
-        print(f"  {robot_id}: Health={health}%, Battery={battery}%")
+    try:
+        # Load forest from XML
+        parser = XMLParser()
+        forest = parser.parse_file(xml_file_path)
+        
+        # Simulate visualization
+        print("📊 Forest structure visualization:")
+        print("  └── Advanced Features Forest")
+        for node_name, node in forest.nodes.items():
+            print(f"      ├── {node_name} ({node.node_type.name})")
+        
+        # Simulate real-time monitoring
+        print("📈 Real-time monitoring data:")
+        for i in range(3):
+            robot_id = f"Robot_{i+1:02d}"
+            health = 85 + i * 5
+            battery = 90 - i * 10
+            print(f"  {robot_id}: Health={health}%, Battery={battery}%")
+            
+    finally:
+        os.unlink(xml_file_path)
 
 
 async def demonstrate_plugin_system():
     """Demonstrate plugin system."""
     print("\n=== Plugin System ===")
     
-    # Create forest
-    forest = create_forest_with_advanced_features()
+    # Create XML configuration
+    xml_config = create_advanced_forest_xml()
     
-    # Create and initialize plugin
-    plugin = RobotMonitoringPlugin()
-    plugin.initialize(forest)
+    # Create temporary XML file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        f.write(xml_config)
+        xml_file_path = f.name
     
-    # Demonstrate plugin functionality
-    print("🔌 Plugin system demonstration:")
-    print(f"  Plugin name: {plugin.PLUGIN_NAME}")
-    print(f"  Plugin version: {plugin.PLUGIN_VERSION}")
-    print(f"  Plugin description: {plugin.PLUGIN_DESCRIPTION}")
-    
-    # Get robot health data
-    for i in range(3):
-        robot_id = f"Robot_{i+1:02d}"
-        health_data = plugin.get_robot_health(robot_id)
-        print(f"  {robot_id} health data: {health_data}")
-    
-    # Cleanup plugin
-    plugin.cleanup()
+    try:
+        # Load forest from XML
+        parser = XMLParser()
+        forest = parser.parse_file(xml_file_path)
+        
+        # Create and initialize plugin
+        plugin = RobotMonitoringPlugin()
+        plugin.initialize(forest)
+        
+        # Demonstrate plugin functionality
+        print("🔌 Plugin system demonstration:")
+        print(f"  Plugin name: {plugin.PLUGIN_NAME}")
+        print(f"  Plugin version: {plugin.PLUGIN_VERSION}")
+        print(f"  Plugin description: {plugin.PLUGIN_DESCRIPTION}")
+        
+        # Get robot health data
+        for i in range(3):
+            robot_id = f"Robot_{i+1:02d}"
+            health_data = plugin.get_robot_health(robot_id)
+            print(f"  {robot_id} health data: {health_data}")
+        
+        # Cleanup plugin
+        plugin.cleanup()
+        
+    finally:
+        os.unlink(xml_file_path)
 
 
 async def demonstrate_performance_monitoring():
     """Demonstrate performance monitoring."""
     print("\n=== Performance Monitoring ===")
     
-    # Create forest
-    forest = create_forest_with_advanced_features()
+    # Create XML configuration
+    xml_config = create_advanced_forest_xml()
     
-    # Simulate performance monitoring
-    print("⚡ Performance monitoring data:")
+    # Create temporary XML file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        f.write(xml_config)
+        xml_file_path = f.name
     
-    # Node performance metrics
-    node_metrics = {
-        "Robot_01": {"ticks_per_second": 1.2, "success_rate": 0.95, "avg_response_time": 0.15},
-        "Robot_02": {"ticks_per_second": 1.1, "success_rate": 0.92, "avg_response_time": 0.18},
-        "Robot_03": {"ticks_per_second": 1.3, "success_rate": 0.88, "avg_response_time": 0.12},
-        "Coordinator": {"ticks_per_second": 0.8, "success_rate": 0.98, "avg_response_time": 0.25}
-    }
-    
-    for node_name, metrics in node_metrics.items():
-        print(f"  {node_name}:")
-        print(f"    Ticks/sec: {metrics['ticks_per_second']}")
-        print(f"    Success rate: {metrics['success_rate']:.1%}")
-        print(f"    Avg response time: {metrics['avg_response_time']:.2f}s")
-    
-    # Forest-level metrics
-    forest_metrics = {
-        "total_nodes": 4,
-        "active_nodes": 4,
-        "total_ticks": 1250,
-        "avg_forest_response_time": 0.175,
-        "forest_health_score": 0.93
-    }
-    
-    print("🌳 Forest-level metrics:")
-    for metric, value in forest_metrics.items():
-        if isinstance(value, float):
-            print(f"  {metric}: {value:.3f}")
-        else:
-            print(f"  {metric}: {value}")
+    try:
+        # Load forest from XML
+        parser = XMLParser()
+        forest = parser.parse_file(xml_file_path)
+        
+        # Simulate performance monitoring
+        print("⚡ Performance monitoring data:")
+        
+        # Node performance metrics
+        node_metrics = {
+            "Robot_01": {"ticks_per_second": 1.2, "success_rate": 0.95, "avg_response_time": 0.15},
+            "Robot_02": {"ticks_per_second": 1.1, "success_rate": 0.92, "avg_response_time": 0.18},
+            "Robot_03": {"ticks_per_second": 1.3, "success_rate": 0.88, "avg_response_time": 0.12},
+            "Coordinator": {"ticks_per_second": 0.8, "success_rate": 0.98, "avg_response_time": 0.25}
+        }
+        
+        for node_name, metrics in node_metrics.items():
+            print(f"  {node_name}:")
+            print(f"    Ticks/sec: {metrics['ticks_per_second']}")
+            print(f"    Success rate: {metrics['success_rate']:.1%}")
+            print(f"    Avg response time: {metrics['avg_response_time']:.2f}s")
+        
+        # Forest-level metrics
+        forest_metrics = {
+            "total_nodes": len(forest.nodes),
+            "active_nodes": len(forest.nodes),
+            "total_ticks": 1250,
+            "avg_forest_response_time": 0.175,
+            "forest_health_score": 0.93
+        }
+        
+        print("🌳 Forest-level metrics:")
+        for metric, value in forest_metrics.items():
+            if isinstance(value, float):
+                print(f"  {metric}: {value:.3f}")
+            else:
+                print(f"  {metric}: {value}")
+                
+    finally:
+        os.unlink(xml_file_path)
 
 
 async def demonstrate_real_time_dashboard():
     """Demonstrate real-time dashboard."""
     print("\n=== Real-Time Dashboard ===")
     
-    # Create forest
-    forest = create_forest_with_advanced_features()
+    # Create XML configuration
+    xml_config = create_advanced_forest_xml()
     
-    # Simulate dashboard data
-    print("📊 Real-time dashboard:")
-    print("  ┌─────────────────────────────────────┐")
-    print("  │         Forest Dashboard            │")
-    print("  ├─────────────────────────────────────┤")
-    print("  │ Forest Status: 🟢 Running          │")
-    print("  │ Active Nodes: 4/4                  │")
-    print("  │ Total Ticks: 1,250                 │")
-    print("  │ Health Score: 93%                  │")
-    print("  ├─────────────────────────────────────┤")
-    print("  │ Node Status:                        │")
-    print("  │  🤖 Robot_01: 🟢 Active           │")
-    print("  │  🤖 Robot_02: 🟢 Active           │")
-    print("  │  🤖 Robot_03: 🟢 Active           │")
-    print("  │  👥 Coordinator: 🟢 Active         │")
-    print("  └─────────────────────────────────────┘")
+    # Create temporary XML file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        f.write(xml_config)
+        xml_file_path = f.name
+    
+    try:
+        # Load forest from XML
+        parser = XMLParser()
+        forest = parser.parse_file(xml_file_path)
+        
+        # Simulate dashboard data
+        print("📊 Real-time dashboard:")
+        print("  ┌─────────────────────────────────────┐")
+        print("  │         Forest Dashboard            │")
+        print("  ├─────────────────────────────────────┤")
+        print("  │ Forest Status: 🟢 Running          │")
+        print(f"  │ Active Nodes: {len(forest.nodes)}/{len(forest.nodes)}                  │")
+        print("  │ Total Ticks: 1,250                 │")
+        print("  │ Health Score: 93%                  │")
+        print("  ├─────────────────────────────────────┤")
+        print("  │ Node Status:                        │")
+        for node_name, node in forest.nodes.items():
+            print(f"  │  🤖 {node_name}: 🟢 Active           │")
+        print("  └─────────────────────────────────────┘")
+        
+    finally:
+        os.unlink(xml_file_path)
 
 
 def register_custom_nodes():
@@ -306,21 +395,35 @@ async def main():
     print("\n=== Advanced Features Execution ===")
     print("Starting advanced features demonstration...")
     
-    # Create forest with advanced features
-    forest = create_forest_with_advanced_features()
+    # Create XML configuration
+    xml_config = create_advanced_forest_xml()
     
-    # Start forest
-    await forest.start()
+    # Create temporary XML file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        f.write(xml_config)
+        xml_file_path = f.name
     
-    # Run for a few ticks
-    for i in range(3):
-        print(f"\n--- Advanced Features Tick {i+1} ---")
-        await asyncio.sleep(0.01)
-    
-    # Stop forest
-    await forest.stop()
-    
-    print("\nAdvanced forest features demonstration completed!")
+    try:
+        # Load forest from XML
+        parser = XMLParser()
+        forest = parser.parse_file(xml_file_path)
+        
+        # Start forest
+        await forest.start()
+        
+        # Run for a few ticks
+        for i in range(3):
+            print(f"\n--- Advanced Features Tick {i+1} ---")
+            await asyncio.sleep(0.01)
+        
+        # Stop forest
+        await forest.stop()
+        
+        print("\nAdvanced forest features demonstration completed!")
+        
+    finally:
+        # Clean up temporary file
+        os.unlink(xml_file_path)
 
 
 if __name__ == "__main__":

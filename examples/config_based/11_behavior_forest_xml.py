@@ -15,15 +15,18 @@ Key Learning Points:
 
 import asyncio
 import random
+import tempfile
+import os
 from typing import Any, Dict, Set
 from abtree import (
     BehaviorTree, Blackboard, EventSystem, Status,
     Sequence, Selector, Action, Condition, Log, Wait, SetBlackboard, CheckBlackboard,
-    BehaviorForest, ForestNode, ForestNodeType, ForestManager, ForestConfig,
+    BehaviorForest, ForestNode, ForestNodeType, ForestManager,
     PubSubMiddleware, ReqRespMiddleware, SharedBlackboardMiddleware,
     StateWatchingMiddleware, BehaviorCallMiddleware, TaskBoardMiddleware,
     register_node,
 )
+from abtree.parser.xml_parser import XMLParser
 
 
 class RobotAction(Action):
@@ -129,89 +132,130 @@ class TaskAvailableCondition(Condition):
         return task_available
 
 
-def create_robot_forest_node(robot_id: str, capabilities: Set[str]) -> ForestNode:
-    """Create a robot forest node"""
+def create_robot_forest_xml() -> str:
+    """Create XML configuration for robot behavior forest"""
+    return '''<?xml version="1.0" encoding="UTF-8"?>
+<BehaviorForest name="RobotForest" description="Robot Behavior Forest">
     
-    # Create behavior tree for robot
-    tree = BehaviorTree()
+    <!-- Robot 001 Behavior Tree -->
+    <BehaviorTree name="Robot_001" description="Robot 001 Service">
+        <Selector name="Robot 001 Decision">
+            <Sequence name="Emergency Response">
+                <EmergencyCheckCondition name="Check Emergency" robot_id="001" />
+                <EmergencyResponseAction name="Emergency Response" robot_id="001" />
+            </Sequence>
+            <Sequence name="Battery Management">
+                <BatteryCheckCondition name="Check Battery" robot_id="001" threshold="30" />
+                <ChargeAction name="Charge" robot_id="001" />
+            </Sequence>
+            <Sequence name="Task Execution">
+                <TaskAvailableCondition name="Check Task" robot_id="001" />
+                <TaskExecutionAction name="Execute Task" robot_id="001" task_type="general" />
+            </Sequence>
+            <PatrolAction name="Patrol" robot_id="001" />
+        </Selector>
+    </BehaviorTree>
     
-    # Define robot behavior based on capabilities
-    if "patrol" in capabilities:
-        root = Selector("Robot Behavior")
+    <!-- Robot 002 Behavior Tree -->
+    <BehaviorTree name="Robot_002" description="Robot 002 Service">
+        <Selector name="Robot 002 Decision">
+            <Sequence name="Emergency Response">
+                <EmergencyCheckCondition name="Check Emergency" robot_id="002" />
+                <EmergencyResponseAction name="Emergency Response" robot_id="002" />
+            </Sequence>
+            <Sequence name="Battery Management">
+                <BatteryCheckCondition name="Check Battery" robot_id="002" threshold="30" />
+                <ChargeAction name="Charge" robot_id="002" />
+            </Sequence>
+            <Sequence name="Task Execution">
+                <TaskAvailableCondition name="Check Task" robot_id="002" />
+                <TaskExecutionAction name="Execute Task" robot_id="002" task_type="general" />
+            </Sequence>
+            <PatrolAction name="Patrol" robot_id="002" />
+        </Selector>
+    </BehaviorTree>
+    
+    <!-- Coordinator Behavior Tree -->
+    <BehaviorTree name="Coordinator" description="Coordinator Service">
+        <Sequence name="Coordinator Behavior">
+            <Log name="Coordinator Active" message="Coordinator is active" />
+            <Wait name="Coordinator Wait" duration="1.0" />
+        </Sequence>
+    </BehaviorTree>
+    
+    <!-- Monitor Behavior Tree -->
+    <BehaviorTree name="Monitor" description="Monitor Service">
+        <Sequence name="Monitor Behavior">
+            <Log name="Monitor Active" message="Monitor is active" />
+            <Wait name="Monitor Wait" duration="2.0" />
+        </Sequence>
+    </BehaviorTree>
+    
+    <!-- Communication Configuration -->
+    <Communication>
+        <!-- Pub/Sub Communication -->
+        <ComTopic name="emergency_events">
+            <ComPublisher service="Coordinator" />
+            <ComSubscriber service="Robot_001" />
+            <ComSubscriber service="Robot_002" />
+        </ComTopic>
+        <ComTopic name="task_events">
+            <ComPublisher service="Coordinator" />
+            <ComSubscriber service="Robot_001" />
+            <ComSubscriber service="Robot_002" />
+        </ComTopic>
         
-        # Emergency response (highest priority)
-        emergency_sequence = Sequence("Emergency Response")
-        emergency_sequence.add_child(EmergencyCheckCondition("Check Emergency", robot_id))
-        emergency_sequence.add_child(EmergencyResponseAction("Emergency Response", robot_id))
-        root.add_child(emergency_sequence)
+        <!-- Request/Response Communication -->
+        <ComService name="battery_status">
+            <ComServer service="Robot_001" />
+            <ComServer service="Robot_002" />
+            <ComClient service="Coordinator" />
+        </ComService>
+        <ComService name="task_status">
+            <ComServer service="Coordinator" />
+            <ComClient service="Robot_001" />
+            <ComClient service="Robot_002" />
+        </ComService>
         
-        # Battery management
-        battery_sequence = Sequence("Battery Management")
-        battery_sequence.add_child(BatteryCheckCondition("Check Battery", robot_id))
-        battery_sequence.add_child(ChargeAction("Charge", robot_id))
-        root.add_child(battery_sequence)
+        <!-- Shared Blackboard -->
+        <ComShared>
+            <ComKey name="emergency" />
+            <ComKey name="battery_level" />
+            <ComKey name="task_available" />
+            <ComKey name="system_status" />
+        </ComShared>
         
-        # Task execution
-        task_sequence = Sequence("Task Execution")
-        task_sequence.add_child(TaskAvailableCondition("Check Task", robot_id))
-        task_sequence.add_child(TaskExecutionAction("Execute Task", robot_id, "general"))
-        root.add_child(task_sequence)
+        <!-- State Watching -->
+        <ComState name="emergency_state">
+            <ComWatcher service="Monitor" />
+            <ComWatcher service="Coordinator" />
+        </ComState>
+        <ComState name="battery_state">
+            <ComWatcher service="Monitor" />
+            <ComWatcher service="Coordinator" />
+        </ComState>
         
-        # Default patrol behavior
-        patrol_sequence = Sequence("Patrol")
-        patrol_sequence.add_child(PatrolAction("Patrol", robot_id))
-        root.add_child(patrol_sequence)
+        <!-- Behavior Calls -->
+        <ComCall name="patrol_behavior">
+            <ComProvider service="Robot_001" />
+            <ComProvider service="Robot_002" />
+            <ComCaller service="Coordinator" />
+        </ComCall>
         
-        tree.load_from_root(root)
+        <!-- Task Board -->
+        <ComTask name="patrol_task">
+            <ComPublisher service="Coordinator" />
+            <ComClaimant service="Robot_001" />
+            <ComClaimant service="Robot_002" />
+        </ComTask>
+        <ComTask name="maintenance_task">
+            <ComPublisher service="Coordinator" />
+            <ComClaimant service="Robot_001" />
+            <ComClaimant service="Robot_002" />
+        </ComTask>
+    </Communication>
     
-    return ForestNode(
-        name=f"Robot_{robot_id}",
-        node_type=ForestNodeType.WORKER,
-        tree=tree,
-        capabilities=capabilities
-    )
-
-
-def create_coordinator_forest_node() -> ForestNode:
-    """Create a coordinator forest node"""
-    
-    # Create behavior tree for coordinator
-    tree = BehaviorTree()
-    
-    # Simple coordinator behavior
-    root = Sequence("Coordinator Behavior")
-    root.add_child(Log("Coordinator Active"))
-    root.add_child(Wait(1.0))
-    
-    tree.load_from_root(root)
-    
-    return ForestNode(
-        name="Coordinator",
-        node_type=ForestNodeType.COORDINATOR,
-        tree=tree,
-        capabilities={"coordinate", "monitor"}
-    )
-
-
-def create_monitor_forest_node() -> ForestNode:
-    """Create a monitor forest node"""
-    
-    # Create behavior tree for monitor
-    tree = BehaviorTree()
-    
-    # Simple monitor behavior
-    root = Sequence("Monitor Behavior")
-    root.add_child(Log("Monitor Active"))
-    root.add_child(Wait(2.0))
-    
-    tree.load_from_root(root)
-    
-    return ForestNode(
-        name="Monitor",
-        node_type=ForestNodeType.MONITOR,
-        tree=tree,
-        capabilities={"monitor", "log"}
-    )
+</BehaviorForest>'''
 
 
 async def demonstrate_pubsub_pattern(forest: BehaviorForest):
@@ -237,12 +281,12 @@ async def demonstrate_pubsub_pattern(forest: BehaviorForest):
         print(f"📡 PubSub: Task event received: {event}")
     
     # Subscribe to events
-    pubsub.subscribe("emergency", emergency_handler)
-    pubsub.subscribe("task", task_handler)
+    pubsub.subscribe("emergency_events", emergency_handler)
+    pubsub.subscribe("task_events", task_handler)
     
     # Publish events
-    await pubsub.publish("emergency", {"location": "Zone A", "severity": "high"}, "Coordinator")
-    await pubsub.publish("task", {"type": "patrol", "area": "Zone B"}, "Coordinator")
+    await pubsub.publish("emergency_events", {"location": "Zone A", "severity": "high"}, "Coordinator")
+    await pubsub.publish("task_events", {"type": "patrol", "area": "Zone B"}, "Coordinator")
 
 
 async def demonstrate_reqresp_pattern(forest: BehaviorForest):
@@ -270,12 +314,12 @@ async def demonstrate_reqresp_pattern(forest: BehaviorForest):
         return {"task_count": 3, "completed": 1}
     
     # Register handlers
-    reqresp.register_service("get_battery_status", get_battery_status)
-    reqresp.register_service("get_task_status", get_task_status)
+    reqresp.register_service("battery_status", get_battery_status)
+    reqresp.register_service("task_status", get_task_status)
     
     # Make requests
-    battery_response = await reqresp.request("get_battery_status", {}, "Robot_001")
-    task_response = await reqresp.request("get_task_status", {}, "Coordinator")
+    battery_response = await reqresp.request("battery_status", {}, "Robot_001")
+    task_response = await reqresp.request("task_status", {}, "Coordinator")
     
     print(f"📡 ReqResp: Battery response: {battery_response}")
     print(f"📡 ReqResp: Task response: {task_response}")
@@ -298,15 +342,18 @@ async def demonstrate_shared_blackboard_pattern(forest: BehaviorForest):
     
     # Set shared data
     shared_bb.set("system_status", "operational", "Coordinator")
-    shared_bb.set("active_robots", 3, "Coordinator")
-    shared_bb.set("emergency_level", "normal", "Coordinator")
+    shared_bb.set("emergency", False, "Coordinator")
+    shared_bb.set("battery_level", 85, "Robot_001")
+    shared_bb.set("task_available", True, "Coordinator")
     
     # Read shared data
     system_status = shared_bb.get("system_status", "unknown", "Robot_001")
-    active_robots = shared_bb.get("active_robots", 0, "Robot_002")
-    emergency_level = shared_bb.get("emergency_level", "unknown", "Monitor")
+    emergency = shared_bb.get("emergency", False, "Robot_002")
+    battery_level = shared_bb.get("battery_level", 0, "Monitor")
+    task_available = shared_bb.get("task_available", False, "Monitor")
     
-    print(f"📊 Shared data - System: {system_status}, Robots: {active_robots}, Emergency: {emergency_level}")
+    print(f"📊 Shared data - System: {system_status}, Emergency: {emergency}")
+    print(f"📊 Shared data - Battery: {battery_level}%, Task available: {task_available}")
 
 
 async def demonstrate_state_watching_pattern(forest: BehaviorForest):
@@ -331,13 +378,13 @@ async def demonstrate_state_watching_pattern(forest: BehaviorForest):
     def battery_state_handler(key, old_value, new_value, source):
         print(f"🔋 Battery state changed: {old_value} -> {new_value} (from {source})")
     
-    state_watch.watch_state("emergency_level", emergency_state_handler, "Monitor")
-    state_watch.watch_state("battery_level", battery_state_handler, "Monitor")
+    state_watch.watch_state("emergency_state", emergency_state_handler, "Monitor")
+    state_watch.watch_state("battery_state", battery_state_handler, "Monitor")
     
     # Update states
-    await state_watch.update_state("emergency_level", "high", "Coordinator")
-    await state_watch.update_state("battery_level", 15, "Robot_001")
-    await state_watch.update_state("emergency_level", "critical", "Coordinator")
+    await state_watch.update_state("emergency_state", True, "Coordinator")
+    await state_watch.update_state("battery_state", 15, "Robot_001")
+    await state_watch.update_state("emergency_state", False, "Coordinator")
 
 
 async def demonstrate_behavior_call_pattern(forest: BehaviorForest):
@@ -364,12 +411,12 @@ async def demonstrate_behavior_call_pattern(forest: BehaviorForest):
         print(f"📡 BehaviorCall: Charge behavior called with params: {params}")
         return {"status": "charging", "duration": params.get("duration", 60)}
     
-    behavior_call.register_behavior("patrol", patrol_behavior)
-    behavior_call.register_behavior("charge", charge_behavior)
+    behavior_call.register_behavior("patrol_behavior", patrol_behavior)
+    behavior_call.register_behavior("charge_behavior", charge_behavior)
     
     # Call behaviors
-    patrol_result = await behavior_call.call_behavior("patrol", {"area": "Zone A"}, "Coordinator")
-    charge_result = await behavior_call.call_behavior("charge", {"duration": 120}, "Robot_001")
+    patrol_result = await behavior_call.call_behavior("patrol_behavior", {"area": "Zone A"}, "Coordinator")
+    charge_result = await behavior_call.call_behavior("charge_behavior", {"duration": 120}, "Robot_001")
     
     print(f"📡 BehaviorCall: Patrol result: {patrol_result}")
     print(f"📡 BehaviorCall: Charge result: {charge_result}")
@@ -390,22 +437,24 @@ async def demonstrate_task_board_pattern(forest: BehaviorForest):
         print("❌ Task Board middleware not found")
         return
     
-    # Post tasks
-    task_board.post_task("patrol", {"area": "Zone A", "priority": "high"})
-    task_board.post_task("charge", {"duration": 60, "priority": "medium"})
-    task_board.post_task("maintenance", {"type": "routine", "priority": "low"})
+    # Publish tasks
+    task_board.publish_task("patrol_task", "Patrol area", {"patrol"}, 0, {"area": "Zone A", "priority": "high"})
+    task_board.publish_task("maintenance_task", "Perform maintenance", {"maintenance"}, 0, {"type": "routine", "priority": "medium"})
     
     # Get available tasks
-    available_tasks = task_board.get_available_tasks()
-    print(f"📡 TaskBoard: Available tasks: {available_tasks}")
+    available_tasks = task_board.get_available_tasks({"patrol", "maintenance"})
+    print(f"📡 TaskBoard: Available tasks: {len(available_tasks)}")
     
     # Claim task
-    claimed_task = task_board.claim_task("Robot_001", "patrol")
-    print(f"📡 TaskBoard: Robot_001 claimed task: {claimed_task}")
-    
-    # Complete task
-    task_board.complete_task("Robot_001", "patrol", {"result": "success"})
-    print("📡 TaskBoard: Task completed")
+    if available_tasks:
+        task = available_tasks[0]
+        claimed = task_board.claim_task(task.id, "Robot_001", {"patrol", "maintenance"})
+        print(f"📡 TaskBoard: Robot_001 claimed task: {claimed}")
+        
+        if claimed:
+            # Complete task
+            task_board.complete_task(task.id, {"result": "success"})
+            print("📡 TaskBoard: Task completed")
 
 
 def register_custom_nodes():
@@ -428,56 +477,57 @@ async def main():
     # Register custom node types for XML parsing
     register_custom_nodes()
     
-    # Create forest configuration
-    config = ForestConfig(
-        name="Robot Forest",
-        tick_rate=1.0
-    )
+    # Create XML configuration
+    xml_config = create_robot_forest_xml()
     
-    # Create behavior forest
-    forest = BehaviorForest(config)
+    # Create temporary XML file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        f.write(xml_config)
+        xml_file_path = f.name
     
-    # Create forest nodes
-    robot1_node = create_robot_forest_node("001", {"patrol", "charge", "emergency"})
-    robot2_node = create_robot_forest_node("002", {"patrol", "task"})
-    coordinator_node = create_coordinator_forest_node()
-    monitor_node = create_monitor_forest_node()
-    
-    # Add nodes to forest
-    forest.add_node(robot1_node)
-    forest.add_node(robot2_node)
-    forest.add_node(coordinator_node)
-    forest.add_node(monitor_node)
-    
-    print("Behavior forest configured with XML-compatible nodes:")
-    print(f"  - {robot1_node.name} (capabilities: {robot1_node.capabilities})")
-    print(f"  - {robot2_node.name} (capabilities: {robot2_node.capabilities})")
-    print(f"  - {coordinator_node.name} (capabilities: {coordinator_node.capabilities})")
-    print(f"  - {monitor_node.name} (capabilities: {monitor_node.capabilities})")
-    
-    # Demonstrate communication patterns
-    await demonstrate_pubsub_pattern(forest)
-    await demonstrate_reqresp_pattern(forest)
-    await demonstrate_shared_blackboard_pattern(forest)
-    await demonstrate_state_watching_pattern(forest)
-    await demonstrate_behavior_call_pattern(forest)
-    await demonstrate_task_board_pattern(forest)
-    
-    print("\n=== Forest Execution ===")
-    print("Starting behavior forest execution...")
-    
-    # Start forest
-    await forest.start()
-    
-    # Run for a few ticks
-    for i in range(3):
-        print(f"\n--- Forest Tick {i+1} ---")
-        await asyncio.sleep(0.01)
-    
-    # Stop forest
-    await forest.stop()
-    
-    print("\nBehavior forest execution completed!")
+    try:
+        # Initialize XML parser
+        parser = XMLParser()
+        
+        # Load behavior forest from XML
+        print("Loading behavior forest from XML configuration...")
+        forest = parser.parse_file(xml_file_path)
+        
+        print(f"Successfully loaded forest: {forest.name}")
+        print(f"Forest contains {len(forest.nodes)} behavior trees:")
+        
+        for node_name, node in forest.nodes.items():
+            print(f"  - {node_name} ({node.node_type.name})")
+        
+        print(f"\nForest middleware: {len(forest.middleware)} middleware components")
+        
+        # Demonstrate communication patterns
+        await demonstrate_pubsub_pattern(forest)
+        await demonstrate_reqresp_pattern(forest)
+        await demonstrate_shared_blackboard_pattern(forest)
+        await demonstrate_state_watching_pattern(forest)
+        await demonstrate_behavior_call_pattern(forest)
+        await demonstrate_task_board_pattern(forest)
+        
+        print("\n=== Forest Execution ===")
+        print("Starting behavior forest execution...")
+        
+        # Start forest
+        await forest.start()
+        
+        # Run for a few ticks
+        for i in range(3):
+            print(f"\n--- Forest Tick {i+1} ---")
+            await asyncio.sleep(0.01)
+        
+        # Stop forest
+        await forest.stop()
+        
+        print("\nBehavior forest execution completed!")
+        
+    finally:
+        # Clean up temporary file
+        os.unlink(xml_file_path)
 
 
 if __name__ == "__main__":
