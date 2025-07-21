@@ -280,7 +280,7 @@ async def main():
     parallel.add_child(TestAction("Parallel Action 3", 0.9, 0.2))
     
     tree1 = BehaviorTree()
-    tree1.load_from_root(parallel)
+    tree1.load_from_node(parallel)
     result1 = await tree1.tick()
     print(f"Parallel node result: {result1}\n")
     
@@ -292,7 +292,7 @@ async def main():
     priority.add_child(TestAction("Low Priority Action", 0.9, 0.2))
     
     tree2 = BehaviorTree()
-    tree2.load_from_root(priority)
+    tree2.load_from_node(priority)
     result2 = await tree2.tick()
     print(f"Priority node result: {result2}\n")
     
@@ -304,7 +304,7 @@ async def main():
     random_selector.add_child(TestAction("Random Action 3", 0.8, 0.2))
     
     tree3 = BehaviorTree()
-    tree3.load_from_root(random_selector)
+    tree3.load_from_node(random_selector)
     result3 = await tree3.tick()
     print(f"Random selector result: {result3}\n")
     
@@ -316,7 +316,7 @@ async def main():
     memory_sequence.add_child(TestAction("Memory Action 3", 0.9, 0.2))
     
     tree4 = BehaviorTree()
-    tree4.load_from_root(memory_sequence)
+    tree4.load_from_node(memory_sequence)
     result4 = await tree4.tick()
     print(f"Memory sequence result: {result4}\n")
     
@@ -328,7 +328,7 @@ async def main():
     weighted_selector.add_child(TestAction("Low Weight Action", 0.8, 0.2), 1)
     
     tree5 = BehaviorTree()
-    tree5.load_from_root(weighted_selector)
+    tree5.load_from_node(weighted_selector)
     result5 = await tree5.tick()
     print(f"Weighted selector result: {result5}\n")
     

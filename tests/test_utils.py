@@ -31,7 +31,7 @@ class DummyNode(BaseNode):
 def test_validate_tree_and_node():
     tree = BehaviorTree(name="T")
     node = DummyNode(name="root")
-    tree.load_from_root(node)
+    tree.load_from_node(node)
     result = validate_tree(tree)
     assert isinstance(result, ValidationResult)
     # The tree should be valid even with warnings
@@ -109,7 +109,7 @@ def test_get_tree_statistics():
     tree = BehaviorTree(name="TestTree", description="Test Description")
     node1 = DummyNode(name="node1")
     node2 = DummyNode(name="node2")
-    tree.load_from_root(node1)
+    tree.load_from_node(node1)
     node1.add_child(node2)
     
     stats = get_tree_statistics(tree)
@@ -266,7 +266,7 @@ def test_validate_tree_with_blackboard():
     tree = BehaviorTree(name="TestTree")
     tree.blackboard = {"key1": "value1"}
     node = DummyNode(name="root")
-    tree.load_from_root(node)
+    tree.load_from_node(node)
     
     result = validate_tree(tree)
     assert result.is_valid
@@ -276,7 +276,7 @@ def test_validate_tree_with_event_system():
     from abtree.engine.event_system import EventSystem
     tree.event_system = EventSystem()
     node = DummyNode(name="root")
-    tree.load_from_root(node)
+    tree.load_from_node(node)
     
     result = validate_tree(tree)
     assert result.is_valid
@@ -286,7 +286,7 @@ def test_validate_tree_with_tick_manager():
     from abtree.engine.tick_manager import TickManager
     tree.tick_manager = TickManager()
     node = DummyNode(name="root")
-    tree.load_from_root(node)
+    tree.load_from_node(node)
     
     result = validate_tree(tree)
     assert result.is_valid

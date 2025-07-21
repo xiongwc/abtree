@@ -135,7 +135,7 @@ def create_production_forest() -> BehaviorForest:
     
     # Create behavior tree
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     
     # Initialize blackboard
     blackboard = tree.blackboard
@@ -195,7 +195,7 @@ def create_monitoring_forest() -> BehaviorForest:
     
     # Create behavior tree
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     
     # Create forest
     forest = BehaviorForest(
@@ -249,7 +249,7 @@ def create_coordination_forest() -> BehaviorForest:
     
     # Create behavior tree
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     
     # Create forest
     forest = BehaviorForest(

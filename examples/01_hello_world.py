@@ -42,7 +42,7 @@ async def main():
     
     # 2. Create behavior tree
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     
     # 3. Execute behavior tree
     print("Start executing behavior tree...")

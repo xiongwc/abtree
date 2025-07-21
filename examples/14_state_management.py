@@ -443,7 +443,7 @@ async def main():
     
     # 5. Create behavior tree instance
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     blackboard = tree.blackboard
     
     # 6. Initialize data

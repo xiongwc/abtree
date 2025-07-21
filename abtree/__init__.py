@@ -148,7 +148,7 @@ def create_tree(
             tree.load_from_string(root)
         else:
             # If root is a BaseNode, load it directly
-            tree.load_from_root(root)
+            tree.load_from_node(root)
     elif xml_string is not None:
         tree.load_from_string(xml_string)
     elif xml_file is not None:

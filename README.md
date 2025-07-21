@@ -115,7 +115,7 @@ root.children[0].add_child(CloseDoor("Close Door"))
 
 # Create behavior tree instance
 tree = BehaviorTree()
-tree.load_from_root(root)
+tree.load_from_node(root)
 
 # Execute
 async def main():
@@ -204,7 +204,7 @@ def create_robot_tree(robot_id: str) -> BehaviorTree:
     root.add_child(cleaning_seq)
     
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     return tree
 
 async def main():

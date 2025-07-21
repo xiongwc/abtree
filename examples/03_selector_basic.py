@@ -103,7 +103,7 @@ async def main():
     
     # 3. Create behavior tree
     tree = BehaviorTree()
-    tree.load_from_root(selector)
+    tree.load_from_node(selector)
     
     # 4. Test different scenarios
     scenarios = [

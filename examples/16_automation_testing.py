@@ -468,7 +468,7 @@ async def main():
     
     # Create behavior tree instance
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     blackboard = tree.blackboard
     
     print("Starting automation testing workflow...")

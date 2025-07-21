@@ -137,7 +137,7 @@ async def test_event_system_global_listeners():
 async def test_behavior_tree_tick():
     tree = BehaviorTree()
     node = DummyNode(name='root')
-    tree.load_from_root(node)
+    tree.load_from_node(node)
     result = await tree.tick()
     assert result == Status.SUCCESS
     assert tree.root == node
@@ -148,7 +148,7 @@ async def test_behavior_tree_tick():
 async def test_behavior_tree_event_emit():
     tree = BehaviorTree()
     node = DummyNode(name='root')
-    tree.load_from_root(node)
+    tree.load_from_node(node)
     events = []
     def on_tick_start(event):
         events.append(event.name)
@@ -160,7 +160,7 @@ async def test_behavior_tree_event_emit():
 async def test_behavior_tree_with_failing_node():
     tree = BehaviorTree()
     node = FailingNode(name='root')
-    tree.load_from_root(node)
+    tree.load_from_node(node)
     result = await tree.tick()
     assert result == Status.FAILURE
 
@@ -168,7 +168,7 @@ async def test_behavior_tree_with_failing_node():
 async def test_behavior_tree_with_running_node():
     tree = BehaviorTree()
     node = RunningNode(name='root', max_ticks=2)
-    tree.load_from_root(node)
+    tree.load_from_node(node)
     
     # First tick should return RUNNING
     result = await tree.tick()
@@ -183,7 +183,7 @@ def test_behavior_tree_node_operations():
     node1 = DummyNode(name='node1')
     node2 = DummyNode(name='node2')
     
-    tree.load_from_root(node1)
+    tree.load_from_node(node1)
     assert tree.find_node('node1') == node1
     assert tree.find_node('node2') is None
     
@@ -200,7 +200,7 @@ def test_behavior_tree_blackboard_operations():
 def test_behavior_tree_stats():
     tree = BehaviorTree(name='TestTree', description='Test Description')
     node = DummyNode(name='root')
-    tree.load_from_root(node)
+    tree.load_from_node(node)
     
     stats = tree.get_tree_stats()
     assert stats['name'] == 'TestTree'
@@ -275,7 +275,7 @@ def test_behavior_tree_context_manager():
     async def test_context():
         async with BehaviorTree() as tree:
             node = DummyNode(name='root')
-            tree.load_from_root(node)
+            tree.load_from_node(node)
             result = await tree.tick()
             assert result == Status.SUCCESS
     

@@ -139,7 +139,7 @@ class XMLParser:
         behavior_tree = BehaviorTree(
             name=tree_name, description=tree_description
         )
-        behavior_tree.load_from_root(root_node)
+        behavior_tree.load_from_node(root_node)
 
         return behavior_tree
 

@@ -89,7 +89,7 @@ class BehaviorTree:
         self._init_from_xml_file(xml_file)
         self._init_default_components()
 
-    def load_from_root(self, root: BaseNode) -> None:
+    def load_from_node(self, root: BaseNode) -> None:
         """
         Load behavior tree from root node
 

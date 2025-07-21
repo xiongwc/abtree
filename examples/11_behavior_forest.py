@@ -163,7 +163,7 @@ def create_robot_forest_node(robot_id: str, capabilities: Set[str]) -> ForestNod
     
     # Create behavior tree
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     
     # Initialize blackboard
     blackboard = tree.blackboard
@@ -210,7 +210,7 @@ def create_coordinator_forest_node() -> ForestNode:
     
     # Create behavior tree
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     
     # Create forest node
     node = ForestNode(
@@ -245,7 +245,7 @@ def create_monitor_forest_node() -> ForestNode:
     
     # Create behavior tree
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     
     # Create forest node
     node = ForestNode(

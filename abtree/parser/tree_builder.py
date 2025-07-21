@@ -41,7 +41,7 @@ class TreeBuilder:
         root = self._build_node(tree_dict.get("root", {}))
         
         tree = BehaviorTree(name=tree_name, description=tree_description)
-        tree.load_from_root(root)
+        tree.load_from_node(root)
         return tree
 
     def _build_node(self, node_dict: dict) -> BaseNode:
@@ -254,7 +254,7 @@ class TreeBuilder:
 
         # Create tree
         tree = BehaviorTree(name=name, description="Simple example behavior tree")
-        tree.load_from_root(root)
+        tree.load_from_node(root)
         return tree
 
     def create_advanced_tree(self, name: str = "AdvancedTree") -> BehaviorTree:
@@ -319,7 +319,7 @@ class TreeBuilder:
 
         # Create tree
         tree = BehaviorTree(name=name, description="Advanced example behavior tree")
-        tree.load_from_root(root)
+        tree.load_from_node(root)
         return tree
 
     def validate_tree(self, tree: BehaviorTree) -> bool:

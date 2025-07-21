@@ -597,7 +597,7 @@ async def main():
     
     # 6. Create behavior tree instance
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     blackboard = tree.blackboard
     
     # 7. Initialize data

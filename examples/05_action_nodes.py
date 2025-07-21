@@ -183,7 +183,7 @@ async def main():
     
     # 3. Create behavior tree
     tree = BehaviorTree()
-    tree.load_from_root(root)
+    tree.load_from_node(root)
     blackboard = tree.blackboard
     
     # 5. Set test data

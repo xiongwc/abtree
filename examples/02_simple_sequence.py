@@ -88,7 +88,7 @@ async def main():
     
     # 3. Create behavior tree
     tree = BehaviorTree()
-    tree.load_from_root(sequence)
+    tree.load_from_node(sequence)
     
     # 4. Execute behavior tree
     print("Start executing behavior tree...")
@@ -113,7 +113,7 @@ async def main():
     
     # Create behavior tree for failure scenario
     fail_tree = BehaviorTree()
-    fail_tree.load_from_root(fail_sequence)
+    fail_tree.load_from_node(fail_sequence)
     
     # Execute failure scenario
     print("Start executing failure scenario...")
