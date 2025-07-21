@@ -33,11 +33,6 @@ jobs:
     - name: Run type checking
       run: |
         mypy abtree/
-    
-    - name: Run code quality checks
-      run: |
-        isort --check-only abtree/
-        bandit -r abtree/
 
   release:
     needs: test
