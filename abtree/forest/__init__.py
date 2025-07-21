@@ -8,25 +8,10 @@ to collaborate through various communication patterns, supporting complex multi-
 from typing import Any
 
 from .core import BehaviorForest, ForestNode, ForestNodeType
-from .forest_config import ForestConfig, ForestConfigPresets
+from .config import ForestConfig, ForestConfigPresets
 from .forest_manager import ForestManager
 
 # Advanced features
-try:
-    from .visualization import (
-        ForestDashboard,
-        ForestVisualizer,
-        create_forest_dashboard,
-        create_forest_visualizer,
-    )
-    VISUALIZATION_AVAILABLE = True
-except ImportError:
-    VISUALIZATION_AVAILABLE = False
-    ForestVisualizer: Any = None  # type: ignore[no-redef]
-    ForestDashboard: Any = None  # type: ignore[no-redef]
-    create_forest_visualizer: Any = None  # type: ignore[no-redef]
-    create_forest_dashboard: Any = None  # type: ignore[no-redef]
-
 try:
     from .plugin_system import (
         BasePlugin,
@@ -69,10 +54,6 @@ __all__ = [
     "ForestConfigPresets",
     
     # Advanced features (conditional)
-    "ForestVisualizer",
-    "ForestDashboard", 
-    "create_forest_visualizer",
-    "create_forest_dashboard",
     "PluginManager",
     "BasePlugin",
     "PluginInfo",
@@ -82,7 +63,6 @@ __all__ = [
     "monitor_forest_performance",
     
     # Availability flags
-    "VISUALIZATION_AVAILABLE",
     "PLUGIN_SYSTEM_AVAILABLE", 
     "PERFORMANCE_MONITORING_AVAILABLE"
 ] 

@@ -2,7 +2,7 @@ import pytest
 import asyncio
 from abtree.forest.core import ForestNode, BehaviorForest, ForestNodeType
 from abtree.forest.forest_manager import ForestManager, ForestStatus
-from abtree.forest.forest_config import ForestConfig, ForestConfigPresets
+from abtree.forest.config import ForestConfig, ForestConfigPresets
 from abtree.forest.communication import (
     PubSubMiddleware, ReqRespMiddleware, SharedBlackboardMiddleware,
     StateWatchingMiddleware, BehaviorCallMiddleware, TaskBoardMiddleware

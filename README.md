@@ -261,7 +261,6 @@ abtree/
 │   ├── nodes/                  # 🎯 Node implementations
 │   ├── parser/                 # 📝 Configuration parsing
 │   ├── registry/               # 📋 Node registration
-│   ├── ui/                     # 🖥️ User interface
 │   └── utils/                  # 🔧 Utilities
 ├── cli/                        # 🖥️ Command line tools
 ├── docs/                       # 📖 Documentation

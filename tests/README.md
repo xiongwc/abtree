@@ -58,7 +58,7 @@ Current test coverage: **44%**
 - `abtree/forest/communication.py`: 31%
 - `abtree/forest/performance.py`: 31%
 - `abtree/forest/plugin_system.py`: 36%
-- `abtree/forest/visualization.py`: 20%
+
 - `abtree/nodes/composite.py`: 25%
 - `abtree/nodes/decorator.py`: 28%
 - `abtree/parser/tree_builder.py`: 13%

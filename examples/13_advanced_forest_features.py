@@ -2,7 +2,6 @@
 Advanced Behavior Forest Features Example
 
 This example demonstrates the advanced features of the behavior forest system:
-- Visualization capabilities
 - Plugin system
 - Performance monitoring
 - Real-time dashboard
@@ -18,7 +17,6 @@ from abtree import (
     PubSubMiddleware, SharedBlackboardMiddleware, TaskBoardMiddleware,
     BehaviorTree, Sequence, Selector, Action, Condition, Status
 )
-from abtree.forest.visualization import ForestVisualizer, ForestDashboard
 from abtree.forest.plugin_system import PluginManager, BasePlugin
 from abtree.forest.performance import PerformanceMonitor, create_performance_monitor
 
@@ -118,48 +116,6 @@ def create_robot_tree(robot_id: str) -> BehaviorTree:
     tree = BehaviorTree()
     tree.load_from_node(root)
     return tree
-
-
-async def demonstrate_visualization():
-    """Demonstrate forest visualization capabilities."""
-    print("\n" + "="*60)
-    print("🌳 FOREST VISUALIZATION DEMONSTRATION")
-    print("="*60)
-    
-    # Create forest
-    forest = BehaviorForest("VisualizationDemo")
-    
-    # Add middleware
-    forest.add_middleware(PubSubMiddleware("PubSub"))
-    forest.add_middleware(SharedBlackboardMiddleware("SharedBlackboard"))
-    
-    # Add robot nodes
-    for robot_id in ["R1", "R2", "R3"]:
-        tree = create_robot_tree(robot_id)
-        node = ForestNode(
-            name=f"Robot_{robot_id}",
-            tree=tree,
-            node_type=ForestNodeType.WORKER,
-            capabilities={"navigation", "cleaning", "emergency"}
-        )
-        forest.add_node(node)
-    
-    # Create visualizer
-    visualizer = ForestVisualizer(forest)
-    
-    # Export forest data
-    forest_data = visualizer.export_forest_data()
-    print("📊 Forest Data Export:")
-    print(forest_data[:500] + "..." if len(forest_data) > 500 else forest_data)
-    
-    # Generate forest report
-    report = visualizer.generate_forest_report()
-    print(f"\n📈 Forest Report:")
-    print(f"   Nodes: {report['forest_info']['node_count']}")
-    print(f"   Middleware: {report['forest_info']['middleware_count']}")
-    print(f"   Node Types: {report['node_analysis']['type_distribution']}")
-    
-    print("✅ Visualization demonstration completed")
 
 
 async def demonstrate_plugin_system():
@@ -298,28 +254,15 @@ async def demonstrate_real_time_dashboard():
         
         forests.append(forest)
     
-    # Create dashboard
-    dashboard = ForestDashboard(forests)
-    
     # Start forests
     for forest in forests:
         await forest.start()
-    
-    # Start dashboard monitoring (run for a few seconds)
-    dashboard_task = asyncio.create_task(dashboard.start_monitoring(update_interval=1.0))
     
     # Run forests for a few ticks
     for i in range(3):
         for forest in forests:
             await forest.tick()
         await asyncio.sleep(0.01)
-    
-    # Stop dashboard
-    dashboard_task.cancel()
-    try:
-        await dashboard_task
-    except asyncio.CancelledError:
-        pass
     
     # Stop forests
     for forest in forests:
@@ -334,9 +277,6 @@ async def main():
     print("="*60)
     
     try:
-        # Demonstrate visualization
-        await demonstrate_visualization()
-        
         # Demonstrate plugin system
         await demonstrate_plugin_system()
         
