@@ -91,38 +91,39 @@ import asyncio
 from abtree import BehaviorTree, Sequence, Selector, Action, Condition
 from abtree.core import Status
 
-# 定义动作节点
+# Define action nodes
 class OpenDoor(Action):
     async def execute(self, blackboard):
-        print("开门")
+        print("Opening door")
         return Status.SUCCESS
 
 class CloseDoor(Action):
     async def execute(self, blackboard):
-        print("关门")
+        print("Closing door")
         return Status.SUCCESS
 
-# 定义条件节点
+# Define condition nodes
 class IsDoorOpen(Condition):
     async def evaluate(self, blackboard):
         return blackboard.get("door_open", False)
 
-# 构建行为树
-root = Selector("机器人决策")
-root.add_child(Sequence("门控制序列"))
-root.children[0].add_child(IsDoorOpen("检查门状态"))
-root.children[0].add_child(CloseDoor("关门"))
+# Build behavior tree
+root = Selector("Robot Decision")
+root.add_child(Sequence("Door Control Sequence"))
+root.children[0].add_child(IsDoorOpen("Check Door Status"))
+root.children[0].add_child(CloseDoor("Close Door"))
 
-# 创建行为树实例
-tree = BehaviorTree(root)
+# Create behavior tree instance
+tree = BehaviorTree()
+tree.load_from_root(root)
 
-# 执行
+# Execute
 async def main():
     blackboard = tree.blackboard
     blackboard.set("door_open", True)
     
     result = await tree.tick()
-    print(f"执行结果: {result}")
+    print(f"Execution result: {result}")
 
 asyncio.run(main())
 ```
@@ -164,40 +165,80 @@ asyncio.run(main())
 import asyncio
 from abtree import (
     BehaviorForest, ForestNode, ForestNodeType,
-    PubSubMiddleware, SharedBlackboardMiddleware
+    PubSubMiddleware, SharedBlackboardMiddleware,
+    BehaviorTree, Sequence, Selector, Action, Condition
 )
+from abtree.core import Status
 
-# 创建行为森林
-forest = BehaviorForest("机器人协作森林")
+# Simple robot action node
+class RobotAction(Action):
+    def __init__(self, name: str, action_type: str):
+        super().__init__(name)
+        self.action_type = action_type
+    
+    async def execute(self, blackboard):
+        print(f"Robot {self.action_type}")
+        if self.action_type == "cleaning":
+            blackboard.set("cleaning_needed", False)
+        return Status.SUCCESS
 
-# 添加通信中间件
-forest.add_middleware(PubSubMiddleware("PubSub"))
-forest.add_middleware(SharedBlackboardMiddleware("共享黑板"))
+# Simple condition node
+class SimpleCondition(Condition):
+    def __init__(self, name: str, key: str, default: bool = True):
+        super().__init__(name)
+        self.key = key
+        self.default = default
+    
+    async def evaluate(self, blackboard):
+        return blackboard.get(self.key, self.default)
 
-# 添加机器人节点到森林
-for robot_id in ["R1", "R2", "R3"]:
-    tree = create_robot_tree(robot_id)  # 创建机器人行为树
-    node = ForestNode(
-        name=f"Robot_{robot_id}",
-        tree=tree,
-        node_type=ForestNodeType.WORKER,
-        capabilities={"清洁", "导航", "紧急"}
-    )
-    forest.add_node(node)
+def create_robot_tree(robot_id: str) -> BehaviorTree:
+    """Create a simple robot behavior tree"""
+    root = Selector(f"Robot_{robot_id}")
+    
+    # Cleaning sequence
+    cleaning_seq = Sequence("Cleaning")
+    cleaning_seq.add_child(SimpleCondition("Check Cleaning", "cleaning_needed"))
+    cleaning_seq.add_child(RobotAction("Clean", "cleaning"))
+    cleaning_seq.add_child(RobotAction("Navigate", "navigating"))
+    root.add_child(cleaning_seq)
+    
+    tree = BehaviorTree()
+    tree.load_from_root(root)
+    return tree
 
-# 启动森林
 async def main():
+    # Create behavior forest
+    forest = BehaviorForest("Robot Forest")
+    
+    # Add middleware
+    forest.add_middleware(PubSubMiddleware("PubSub"))
+    forest.add_middleware(SharedBlackboardMiddleware("Shared Blackboard"))
+    
+    # Add robot nodes
+    for robot_id in ["R1", "R2", "R3"]:
+        tree = create_robot_tree(robot_id)
+        node = ForestNode(
+            name=f"Robot_{robot_id}",
+            tree=tree,
+            node_type=ForestNodeType.WORKER,
+            capabilities={"cleaning", "navigation"}
+        )
+        forest.add_node(node)
+    
+    # Start forest
     await forest.start()
     
-    # 运行几个tick
-    for i in range(5):
+    # Execute ticks
+    for i in range(3):
         results = await forest.tick()
         print(f"Tick {i+1}: {results}")
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(0.5)
     
     await forest.stop()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ---
