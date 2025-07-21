@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**基于Python asyncio构建的高性能异步行为树框架，专为智能决策系统设计**
+**基于Python asyncio构建的异步行为树框架，专为智能决策系统设计**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Stars](https://img.shields.io/github/stars/abtree/abtree?style=social)](https://github.com/xiongwc/abtree/stargazers)[![Forks](https://img.shields.io/github/forks/abtree/abtree?style=social)](https://github.com/xiongwc/abtree/network/members)

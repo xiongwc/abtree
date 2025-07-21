@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**High-performance asynchronous behavior tree framework built on Python asyncio, designed for intelligent decision systems**
+**Asynchronous behavior tree framework built on Python asyncio, designed for intelligent decision systems**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Stars](https://img.shields.io/github/stars/abtree/abtree?style=social)](https://github.com/xiongwc/abtree/stargazers)[![Forks](https://img.shields.io/github/forks/abtree/abtree?style=social)](https://github.com/xiongwc/abtree/network/members)
