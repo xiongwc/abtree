@@ -155,48 +155,48 @@ class Repeater(DecoratorNode):
     Repeat the execution of the child node a specified number of times, or repeat indefinitely.
     """
 
-    repeat_count: int = -1  # -1 表示无限重复
+    repeat_count: int = -1  # -1 means infinite repeat
     current_count: int = 0
 
     async def tick(self, blackboard: Blackboard) -> Status:
         """
-        执行重复节点
+        Execute repeater node
 
-        重复执行子节点指定次数。
+        Repeat the execution of the child node a specified number of times.
 
         Args:
-            blackboard: 黑板系统
+            blackboard: Blackboard system
 
         Returns:
-            执行状态
+            Execution status
         """
         if not self.child:
             return Status.FAILURE
 
-        # 检查是否达到重复次数限制
+        # Check if repeat count limit is reached
         if self.repeat_count > 0 and self.current_count >= self.repeat_count:
             self.status = Status.SUCCESS
             return Status.SUCCESS
 
-        # 执行子节点
+        # Execute child node
         child_status = await self.child.tick(blackboard)
 
         if child_status == Status.SUCCESS:
             self.current_count += 1
 
-            # 检查是否需要继续重复
+            # Check if need to continue repeating
             if self.repeat_count == -1 or self.current_count < self.repeat_count:
-                # 重置子节点状态，准备下次执行
+                # Reset child node status, prepare for next execution
                 self.child.reset()
                 self.status = Status.RUNNING
                 return Status.RUNNING
             else:
-                # 达到重复次数，返回成功
+                # Reached repeat count, return success
                 self.status = Status.SUCCESS
                 return Status.SUCCESS
 
         elif child_status == Status.FAILURE:
-            # 子节点失败，重置计数并返回失败
+            # Child node failed, reset count and return failure
             self.current_count = 0
             self.status = Status.FAILURE
             return Status.FAILURE
@@ -206,16 +206,16 @@ class Repeater(DecoratorNode):
             return Status.RUNNING
 
     def reset(self) -> None:
-        """重置节点状态"""
+        """Reset node status"""
         super().reset()
         self.current_count = 0
 
     def set_repeat_count(self, count: int) -> None:
         """
-        设置重复次数
+        Set repeat count
 
         Args:
-            count: 重复次数，-1 表示无限重复
+            count: Repeat count, -1 means infinite repeat
         """
         self.repeat_count = count
 
@@ -223,22 +223,22 @@ class Repeater(DecoratorNode):
 @dataclass
 class UntilSuccess(DecoratorNode):
     """
-    直到成功节点
+    Until success node
 
-    重复执行子节点直到成功为止。
+    Repeat the execution of the child node until it succeeds.
     """
 
     async def tick(self, blackboard: Blackboard) -> Status:
         """
-        执行直到成功节点
+        Execute until success node
 
-        重复执行子节点直到成功为止。
+        Repeat the execution of the child node until it succeeds.
 
         Args:
-            blackboard: 黑板系统
+            blackboard: Blackboard system
 
         Returns:
-            执行状态
+            Execution status
         """
         if not self.child:
             return Status.FAILURE
@@ -249,7 +249,7 @@ class UntilSuccess(DecoratorNode):
             self.status = Status.SUCCESS
             return Status.SUCCESS
         elif child_status == Status.FAILURE:
-            # 子节点失败，重置其状态并继续执行
+            # Child node failed, reset its status and continue execution
             self.child.reset()
             self.status = Status.RUNNING
             return Status.RUNNING
@@ -261,22 +261,22 @@ class UntilSuccess(DecoratorNode):
 @dataclass
 class UntilFailure(DecoratorNode):
     """
-    直到失败节点
+    Until failure node
 
-    重复执行子节点直到失败为止。
+    Repeat the execution of the child node until it fails.
     """
 
     async def tick(self, blackboard: Blackboard) -> Status:
         """
-        执行直到失败节点
+        Execute until failure node
 
-        重复执行子节点直到失败为止。
+        Repeat the execution of the child node until it fails.
 
         Args:
-            blackboard: 黑板系统
+            blackboard: Blackboard system
 
         Returns:
-            执行状态
+            Execution status
         """
         if not self.child:
             return Status.FAILURE
@@ -287,7 +287,7 @@ class UntilFailure(DecoratorNode):
             self.status = Status.SUCCESS
             return Status.SUCCESS
         elif child_status == Status.SUCCESS:
-            # 子节点成功，重置其状态并继续执行
+            # Child node succeeded, reset its status and continue execution
             self.child.reset()
             self.status = Status.RUNNING
             return Status.RUNNING
@@ -295,5 +295,5 @@ class UntilFailure(DecoratorNode):
             self.status = Status.RUNNING
             return Status.RUNNING
 
-# 为了向后兼容性，提供Decorator作为DecoratorNode的别名
+# For backward compatibility, provide Decorator as an alias for DecoratorNode
 Decorator = DecoratorNode
