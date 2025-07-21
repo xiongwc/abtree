@@ -5,7 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "abtree"
 version = "1.2.0"
-description = "Asynchronous Behavior Tree Framework - Modern, Modular, and Easy-to-Integrate Async Behavior Tree Framework"
+description = """High-performance asynchronous behavior tree framework with behavior forest collaboration,
+    built on Python asyncio for embodied intelligence, multi-agent systems, and autonomous decision-making"""
 authors = [
     {name = "aipanda", email = "iepanda@outlook.com"}
 ]
