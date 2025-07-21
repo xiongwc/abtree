@@ -21,21 +21,77 @@ class TreeBuilder:
     Responsible for exporting behavior trees to XML format, as well as building behavior trees from node trees.
     """
 
-    def build_tree(
-        self, root: BaseNode, name: str = "BehaviorTree", description: str = ""
-    ) -> BehaviorTree:
+    def build_tree(self, tree_dict: dict, name: str = "BehaviorTree", description: str = "") -> BehaviorTree:
         """
-        Build behavior tree from root node
+        Build behavior tree from dictionary
 
         Args:
-            root: root node
-            name: behavior tree name
-            description: behavior tree description
+            tree_dict: Dictionary containing tree structure
+            name: Default behavior tree name
+            description: Default behavior tree description
 
         Returns:
             constructed behavior tree
         """
-        return BehaviorTree(root=root, name=name, description=description)
+        # Extract name and description from dict if available
+        tree_name = tree_dict.get("name", name)
+        tree_description = tree_dict.get("description", description)
+        
+        # Build the root node from the dict
+        root = self._build_node(tree_dict.get("root", {}))
+        
+        tree = BehaviorTree(name=tree_name, description=tree_description)
+        tree.load_from_root(root)
+        return tree
+
+    def _build_node(self, node_dict: dict) -> BaseNode:
+        """
+        Build a node from dictionary
+        
+        Args:
+            node_dict: Dictionary containing node information
+            
+        Returns:
+            Built node
+        """
+        if not node_dict:
+            raise ValueError("Empty node dictionary")
+        
+        node_type = node_dict.get("type")
+        if not node_type:
+            raise ValueError("Node type not specified")
+        
+        # Create node based on type
+        if node_type == "Sequence":
+            from ..nodes.composite import Sequence
+            node = Sequence(name=node_dict.get("name", "Sequence"))
+        elif node_type == "Selector":
+            from ..nodes.composite import Selector
+            node = Selector(name=node_dict.get("name", "Selector"))
+        elif node_type == "Parallel":
+            from ..nodes.composite import Parallel
+            policy = node_dict.get("policy", "SUCCEED_ON_ONE")
+            node = Parallel(name=node_dict.get("name", "Parallel"), policy=policy)
+        elif node_type == "Repeater":
+            from ..nodes.decorator import Repeater
+            repeat_count = node_dict.get("repeat_count", 1)
+            node = Repeater(name=node_dict.get("name", "Repeater"), repeat_count=repeat_count)
+        elif node_type == "AlwaysTrue":
+            from ..nodes.condition import AlwaysTrue
+            node = AlwaysTrue(name=node_dict.get("name", "AlwaysTrue"))
+        elif node_type == "AlwaysFalse":
+            from ..nodes.condition import AlwaysFalse
+            node = AlwaysFalse(name=node_dict.get("name", "AlwaysFalse"))
+        else:
+            raise ValueError(f"Unknown node type: {node_type}")
+        
+        # Add children if any
+        children = node_dict.get("children", [])
+        for child_dict in children:
+            child_node = self._build_node(child_dict)
+            node.add_child(child_node)
+        
+        return node
 
     def export_to_xml(self, tree: BehaviorTree, file_path: Optional[str] = None) -> str:
         """

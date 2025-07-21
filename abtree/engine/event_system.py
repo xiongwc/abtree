@@ -36,7 +36,7 @@ class Event:
     name: str
     data: Any = None
     source: Optional[str] = None
-    timestamp: float = field(default_factory=lambda: asyncio.get_event_loop().time())
+    timestamp: float = field(default_factory=lambda: asyncio.get_event_loop().time() if asyncio.get_event_loop().is_running() else 0.0)
     priority: EventPriority = EventPriority.NORMAL
 
     def __repr__(self) -> str:

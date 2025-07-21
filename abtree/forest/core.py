@@ -159,12 +159,16 @@ class BehaviorForest:
         self.nodes[node.name] = node
         
         # Emit node added event
-        asyncio.create_task(
-            self.forest_event_system.emit(
-                "node_added",
-                {"node_name": node.name, "node_type": node.node_type.name}
+        try:
+            asyncio.create_task(
+                self.forest_event_system.emit(
+                    "node_added",
+                    {"node_name": node.name, "node_type": node.node_type.name}
+                )
             )
-        )
+        except RuntimeError:
+            # No running event loop, skip async event emission
+            pass
     
     def remove_node(self, node_name: str) -> bool:
         """
@@ -182,12 +186,16 @@ class BehaviorForest:
         node = self.nodes.pop(node_name)
         
         # Emit node removed event
-        asyncio.create_task(
-            self.forest_event_system.emit(
-                "node_removed",
-                {"node_name": node_name, "node_type": node.node_type.name}
+        try:
+            asyncio.create_task(
+                self.forest_event_system.emit(
+                    "node_removed",
+                    {"node_name": node_name, "node_type": node.node_type.name}
+                )
             )
-        )
+        except RuntimeError:
+            # No running event loop, skip async event emission
+            pass
         
         return True
     

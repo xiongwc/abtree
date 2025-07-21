@@ -261,12 +261,10 @@ abtree/
 
 ## 🗺️ Roadmap
 
-- [x] ✅ **v1.0** - Core asynchronous behavior tree framework
-- [x] ✅ **v1.1** - XML configuration support
-- [x] ✅ **v1.2** - Event system and blackboard optimization
-- [ ] 🎯 **v1.3** - Advanced node types
-- [ ] 📊 **v1.4** - Performance monitoring
-- [ ] 🖼️ **v1.5** - Visual editor integration
+- [x] ✅ **v0.1** - Core asynchronous behavior tree framework
+- [x] ✅ **v0.2** - XML configuration support
+- [x] ✅ **v0.3** - Event system and blackboard optimization
+- [ ] 🎯 **v0.4** - Advanced node types
 
 ---
 

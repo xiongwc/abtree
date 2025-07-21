@@ -6,9 +6,6 @@ asyncio-mqtt>=0.13.0
 matplotlib>=3.5.0
 networkx>=2.8.0
 
-# Performance monitoring dependencies (optional)
-psutil>=5.9.0
-
 # Development dependencies
 pytest>=7.0.0
 pytest-asyncio>=0.21.0

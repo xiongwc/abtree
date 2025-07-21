@@ -205,18 +205,18 @@ def register_node(
     _global_registry.register(name, node_class, metadata)
 
 
-def create_node(name: str, **kwargs) -> Optional[BaseNode]:
+def create_node(node_type: str, **kwargs) -> Optional[BaseNode]:
     """
     Create node instance from global registry
 
     Args:
-        name: node type name
+        node_type: node type name
         **kwargs: node constructor parameters
 
     Returns:
         Node instance, return None if type does not exist
     """
-    return _global_registry.create(name, **kwargs)
+    return _global_registry.create(node_type, **kwargs)
 
 
 def get_registered_nodes() -> List[str]:

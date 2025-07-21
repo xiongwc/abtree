@@ -241,9 +241,14 @@ class BehaviorTree:
 
         # Emit reset event
         if self.event_system:
-            asyncio.create_task(
-                self.event_system.emit("tree_reset", {"tree_name": self.name})
-            )
+            try:
+                loop = asyncio.get_running_loop()
+                asyncio.create_task(
+                    self.event_system.emit("tree_reset", {"tree_name": self.name})
+                )
+            except RuntimeError:
+                # No running event loop, skip event emission
+                pass
 
     def set_root(self, root: BaseNode) -> None:
         """
@@ -259,11 +264,16 @@ class BehaviorTree:
 
         # Emit root node change event
         if self.event_system:
-            asyncio.create_task(
-                self.event_system.emit(
-                    "tree_root_changed", {"tree_name": self.name, "new_root": root.name}
+            try:
+                loop = asyncio.get_running_loop()
+                asyncio.create_task(
+                    self.event_system.emit(
+                        "tree_root_changed", {"tree_name": self.name, "new_root": root.name}
+                    )
                 )
-            )
+            except RuntimeError:
+                # No running event loop, skip event emission
+                pass
 
     def find_node(self, name: str) -> Optional[BaseNode]:
         """
@@ -358,17 +368,22 @@ class BehaviorTree:
             new_status: New status
         """
         if self.event_system:
-            asyncio.create_task(
-                self.event_system.emit(
-                    "tree_status_changed",
-                    {
-                        "tree_name": self.name,
-                        "old_status": old_status.name,
-                        "new_status": new_status.name,
-                        "timestamp": asyncio.get_event_loop().time(),
-                    },
+            try:
+                loop = asyncio.get_running_loop()
+                asyncio.create_task(
+                    self.event_system.emit(
+                        "tree_status_changed",
+                        {
+                            "tree_name": self.name,
+                            "old_status": old_status.name,
+                            "new_status": new_status.name,
+                            "timestamp": loop.time(),
+                        },
+                    )
                 )
-            )
+            except RuntimeError:
+                # No running event loop, skip event emission
+                pass
 
     def set_blackboard_data(self, key: str, value: Any) -> None:
         """
@@ -378,7 +393,7 @@ class BehaviorTree:
             key: Data key
             value: Data value
         """
-        if self.blackboard:
+        if self.blackboard is not None:
             self.blackboard.set(key, value)
 
     def get_blackboard_data(self, key: str, default: Any = None) -> Any:

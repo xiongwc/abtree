@@ -7,8 +7,8 @@ Provides validation functions for behavior trees and nodes to ensure the correct
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..core.base import BaseNode
-from ..core.behavior_tree import BehaviorTree
+from ..nodes.base import BaseNode
+from ..engine.behavior_tree import BehaviorTree
 from ..core.status import Status
 
 
@@ -150,9 +150,9 @@ def _validate_node_specific(node: BaseNode) -> List[str]:
         if node.child is None and len(node.children) == 0:
             errors.append(f"Decorator node '{node.name}' has no children")
 
-    # Check composite node
-    if hasattr(node, "children"):
-        if len(node.children) == 0:
+    # Check composite node - only if it's actually a composite type
+    if hasattr(node, "children") and hasattr(node, "has_children"):
+        if node.has_children() and len(node.children) == 0:
             errors.append(f"Composite node '{node.name}' has no children")
 
     # Check specific node type properties
@@ -177,36 +177,18 @@ def _validate_node_specific(node: BaseNode) -> List[str]:
 
 
 def validate_blackboard_data(data: Dict[str, Any]) -> ValidationResult:
-    """
-    Validate blackboard data
-
-    Args:
-        data: Blackboard data
-
-    Returns:
-        Validation result
-    """
     errors = []
     warnings = []
-
-    # Check data type
     for key, value in data.items():
         if not isinstance(key, str):
             errors.append(f"Blackboard key must be a string, found: {type(key).__name__}")
-
-        # Check special values
         if value is None:
             warnings.append(f"Blackboard key '{key}' has a None value")
-
-    # Check key name format
     for key in data.keys():
-        if not key or key.strip() == "":
-            errors.append("Blackboard key cannot be empty")
-        elif key.startswith("__"):
-            warnings.append(f"Blackboard key '{key}' starts with double underscores, possibly reserved")
-
-    is_valid = len(errors) == 0
-    return ValidationResult(is_valid, errors, warnings)
+        if isinstance(key, str):
+            if not key or key.strip() == "":
+                errors.append("Blackboard key must be a non-empty string")
+    return ValidationResult(is_valid=not errors, errors=errors, warnings=warnings)
 
 
 def validate_xml_structure(xml_content: str) -> ValidationResult:
