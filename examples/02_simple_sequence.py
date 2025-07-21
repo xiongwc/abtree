@@ -30,7 +30,7 @@ class Step1Action(Action):
     
     async def execute(self, blackboard):
         print("Step 1: Check system status")
-        await asyncio.sleep(0.5)  # Simulate processing time
+        await asyncio.sleep(0.01)  # Simulate processing time
         return Status.SUCCESS
 
 
@@ -39,7 +39,7 @@ class Step2Action(Action):
     
     async def execute(self, blackboard):
         print("Step 2: Initialize components")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS
 
 
@@ -48,7 +48,7 @@ class Step3Action(Action):
     
     async def execute(self, blackboard):
         print("Step 3: Start services")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS
 
 
@@ -118,33 +118,7 @@ async def main():
     # Execute failure scenario
     print("Start executing failure scenario...")
     fail_result = await fail_tree.tick()
-    print(f"Failure scenario result: {fail_result}")
-    
-    # 7. Demonstrate XML configuration method
-    print("\n=== XML Configuration Method Demo ===")
-    
-    # XML string configuration
-    xml_config = '''
-    <BehaviorTree name="SimpleSequenceXML" description="Simple sequence example with XML configuration">
-        <Sequence name="Root Sequence">
-            <Sequence name="System Startup Sequence">
-                <Step1Action name="Check Status" />
-                <Step2Action name="Initialize" />
-                <Step3Action name="Start Services" />
-            </Sequence>
-        </Sequence>
-    </BehaviorTree>
-    '''
-    
-    # Parse XML configuration
-    xml_tree = BehaviorTree()
-    xml_tree.load_from_string(xml_config)
-    
-    print("Behavior tree configured by XML string:")
-    print(xml_config.strip())
-    print("\nStarting execution of XML-configured behavior tree...")
-    xml_result = await xml_tree.tick()
-    print(f"XML configuration execution completed! Result: {xml_result}")
+    print(f"Failure scenario result: {fail_result}")   
 
 
 if __name__ == "__main__":

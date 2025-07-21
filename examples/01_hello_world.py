@@ -37,7 +37,6 @@ async def main():
     
     print("=== ABTree Hello World Example ===\n")   
 
-    
     # 1. Create root node
     root = HelloWorldAction("Greeting")
     
@@ -52,31 +51,6 @@ async def main():
     # 4. Output result
     print(f"\nExecution completed! Result: {result}")
     print(f"Status description: {result.name}")
-    
-    # 5. Demonstrate XML configuration
-    print("\n=== XML configuration demonstration ===")
-    
-    # XML string configuration
-    xml_config = '''
-    <BehaviorTree name="HelloWorldXML" description="Hello World example with XML configuration">
-        <Sequence name="RootSequence">
-            <HelloWorldAction name="Greeting" />
-        </Sequence>
-    </BehaviorTree>
-    '''
-    
-    # Register the custom node type
-    register_node("HelloWorldAction", HelloWorldAction)
-
-    # Parse XML configuration
-    xml_tree = BehaviorTree()
-    xml_tree.load_from_string(xml_config)
-    
-    print("Behavior tree configured by XML string:")
-    print(xml_config.strip())
-    print("\nStart executing behavior tree configured by XML...")
-    xml_result = await xml_tree.tick()
-    print(f"XML configuration execution completed! Result: {xml_result}")
 
 
 if __name__ == "__main__":

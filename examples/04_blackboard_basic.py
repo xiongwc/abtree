@@ -25,7 +25,7 @@ from abtree.core import Status
 from abtree.parser.xml_parser import XMLParser
 
 
-# 注册自定义节点类型
+# Register custom node types
 def register_custom_nodes():
     """Register custom node types"""
     register_node("CheckBatteryCondition", CheckBatteryCondition)
@@ -58,7 +58,7 @@ class CloseDoorAction(Action):
     
     async def execute(self, blackboard):
         print("Executing door closing operation...")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)
         
         # Modify blackboard data
         blackboard.set("door_open", False)
@@ -74,7 +74,7 @@ class ChargeBatteryAction(Action):
     
     async def execute(self, blackboard):
         print("Starting charging...")
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(0.01)
         
         # Modify blackboard data
         current_battery = blackboard.get("battery_level", 0)
@@ -92,7 +92,7 @@ class PatrolAction(Action):
     
     async def execute(self, blackboard):
         print("Starting patrol...")
-        await asyncio.sleep(0.8)
+        await asyncio.sleep(0.01)
         
         # Consume battery
         current_battery = blackboard.get("battery_level", 100)
@@ -108,7 +108,7 @@ class PatrolAction(Action):
 async def main():
     """Main function - demonstrate blackboard system usage"""
     
-    # 注册自定义节点类型
+    # Register custom node types
     register_custom_nodes()
     
     print("=== ABTree Blackboard Basic Example ===\n")
@@ -160,38 +160,7 @@ async def main():
     print(f"Current battery: {blackboard.get('battery_level')}%")
     
     # 8. Demonstrate XML configuration method
-    print("\n=== XML Configuration Method Demo ===")
-    
-    # XML string configuration
-    xml_config = '''
-    <BehaviorTree name="BlackboardBasicXML" description="Blackboard basic example with XML configuration">
-        <Sequence name="Root Sequence">
-            <Sequence name="Robot Task">
-                <CheckBatteryCondition name="Check Battery" />
-                <CheckDoorCondition name="Check Door" />
-                <CloseDoorAction name="Close Door" />
-                <PatrolAction name="Patrol" />
-            </Sequence>
-        </Sequence>
-    </BehaviorTree>
-    '''
-    
-    # Parse XML configuration
-    xml_tree = BehaviorTree()
-    xml_tree.load_from_string(xml_config)
-    xml_blackboard = xml_tree.blackboard
-    
-    # Initialize XML-configured blackboard data
-    xml_blackboard.set("battery_level", 90)
-    xml_blackboard.set("door_open", True)
-    xml_blackboard.set("action_count", 0)
-    
-    print("Behavior tree configured by XML string:")
-    print(xml_config.strip())
-    print("\nStarting execution of XML-configured behavior tree...")
-    xml_result = await xml_tree.tick()
-    print(f"XML configuration execution completed! Result: {xml_result}")
-    print(f"XML configuration final battery: {xml_blackboard.get('battery_level')}%")
+    print("\n=== XML Configuration Method Demo ===")   
 
 
 if __name__ == "__main__":

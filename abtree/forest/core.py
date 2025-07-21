@@ -145,7 +145,6 @@ class BehaviorForest:
         self.forest_event_system = forest_event_system or EventSystem()
         self.running = False
         self._task: Optional[asyncio.Task] = None
-        self._tick_rate = 60.0  # Default 60 FPS
         
     def add_node(self, node: ForestNode) -> None:
         """
@@ -304,25 +303,19 @@ class BehaviorForest:
         """
         return await node.tick()
     
-    async def start(self, tick_rate: Optional[float] = None) -> None:
+    async def start(self) -> None:
         """
-        Start forest execution
-        
-        Args:
-            tick_rate: Execution frequency (ticks per second)
+        Start forest execution - runs as an infinite loop service
         """
         if self.running:
             return
-        
-        if tick_rate is not None:
-            self._tick_rate = tick_rate
         
         self.running = True
         
         # Emit forest start event
         await self.forest_event_system.emit(
             "forest_started",
-            {"forest_name": self.name, "tick_rate": self._tick_rate}
+            {"forest_name": self.name}
         )
         
         # Start forest execution task
@@ -350,11 +343,11 @@ class BehaviorForest:
         )
     
     async def _run(self) -> None:
-        """Forest execution loop"""
+        """Forest execution loop - infinite loop service"""
         while self.running:
             try:
                 await self.tick()
-                await asyncio.sleep(1.0 / self._tick_rate)
+                # Continuous execution without delay; let each BehaviorTree control its own tick rate
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -393,7 +386,6 @@ class BehaviorForest:
         return {
             "name": self.name,
             "running": self.running,
-            "tick_rate": self._tick_rate,
             "total_nodes": len(self.nodes),
             "middleware_count": len(self.middleware),
             "node_stats": node_stats

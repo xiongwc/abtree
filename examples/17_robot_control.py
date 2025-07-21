@@ -349,57 +349,12 @@ async def main():
         if i % 3 == 0:
             robot.add_obstacle(random.uniform(-4, 4), random.uniform(-4, 4))
         
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.01)
     
     print("\n=== Final Status ===")
     print(f"Final robot position: ({robot.position.x:.2f}, {robot.position.y:.2f})")
     print(f"Final battery level: {robot.battery_level:.1f}%")
-    print(f"Total tasks: {len(blackboard.get('task_queue', []))}")
-    
-    # Demonstrate XML configuration
-    print("\n=== XML Configuration Demo ===")
-    
-    # XML string configuration
-    xml_config = '''
-    <BehaviorTree name="RobotControlXML" description="XML configured robot control system">
-        <Selector name="RobotControlSystem">
-            <Sequence name="Emergency">
-                <BatteryCheckCondition name="BatteryCheck" threshold="15" />
-                <BatteryChargingAction name="BatteryCharge" />
-            </Sequence>
-            <Sequence name="ObstacleAvoidance">
-                <ObstacleCheckCondition name="ObstacleCheck" safe_distance="1.5" />
-                <MovementAction name="AvoidObstacle" />
-            </Sequence>
-            <Sequence name="TaskExecution">
-                <TaskSchedulingAction name="TaskSchedule"/>
-                <MovementAction name="MoveToTarget" />
-            </Sequence>
-            <Sequence name="SensorProcessing">
-                <SensorDataAction name="ProcessSensors"/>
-            </Sequence>
-        </Selector>
-    </BehaviorTree>
-    '''
-    
-    # Parse XML configuration
-    xml_tree = BehaviorTree()
-    
-    xml_tree.load_from_string(xml_config)
-    xml_blackboard = xml_tree.blackboard
-    
-    # Set robot_controller in blackboard for XML nodes
-    xml_blackboard.set("robot_controller", robot)
-    
-    # Initialize XML configuration data
-    xml_blackboard.set("task_queue", [])
-    
-    print("Behavior tree configured via XML string:")
-    print(xml_config.strip())
-    print("\nStarting XML configured behavior tree...")
-    xml_result = await xml_tree.tick()
-    print(f"XML configuration execution completed! Result: {xml_result}")
-    print(f"XML configuration task queue length: {len(xml_blackboard.get('task_queue', []))}")
+    print(f"Total tasks: {len(blackboard.get('task_queue', []))}")    
 
 
 if __name__ == "__main__":

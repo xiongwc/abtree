@@ -50,7 +50,7 @@ class NetworkAction(Action):
     
     async def execute(self, blackboard):
         print("Executing network operation...")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)
         print("Network operation completed")
         return Status.SUCCESS
 
@@ -60,7 +60,7 @@ class LocalAction(Action):
     
     async def execute(self, blackboard):
         print("Executing local operation...")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)
         print("Local operation completed")
         return Status.SUCCESS
 
@@ -70,7 +70,7 @@ class FallbackAction(Action):
     
     async def execute(self, blackboard):
         print("Executing fallback operation...")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)
         print("Fallback operation completed")
         return Status.SUCCESS
 
@@ -122,45 +122,7 @@ async def main():
         
         # Execute behavior tree
         result = await tree.tick()
-        print(f"Execution result: {result}")
-    
-    # 5. Demonstrate XML configuration method
-    print("\n=== XML Configuration Method Demo ===")
-    
-    # XML string configuration
-    xml_config = '''
-    <BehaviorTree name="SelectorBasicXML" description="Selector basic example with XML configuration">
-        <Sequence name="Root Sequence">
-            <Selector name="Data Retrieval Strategy">
-                <Sequence name="Network Strategy">
-                    <CheckNetworkCondition name="Check Network" />
-                    <NetworkAction name="Network Operation" />
-                </Sequence>
-                <Sequence name="Local Strategy">
-                    <CheckLocalStorageCondition name="Check Storage" />
-                    <LocalAction name="Local Operation" />
-                </Sequence>
-                <FallbackAction name="Fallback Strategy" />
-            </Selector>
-        </Sequence>
-    </BehaviorTree>
-    '''
-    
-    # Parse XML configuration
-    xml_tree = BehaviorTree()
-    xml_tree.load_from_string(xml_config)
-    
-    print("Behavior tree configured by XML string:")
-    print(xml_config.strip())
-    print("\nStarting execution of XML-configured behavior tree...")
-    
-    # Test XML-configured behavior tree
-    blackboard = xml_tree.blackboard
-    blackboard.set("network_available", False)
-    blackboard.set("storage_available", True)
-    
-    xml_result = await xml_tree.tick()
-    print(f"XML configuration execution completed! Result: {xml_result}")
+        print(f"Execution result: {result}")   
 
 
 if __name__ == "__main__":

@@ -188,7 +188,7 @@ class SmartHomeSystem:
     
     async def update_sensors(self):
         """Update sensor data"""
-        await asyncio.sleep(0.01)  # Simulate sensor update
+        await asyncio.sleep(0.01)  # Fast simulation
         for room in self.rooms.values():
             room.temperature += random.uniform(-0.5, 0.5)
             room.humidity += random.uniform(-2, 2)
@@ -197,14 +197,14 @@ class SmartHomeSystem:
 
     async def update_devices(self):
         """Update device status"""
-        await asyncio.sleep(0.01)  # Simulate device update
+        await asyncio.sleep(0.01)  # Fast simulation
         for device in self.devices.values():
             device.battery -= random.uniform(0, 0.5)
             device.last_update = datetime.now()
 
     async def check_security(self):
         """Check security status"""
-        await asyncio.sleep(0.01)  # Simulate security check
+        await asyncio.sleep(0.01)  # Fast simulation
         # Simulate security event
         if random.random() < 0.3:
             event = SecurityEvent(
@@ -621,65 +621,12 @@ async def main():
             print(f"  Device status: {report['active_devices']}/{report['total_devices']} active")
             print(f"  Energy usage: {report['energy_usage']:.2f}")
         
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.01)
     
     print("\n=== Example Complete ===")
     print("This example demonstrates how to build complex smart home control systems")
-    print("Including multi-device coordination, scene management, security monitoring, energy optimization, etc.")
-    
-    # 5. Demonstrate XML configuration method
-    print("\n=== XML Configuration Example ===")
-    xml_config = '''
-    <BehaviorTree name="SmartHomeXML" description="XML configuration example for a smart home system">
-        <Sequence name="Root Sequence">
-            <Selector name="Smart Home Main Controller">
-                <Sequence name="System Monitoring">
-                    <UpdateSensorsAction name="Update Sensors" />
-                    <UpdateDevicesAction name="Update Devices" />
-                    <CheckSecurityAction name="Check Security" />
-                </Sequence>
-                <Sequence name="Scene Management">
-                    <SceneModeSelector name="Select Scene Mode" />
-                    <ApplySceneModeAction name="Apply Scene Mode" />
-                </Sequence>
-                <Selector name="Security Handling">
-                    <Sequence name="Handle Security Alert">
-                        <HasSecurityAlertCondition name="Check Security Alert" />
-                        <HandleSecurityEventAction name="Handle Security Event" />
-                    </Sequence>
-                    <Sequence name="Security Monitoring">
-                        <SecurityMonitoringAction name="Execute Security Monitoring" />
-                    </Sequence>
-                </Selector>
-                <Selector name="System Optimization">
-                    <Sequence name="Energy Optimization">
-                        <IsEnergySavingModeCondition name="Check Energy Saving Mode" />
-                        <EnergyOptimizationAction name="Execute Energy Optimization" />
-                    </Sequence>
-                    <Sequence name="Comfort Optimization">
-                        <UserComfortAction name="Optimize User Comfort" />
-                    </Sequence>
-                </Selector>
-                <Sequence name="System Maintenance">
-                    <NeedsMaintenanceCondition name="Check Maintenance Needs" />
-                    <MaintenanceCheckAction name="Execute Maintenance" />
-                </Sequence>
-                <GenerateReportAction name="Generate System Report" />
-            </Selector>
-        </Sequence>
-    </BehaviorTree>
-    '''
-    xml_tree = BehaviorTree()
-    xml_tree.load_from_string(xml_config)
-    
-    # Set smart home system in XML tree blackboard
-    xml_tree.blackboard.set("smart_home_system", smart_home)
-    
-    print("Smart home system configured via XML string:")
-    print(xml_config.strip())
-    print("\nStarting XML configured smart home system execution...")
-    xml_result = await xml_tree.tick()
-    print(f"XML configured execution complete! Result: {xml_result}")
+    print("Including multi-device coordination, scene management, security monitoring, energy optimization, etc.")   
+ 
 
 
 if __name__ == "__main__":

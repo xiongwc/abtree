@@ -38,7 +38,7 @@ class CustomRobotAction(Action):
         
     async def execute(self, blackboard):
         print(f"🤖 Robot {self.robot_id} performing {self.action_type}")
-        await asyncio.sleep(0.1)  # Simulate work
+        await asyncio.sleep(0.01)  # Fast simulation
         return Status.SUCCESS
 
 
@@ -248,7 +248,7 @@ async def demonstrate_performance_monitoring():
         monitor.record_forest_execution(execution_time, True)
         
         print(f"Tick {i+1}: {len(results)} nodes executed in {execution_time:.3f}s")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)
     
     # Stop monitoring and forest
     await monitor.stop_monitoring()
@@ -312,7 +312,7 @@ async def demonstrate_real_time_dashboard():
     for i in range(3):
         for forest in forests:
             await forest.tick()
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(0.01)
     
     # Stop dashboard
     dashboard_task.cancel()

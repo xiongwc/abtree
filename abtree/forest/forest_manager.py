@@ -198,7 +198,7 @@ class ForestManager:
         tasks = []
         for forest in self.forests.values():
             if not forest.running:
-                task = asyncio.create_task(forest.start(tick_rate))
+                task = asyncio.create_task(forest.start())
                 tasks.append(task)
         
         if tasks:
@@ -337,7 +337,7 @@ class ForestManager:
             status=status,
             node_count=stats["total_nodes"],
             middleware_count=stats["middleware_count"],
-            tick_rate=stats["tick_rate"],
+            tick_rate=stats.get("tick_rate", None),
             uptime=asyncio.get_event_loop().time() - self._start_time if self.running else 0.0,
             total_ticks=0,  # TODO: Add tick counting
             error_count=0    # TODO: Add error counting

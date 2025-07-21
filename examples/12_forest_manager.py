@@ -41,7 +41,7 @@ class DataProcessingAction(SystemAction):
     async def execute(self, blackboard):
         await super().execute(blackboard)
         print(f"   📊 {self.system_id} processing data")
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS
 
 
@@ -51,7 +51,7 @@ class AlertAction(SystemAction):
     async def execute(self, blackboard):
         await super().execute(blackboard)
         print(f"   ⚠️ {self.system_id} sending alert")
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS
 
 
@@ -61,7 +61,7 @@ class MaintenanceAction(SystemAction):
     async def execute(self, blackboard):
         await super().execute(blackboard)
         print(f"   🔧 {self.system_id} performing maintenance")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS
 
 
@@ -318,7 +318,7 @@ async def demonstrate_cross_forest_communication(manager: ForestManager):
     
     print(f"🌐 Published global tasks: {task1_id}, {task2_id}")
     
-    await asyncio.sleep(1.0)
+    await asyncio.sleep(0.01)
 
 
 async def demonstrate_forest_monitoring(manager: ForestManager):
@@ -411,7 +411,7 @@ async def main():
             print("✅ System status restored!")
         
         # Wait for next tick
-        await asyncio.sleep(1.5)
+        await asyncio.sleep(0.01)
     
     # 7. Demonstrate monitoring
     await demonstrate_forest_monitoring(manager)

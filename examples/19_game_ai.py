@@ -471,7 +471,7 @@ class PatrolAction(Action):
             _global_player.current_patrol_index = (_global_player.current_patrol_index + 1) % len(_global_player.patrol_points)
             print(f"Patrol action {self.name}: reached patrol point, moving to next")
         
-        await asyncio.sleep(0.05)  # Reduced sleep time
+        await asyncio.sleep(0.01)  # Fast simulation
         return Status.RUNNING
 
 
@@ -649,67 +649,15 @@ async def main():
             print("Game over: All enemies eliminated")
             break
         
-        await asyncio.sleep(0.1)  # Reduced sleep time
+        await asyncio.sleep(0.01)  # Fast simulation
     
     execution_time = time.time() - start_time
     print(f"\n=== Game End ===")
     print(f"Execution time: {execution_time:.2f}s")
     print(f"Player1 final status: health{player1.get_health_percentage():.1%}")
     print(f"Enemy1 final status: health{enemy1.get_health_percentage():.1%}")
-    print(f"Final game difficulty: {game_world.difficulty_level:.2f}")
-    
-    # 9. Demonstrate XML configuration method
-    print("\n=== XML Configuration Method Demo ===")
-    
-    # XML string configuration
-    xml_config = '''
-    <BehaviorTree name="GameAIXML" description="XML configured game AI system example">
-        <Sequence name="Root Sequence">
-            <Selector name="Game AI System">
-                <Selector name="Player1 AI">
-                    <Sequence name="Player1 Emergency Retreat">
-                        <HealthCheckCondition name="Player1 Health Check" threshold="0.2" />
-                        <RetreatAction name="Player1 Retreat" />
-                    </Sequence>
-                    <Sequence name="Player1 Attack">
-                        <EnemyNearbyCondition name="Player1 Enemy Check" detection_range="20.0" />
-                        <MoveToTargetAction name="Player1 Move to Target" />
-                        <AttackAction name="Player1 Attack" />
-                    </Sequence>
-                    <Sequence name="Player1 Team Coordination">
-                        <AllyNearbyCondition name="Player1 Ally Check" detection_range="15.0" />
-                        <TeamCoordinationAction name="Player1 Team Coordination" />
-                    </Sequence>
-                    <PatrolAction name="Player1 Patrol" />
-                </Selector>
-                <Selector name="Enemy1 AI">
-                    <Sequence name="Enemy1 Attack">
-                        <EnemyNearbyCondition name="Enemy1 Target Check" detection_range="25.0" />
-                        <MoveToTargetAction name="Enemy1 Move to Target" />
-                        <AttackAction name="Enemy1 Attack" />
-                    </Sequence>
-                    <PatrolAction name="Enemy1 Patrol" />
-                </Selector>
-            </Selector>
-        </Sequence>
-    </BehaviorTree>
-    '''
-    
-    # Parse XML configuration
-    xml_tree = BehaviorTree()
-    xml_tree.load_from_string(xml_config)
-    xml_blackboard = xml_tree.blackboard
-    
-    # Initialize XML configuration data
-    xml_blackboard.set("game_time", 0)
-    xml_blackboard.set("difficulty_level", 1.0)
-    
-    print("Behavior tree configured through XML string:")
-    print(xml_config.strip())
-    print("\nStarting XML configured behavior tree execution...")
-    xml_result = await xml_tree.tick()
-    print(f"XML configuration execution completed! Result: {xml_result}")
-    print(f"XML configuration game time: {xml_blackboard.get('game_time')}")
+    print(f"Final game difficulty: {game_world.difficulty_level:.2f}")   
+ 
 
 
 if __name__ == "__main__":

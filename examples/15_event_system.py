@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Example 11: Event System – Event-Driven Behavior Trees
+Example 15: Event System – Event-Driven Behavior Trees
 
 Demonstrates how to use the event system to drive the execution of behavior trees.
 The event system allows behavior trees to respond to external events, enabling more flexible decision logic.
@@ -30,9 +30,9 @@ from abtree.nodes.base import BaseNode
 from abtree.parser.xml_parser import XMLParser
 
 
-# 注册自定义节点类型
+# Register custom node types
 def register_custom_nodes():
-    """注册自定义节点类型"""
+    """Register custom node types"""
     register_node("EventSystem", EventSystem)
     register_node("EventDrivenAction", EventDrivenAction)
     register_node("EventCondition", EventCondition)
@@ -42,7 +42,7 @@ def register_custom_nodes():
 
 
 class EventSystem(BaseNode):
-    """事件系统 - 管理事件的发布和订阅"""
+    """Event System - Manage event publishing and subscription"""
     
     def __init__(self, name, **kwargs):
         super().__init__(name=name, **kwargs)
@@ -51,7 +51,7 @@ class EventSystem(BaseNode):
         self.event_history = []
     
     def subscribe(self, event_type, handler, priority=1):
-        """订阅事件"""
+        """Subscribe to event"""
         if event_type not in self.subscribers:
             self.subscribers[event_type] = []
         
@@ -61,11 +61,11 @@ class EventSystem(BaseNode):
             'timestamp': time.time()
         })
         
-        # 按优先级排序
+        # Sort by priority
         self.subscribers[event_type].sort(key=lambda x: (-x['priority'], x['timestamp']))
     
     def publish(self, event_type, data=None, priority=1):
-        """发布事件"""
+        """Publish event"""
         event = {
             'type': event_type,
             'data': data,
@@ -76,21 +76,21 @@ class EventSystem(BaseNode):
         self.event_queue.append(event)
         self.event_history.append(event)
         
-        # 限制历史记录长度
+        # Limit history length
         if len(self.event_history) > 100:
             self.event_history.pop(0)
         
-        print(f"事件系统 {self.name}: 发布事件 {event_type} (优先级: {priority})")
+        print(f"Event System {self.name}: Published event {event_type} (priority: {priority})")
     
     async def process_events(self, blackboard):
-        """处理事件队列"""
+        """Process event queue"""
         if not self.event_queue:
             return Status.SUCCESS
         
-        # 按优先级排序事件
+        # Sort events by priority
         self.event_queue.sort(key=lambda x: (-x['priority'], x['timestamp']))
         
-        # 处理最高优先级事件
+        # Process highest priority event
         event = self.event_queue.pop(0)
         event_type = event['type']
         
@@ -99,26 +99,26 @@ class EventSystem(BaseNode):
                 try:
                     result = await subscriber['handler'](event, blackboard)
                     if result == Status.SUCCESS:
-                        print(f"事件系统 {self.name}: 事件 {event_type} 处理成功")
+                        print(f"Event System {self.name}: Event {event_type} processed successfully")
                         return Status.SUCCESS
                 except Exception as e:
-                    print(f"事件系统 {self.name}: 事件处理错误: {e}")
+                    print(f"Event System {self.name}: Event processing error: {e}")
         
         return Status.FAILURE
     
     async def tick(self, blackboard):
-        """执行事件系统"""
+        """Execute event system"""
         return await self.process_events(blackboard)
 
 
 class EmergencyEventHandler:
-    """紧急事件处理器"""
+    """Emergency event handler"""
     
     async def handle(self, event, blackboard):
-        print(f"处理紧急事件: {event['data']}")
-        await asyncio.sleep(0.2)
+        print(f"Processing emergency event: {event['data']}")
+        await asyncio.sleep(0.01)  # Fast simulation
         
-        # 设置紧急状态
+        # Set emergency state
         blackboard.set("emergency_mode", True)
         blackboard.set("last_emergency", event['timestamp'])
         blackboard.set("emergency_count", blackboard.get("emergency_count", 0) + 1)
@@ -127,14 +127,14 @@ class EmergencyEventHandler:
 
 
 class SensorEventHandler:
-    """传感器事件处理器"""
+    """Sensor event handler"""
     
     async def handle(self, event, blackboard):
         sensor_data = event['data']
-        print(f"处理传感器事件: {sensor_data}")
-        await asyncio.sleep(0.1)
+        print(f"Processing sensor event: {sensor_data}")
+        await asyncio.sleep(0.01)  # Fast simulation
         
-        # 更新传感器数据
+        # Update sensor data
         blackboard.set("sensor_data", sensor_data)
         blackboard.set("last_sensor_update", event['timestamp'])
         
@@ -142,14 +142,14 @@ class SensorEventHandler:
 
 
 class UserInputEventHandler:
-    """用户输入事件处理器"""
+    """User input event handler"""
     
     async def handle(self, event, blackboard):
         user_input = event['data']
-        print(f"处理用户输入: {user_input}")
-        await asyncio.sleep(0.1)
+        print(f"Processing user input: {user_input}")
+        await asyncio.sleep(0.01)  # Fast simulation
         
-        # 处理用户输入
+        # Process user input
         blackboard.set("user_input", user_input)
         blackboard.set("last_user_input", event['timestamp'])
         
@@ -157,14 +157,14 @@ class UserInputEventHandler:
 
 
 class SystemStatusEventHandler:
-    """系统状态事件处理器"""
+    """System status event handler"""
     
     async def handle(self, event, blackboard):
         status_data = event['data']
-        print(f"处理系统状态事件: {status_data}")
-        await asyncio.sleep(0.1)
+        print(f"Processing system status event: {status_data}")
+        await asyncio.sleep(0.01)  # Fast simulation
         
-        # 更新系统状态
+        # Update system status
         blackboard.set("system_status", status_data)
         blackboard.set("last_status_update", event['timestamp'])
         
@@ -172,7 +172,7 @@ class SystemStatusEventHandler:
 
 
 class EventDrivenAction(Action):
-    """事件驱动的动作节点"""
+    """Event-driven action node"""
     
     def __init__(self, name, required_event_type, event_system=None, **kwargs):
         super().__init__(name, **kwargs)
@@ -181,27 +181,27 @@ class EventDrivenAction(Action):
         self.last_event_time = 0
     
     async def execute(self, blackboard):
-        print(f"事件驱动动作 {self.name}: 等待事件 {self.required_event_type}")
+        print(f"Event-driven action {self.name}: Waiting for event {self.required_event_type}")
         
-        # 检查是否有新事件
+        # Check for new events
         for event in self.event_system.event_history:
             if (event['type'] == self.required_event_type and 
                 event['timestamp'] > self.last_event_time):
                 
                 self.last_event_time = event['timestamp']
-                print(f"事件驱动动作 {self.name}: 收到事件，开始执行")
+                print(f"Event-driven action {self.name}: Event received, starting execution")
                 
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(0.01)  # Fast simulation
                 return Status.SUCCESS
         
-        print(f"事件驱动动作 {self.name}: 未收到所需事件")
+        print(f"Event-driven action {self.name}: No required event received")
         return Status.RUNNING
 
 
 class EventCondition(Condition):
-    """事件条件节点"""
+    """Event condition node"""
     
-    def __init__(self, name, event_type, timeout=5.0, event_system=None, **kwargs):
+    def __init__(self, name, event_type, timeout=2.0, event_system=None, **kwargs):  # Reduced timeout from 5.0
         super().__init__(name, **kwargs)
         self.event_system = event_system
         self.event_type = event_type
@@ -212,52 +212,52 @@ class EventCondition(Condition):
         if self.start_time is None:
             self.start_time = time.time()
         
-        # 检查是否超时
+        # Check for timeout
         if time.time() - self.start_time > self.timeout:
-            print(f"事件条件 {self.name}: 等待超时")
+            print(f"Event condition {self.name}: Wait timeout")
             return False
         
-        # 如果没有事件系统，返回False
+        # If no event system, return False
         if self.event_system is None:
-            print(f"事件条件 {self.name}: 无事件系统")
+            print(f"Event condition {self.name}: No event system")
             return False
         
-        # 检查是否有指定类型的事件
+        # Check for specified event type
         for event in self.event_system.event_history:
             if (event['type'] == self.event_type and 
                 event['timestamp'] > self.start_time):
-                print(f"事件条件 {self.name}: 检测到事件 {self.event_type}")
+                print(f"Event condition {self.name}: Detected event {self.event_type}")
                 return True
         
-        print(f"事件条件 {self.name}: 等待事件 {self.event_type}")
+        print(f"Event condition {self.name}: Waiting for event {self.event_type}")
         return False
 
 
 class EmergencyResponseAction(Action):
-    """紧急响应动作"""
+    """Emergency response action"""
     
     async def execute(self, blackboard):
-        print("执行紧急响应...")
-        await asyncio.sleep(0.5)
+        print("Executing emergency response...")
+        await asyncio.sleep(0.01)  # Fast simulation
         
-        # 执行紧急响应逻辑
+        # Execute emergency response logic
         blackboard.set("emergency_response_executed", True)
         blackboard.set("response_time", time.time())
         
-        print("紧急响应完成")
+        print("Emergency response completed")
         return Status.SUCCESS
 
 
 class SensorDataProcessingAction(Action):
-    """传感器数据处理动作"""
+    """Sensor data processing action"""
     
     async def execute(self, blackboard):
-        print("处理传感器数据...")
-        await asyncio.sleep(0.3)
+        print("Processing sensor data...")
+        await asyncio.sleep(0.01)  # Fast simulation
         
         sensor_data = blackboard.get("sensor_data", {})
         if sensor_data:
-            # 处理传感器数据
+            # Process sensor data
             processed_data = {
                 'temperature': sensor_data.get('temperature', 0) + random.uniform(-1, 1),
                 'humidity': sensor_data.get('humidity', 0) + random.uniform(-2, 2),
@@ -265,40 +265,40 @@ class SensorDataProcessingAction(Action):
             }
             
             blackboard.set("processed_sensor_data", processed_data)
-            print(f"传感器数据处理完成: {processed_data}")
+            print(f"Sensor data processing completed: {processed_data}")
         
         return Status.SUCCESS
 
 
 class UserCommandAction(Action):
-    """用户命令处理动作"""
+    """User command processing action"""
     
     async def execute(self, blackboard):
-        print("处理用户命令...")
-        await asyncio.sleep(0.2)
+        print("Processing user command...")
+        await asyncio.sleep(0.01)  # Fast simulation
         
         user_input = blackboard.get("user_input", "")
         if user_input:
-            # 处理用户命令
+            # Process user command
             blackboard.set("command_processed", True)
             blackboard.set("last_command", user_input)
-            print(f"用户命令处理完成: {user_input}")
+            print(f"User command processing completed: {user_input}")
         
         return Status.SUCCESS
 
 
 async def main():
-    """主函数 - 演示事件系统"""
+    """Main function - Demonstrate event system"""
     
-    # 注册自定义节点类型
+    # Register custom node types
     register_custom_nodes()
     
-    print("=== ABTree 事件系统示例 ===\n")
+    print("=== ABTree Event System Example ===\n")
     
-    # 1. 创建事件系统
-    event_system = EventSystem("主事件系统")
+    # 1. Create event system
+    event_system = EventSystem("Main Event System")
     
-    # 2. 注册事件处理器
+    # 2. Register event handlers
     emergency_handler = EmergencyEventHandler()
     sensor_handler = SensorEventHandler()
     user_input_handler = UserInputEventHandler()
@@ -309,60 +309,60 @@ async def main():
     event_system.subscribe("user_input", user_input_handler.handle, priority=2)
     event_system.subscribe("system_status", system_status_handler.handle, priority=1)
     
-    # 3. 创建行为树
-    root = Selector("事件驱动系统")
+    # 3. Create behavior tree
+    root = Selector("Event-Driven System")
     
-    # 紧急响应分支
-    emergency_branch = Sequence("紧急响应")
-    emergency_condition = EventCondition("等待紧急事件", "emergency")
+    # Emergency response branch
+    emergency_branch = Sequence("Emergency Response")
+    emergency_condition = EventCondition("Wait for Emergency Event", "emergency")
     emergency_condition.event_system = event_system
     emergency_branch.add_child(emergency_condition)
-    emergency_branch.add_child(EmergencyResponseAction("紧急响应"))
+    emergency_branch.add_child(EmergencyResponseAction("Emergency Response"))
     
-    # 传感器处理分支
-    sensor_branch = Sequence("传感器处理")
-    sensor_condition = EventCondition("等待传感器事件", "sensor")
+    # Sensor processing branch
+    sensor_branch = Sequence("Sensor Processing")
+    sensor_condition = EventCondition("Wait for Sensor Event", "sensor")
     sensor_condition.event_system = event_system
     sensor_branch.add_child(sensor_condition)
-    sensor_branch.add_child(SensorDataProcessingAction("传感器数据处理"))
+    sensor_branch.add_child(SensorDataProcessingAction("Sensor Data Processing"))
     
-    # 用户命令处理分支
-    user_branch = Sequence("用户命令处理")
-    user_condition = EventCondition("等待用户输入", "user_input")
+    # User command processing branch
+    user_branch = Sequence("User Command Processing")
+    user_condition = EventCondition("Wait for User Input", "user_input")
     user_condition.event_system = event_system
     user_branch.add_child(user_condition)
-    user_branch.add_child(UserCommandAction("用户命令处理"))
+    user_branch.add_child(UserCommandAction("User Command Processing"))
     
-    # 事件处理分支
-    event_processing_branch = Sequence("事件处理")
+    # Event processing branch
+    event_processing_branch = Sequence("Event Processing")
     event_processing_branch.add_child(event_system)
     
-    # 4. 组装行为树
+    # 4. Assemble behavior tree
     root.add_child(emergency_branch)
     root.add_child(sensor_branch)
     root.add_child(user_branch)
     root.add_child(event_processing_branch)
     
-    # 5. 创建行为树实例
+    # 5. Create behavior tree instance
     tree = BehaviorTree()
     tree.load_from_root(root)
     blackboard = tree.blackboard
     
-    # 6. 初始化数据
+    # 6. Initialize data
     blackboard.set("emergency_mode", False)
     blackboard.set("emergency_count", 0)
     blackboard.set("command_processed", False)
     
-    print("开始执行事件驱动系统...")
+    print("Starting event-driven system execution...")
     print("=" * 50)
     
-    # 7. 模拟事件发布和处理
-    for i in range(10):
-        print(f"\n--- 第 {i+1} 轮执行 ---")
+    # 7. Simulate event publishing and processing
+    for i in range(6):  # Reduced from 10 to 6 cycles
+        print(f"\n--- Round {i+1} Execution ---")
         
-        # 随机发布事件
+        # Randomly publish events
         event_types = ["sensor", "user_input", "system_status", "emergency"]
-        weights = [0.4, 0.3, 0.2, 0.1]  # 事件概率权重
+        weights = [0.4, 0.3, 0.2, 0.1]  # Event probability weights
         
         event_type = random.choices(event_types, weights=weights)[0]
         
@@ -382,67 +382,25 @@ async def main():
                 "disk_usage": random.uniform(0, 100)
             })
         elif event_type == "emergency":
-            event_system.publish("emergency", f"紧急情况 {i+1}")
+            event_system.publish("emergency", f"Emergency situation {i+1}")
         
-        # 执行行为树
+        # Execute behavior tree
         result = await tree.tick()
-        print(f"执行结果: {result}")
+        print(f"Execution result: {result}")
         
-        # 显示状态
-        print(f"紧急模式: {blackboard.get('emergency_mode')}")
-        print(f"紧急事件数: {blackboard.get('emergency_count')}")
-        print(f"命令处理: {blackboard.get('command_processed')}")
+        # Display status
+        print(f"Emergency mode: {blackboard.get('emergency_mode')}")
+        print(f"Emergency event count: {blackboard.get('emergency_count')}")
+        print(f"Command processed: {blackboard.get('command_processed')}")
         
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)  # Fast simulation
     
-    print("\n=== 最终状态 ===")
-    print(f"总事件数: {len(event_system.event_history)}")
-    print(f"紧急事件数: {blackboard.get('emergency_count')}")
-    print(f"最后命令: {blackboard.get('last_command', '无')}")
-    print(f"处理后的传感器数据: {blackboard.get('processed_sensor_data', {})}")
-    
-    # 8. 演示XML配置方式
-    print("\n=== XML配置方式演示 ===")
-    
-    # XML字符串配置
-    xml_config = '''
-    <BehaviorTree name="EventSystemXML" description="XML配置的事件系统示例">
-        <Sequence name="根序列">
-            <Selector name="事件驱动系统">
-                <Sequence name="紧急响应">
-                    <EventCondition name="等待紧急事件" event_type="emergency" timeout="5.0" />
-                    <EmergencyResponseAction name="紧急响应" />
-                </Sequence>
-                <Sequence name="传感器处理">
-                    <EventCondition name="等待传感器事件" event_type="sensor" timeout="3.0" />
-                    <SensorDataProcessingAction name="传感器数据处理" />
-                </Sequence>
-                <Sequence name="用户命令处理">
-                    <EventCondition name="等待用户输入" event_type="user_input" timeout="2.0" />
-                    <UserCommandAction name="用户命令处理" />
-                </Sequence>
-            </Selector>
-        </Sequence>
-    </BehaviorTree>
-    '''
-    
-    # 解析XML配置
-    xml_tree = BehaviorTree()
-    xml_tree.load_from_string(xml_config)
-    xml_blackboard = xml_tree.blackboard
-    
-    # 初始化XML配置的数据
-    xml_blackboard.set("emergency_mode", False)
-    xml_blackboard.set("emergency_count", 0)
-    xml_blackboard.set("command_processed", False)
-    
-    print("通过XML字符串配置的行为树:")
-    print(xml_config.strip())
-    print("\n开始执行XML配置的行为树...")
-    xml_result = await xml_tree.tick()
-    print(f"XML配置执行完成! 结果: {xml_result}")
-    print(f"XML配置紧急模式: {xml_blackboard.get('emergency_mode')}")
-
+    print("\n=== Final Status ===")
+    print(f"Total events: {len(event_system.event_history)}")
+    print(f"Emergency events: {blackboard.get('emergency_count')}")
+    print(f"Last command: {blackboard.get('last_command', 'None')}")
+    print(f"Processed sensor data: {blackboard.get('processed_sensor_data', {})}")  
+ 
 
 if __name__ == "__main__":
     asyncio.run(main()) 

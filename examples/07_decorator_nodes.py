@@ -186,7 +186,7 @@ class SuccessAction(Action):
     
     async def execute(self, blackboard):
         print(f"Executing success action: {self.name}")
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS
 
 
@@ -195,7 +195,7 @@ class FailureAction(Action):
     
     async def execute(self, blackboard):
         print(f"Executing failure action: {self.name}")
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
         return Status.FAILURE
 
 
@@ -210,7 +210,7 @@ class RandomAction(Action):
         import random
         success = random.random() < self.success_rate
         print(f"Executing random action: {self.name} - {'Success' if success else 'Failure'}")
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS if success else Status.FAILURE
 
 
@@ -297,40 +297,7 @@ async def main():
     print(f"Result after condition change: {result2}")
     
     # 9. Demonstrate XML configuration method
-    print("\n=== XML Configuration Method Demo ===")
-    
-    # XML string configuration
-    xml_config = '''
-    <BehaviorTree name="DecoratorNodesXML" description="XML configured decorator nodes example">
-        <Sequence name="Root Sequence">
-            <Selector name="Decorator Node Test">
-                <RepeatDecorator name="Repeat 3 times" repeat_count="3">
-                    <SuccessAction name="Success Action" />
-                </RepeatDecorator>
-                <InverterDecorator name="Invert Failure">
-                    <FailureAction name="Failure Action" />
-                </InverterDecorator>
-                <ConditionalDecorator name="Conditional Execution" condition_key="should_execute" condition_value="true">
-                    <SuccessAction name="Conditional Action" />
-                </ConditionalDecorator>
-            </Selector>
-        </Sequence>
-    </BehaviorTree>
-    '''
-    
-    # Parse XML configuration
-    xml_tree = BehaviorTree()
-    xml_tree.load_from_string(xml_config)
-    xml_blackboard = xml_tree.blackboard
-    
-    # Set test data for XML configuration
-    xml_blackboard.set("should_execute", True)
-    
-    print("Behavior tree configured by XML string:")
-    print(xml_config.strip())
-    print("\nStarting execution of XML configured behavior tree...")
-    xml_result = await xml_tree.tick()
-    print(f"XML configuration execution completed! Result: {xml_result}")
+    print("\n=== XML Configuration Method Demo ===")   
 
 
 if __name__ == "__main__":

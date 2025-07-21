@@ -41,7 +41,7 @@ class SimpleAction(Action):
     
     async def execute(self, blackboard):
         print(f"Executing simple action: {self.name}")
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS
 
 
@@ -54,7 +54,7 @@ class ConditionalAction(Action):
     
     async def execute(self, blackboard):
         print(f"Executing conditional action: {self.name}")
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.01)
         
         # Decide result based on success rate
         if random.random() < self.success_rate:
@@ -77,7 +77,7 @@ class LongRunningAction(Action):
         
         # Simulate long processing
         for i in range(int(self.duration * 10)):
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.01)
             if i % 10 == 0:
                 print(f"  {self.name} progress: {i//10}/{int(self.duration)} seconds")
         
@@ -100,7 +100,7 @@ class DataProcessingAction(Action):
         # Process data
         processed_data = []
         for item in input_data:
-            await asyncio.sleep(0.1)  # Simulate processing time
+            await asyncio.sleep(0.01)  # Simulate processing time
             processed_item = item * 2
             processed_data.append(processed_item)
             print(f"  Processing data: {item} -> {processed_item}")
@@ -131,7 +131,7 @@ class ErrorHandlingAction(Action):
             blackboard.set("last_error", f"{self.name} failed")
             return Status.FAILURE
         
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
         print(f"  {self.name} executed successfully")
         return Status.SUCCESS
 
@@ -139,7 +139,7 @@ class ErrorHandlingAction(Action):
 async def main():
     """Main function - demonstrate various action node usage"""
     
-    # 注册自定义节点类型
+    # Register custom node types
     register_custom_nodes()
     
     print("=== ABTree Action Nodes Detailed Example ===\n")
@@ -204,48 +204,7 @@ async def main():
     print(f"Last error: {blackboard.get('last_error', 'None')}")
     
     # 8. Demonstrate XML configuration method
-    print("\n=== XML Configuration Method Demo ===")
-    
-    # XML string configuration
-    xml_config = '''
-    <BehaviorTree name="ActionNodesXML" description="Action nodes example with XML configuration">
-        <Sequence name="Root Sequence">
-            <Selector name="Action Node Test">
-                <Sequence name="Simple Action Sequence">
-                    <SimpleAction name="Action 1" />
-                    <SimpleAction name="Action 2" />
-                    <SimpleAction name="Action 3" />
-                </Sequence>
-                <Sequence name="Conditional Action Sequence">
-                    <ConditionalAction name="Conditional Action 1" success_rate="0.8" />
-                    <ConditionalAction name="Conditional Action 2" success_rate="0.6" />
-                    <ConditionalAction name="Conditional Action 3" success_rate="0.9" />
-                </Sequence>
-                <LongRunningAction name="Long-Running Task" duration="1.0" />
-                <Sequence name="Data Processing Sequence">
-                    <DataProcessingAction name="Data Processing" />
-                    <SimpleAction name="Data Validation" />
-                </Sequence>
-            </Selector>
-        </Sequence>
-    </BehaviorTree>
-    '''
-    
-    # Parse XML configuration
-    xml_tree = BehaviorTree()
-    xml_tree.load_from_string(xml_config)
-    xml_blackboard = xml_tree.blackboard
-    
-    # Set XML configuration test data
-    xml_blackboard.set("input_data", [10, 20, 30])
-    xml_blackboard.set("error_count", 0)
-    
-    print("Behavior tree configured by XML string:")
-    print(xml_config.strip())
-    print("\nStarting execution of XML-configured behavior tree...")
-    xml_result = await xml_tree.tick()
-    print(f"XML configuration execution completed! Result: {xml_result}")
-    print(f"XML configuration processed data: {xml_blackboard.get('processed_data', [])}")
+    print("\n=== XML Configuration Method Demo ===")   
 
 
 if __name__ == "__main__":

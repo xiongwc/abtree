@@ -26,9 +26,9 @@ from abtree.core import Status
 from abtree.parser.xml_parser import XMLParser
 
 
-# 注册自定义节点类型
+# Register custom node types
 def register_custom_nodes():
-    """注册自定义节点类型"""
+    """Register custom node types"""
     register_node("SimpleCondition", SimpleCondition)
     register_node("ThresholdCondition", ThresholdCondition)
     register_node("TimeBasedCondition", TimeBasedCondition)
@@ -183,7 +183,7 @@ class Action2(Action):
 async def main():
     """Main function - demonstrate various condition node usage"""
     
-    # 注册自定义节点类型
+    # Register custom node types
     register_custom_nodes()
     
     print("=== ABTree Condition Nodes Detailed Example ===\n")
@@ -265,49 +265,8 @@ async def main():
     print("=" * 50)
     print(f"Execution result: {result}")
     print(f"Counter: {blackboard.get('counter')}")
-    print(f"Final state: {blackboard.get('state', 'unknown')}")
-    
-    # 9. Demonstrate XML configuration method
-    print("\n=== XML Configuration Method Demo ===")
-    
-    # XML string configuration
-    xml_config = '''
-    <BehaviorTree name="ConditionNodesXML" description="Condition nodes example with XML configuration">
-        <Sequence name="Root Sequence">
-            <Selector name="Condition Node Test">
-                <Sequence name="Simple Condition Test">
-                    <SimpleCondition name="Always True" />
-                    <Action1 name="Action 1" />
-                </Sequence>
-                <Sequence name="Threshold Condition Test">
-                    <ThresholdCondition name="Battery Check" key="battery_level" threshold="20" operator=">" />
-                    <Action1 name="Battery Action" />
-                </Sequence>
-                <Sequence name="State Condition Test">
-                    <StateCheckCondition name="State Check" state_key="system_state" expected_value="ready" />
-                    <Action2 name="State Action" />
-                </Sequence>
-            </Selector>
-        </Sequence>
-    </BehaviorTree>
-    '''
-    
-    # Parse XML configuration
-    xml_tree = BehaviorTree()
-    xml_tree.load_from_string(xml_config)
-    xml_blackboard = xml_tree.blackboard
-    
-    # Set XML configuration test data
-    xml_blackboard.set("battery_level", 90)
-    xml_blackboard.set("system_state", "ready")
-    xml_blackboard.set("counter", 0)
-    
-    print("Behavior tree configured by XML string:")
-    print(xml_config.strip())
-    print("\nStarting execution of XML-configured behavior tree...")
-    xml_result = await xml_tree.tick()
-    print(f"XML configuration execution completed! Result: {xml_result}")
-    print(f"XML configuration counter: {xml_blackboard.get('counter')}")
+    print(f"Final state: {blackboard.get('state', 'unknown')}")  
+
 
 
 if __name__ == "__main__":

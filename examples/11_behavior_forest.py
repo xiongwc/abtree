@@ -43,7 +43,7 @@ class PatrolAction(RobotAction):
     async def execute(self, blackboard):
         await super().execute(blackboard)
         print(f"   📍 {self.robot_id} is patrolling area")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS
 
 
@@ -56,7 +56,7 @@ class ChargeAction(RobotAction):
         if battery_level < 30:
             print(f"   🔋 {self.robot_id} is charging (battery: {battery_level}%)")
             blackboard.set("battery_level", min(100, battery_level + 20))
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(0.01)
             return Status.SUCCESS
         else:
             print(f"   ✅ {self.robot_id} battery is sufficient ({battery_level}%)")
@@ -69,7 +69,7 @@ class EmergencyResponseAction(RobotAction):
     async def execute(self, blackboard):
         await super().execute(blackboard)
         print(f"   🚨 {self.robot_id} responding to emergency!")
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS
 
 
@@ -83,7 +83,7 @@ class TaskExecutionAction(RobotAction):
     async def execute(self, blackboard):
         await super().execute(blackboard)
         print(f"   📋 {self.robot_id} executing {self.task_type} task")
-        await asyncio.sleep(0.8)
+        await asyncio.sleep(0.01)
         return Status.SUCCESS
 
 
@@ -289,7 +289,7 @@ async def demonstrate_pubsub_pattern(forest: BehaviorForest):
     await pubsub.publish("emergency", "Fire detected in sector A", "Coordinator")
     await pubsub.publish("task", "New cleaning task available", "Coordinator")
     
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.01)
 
 
 async def demonstrate_reqresp_pattern(forest: BehaviorForest):
@@ -331,7 +331,7 @@ async def demonstrate_reqresp_pattern(forest: BehaviorForest):
     except Exception as e:
         print(f"❌ Request failed: {e}")
     
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.01)
 
 
 async def demonstrate_shared_blackboard_pattern(forest: BehaviorForest):
@@ -361,7 +361,7 @@ async def demonstrate_shared_blackboard_pattern(forest: BehaviorForest):
     
     print(f"📊 Shared data - System: {system_status}, Robots: {active_robots}, Emergency: {emergency_level}")
     
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.01)
 
 
 async def demonstrate_state_watching_pattern(forest: BehaviorForest):
@@ -394,7 +394,7 @@ async def demonstrate_state_watching_pattern(forest: BehaviorForest):
     await state_watch.update_state("battery_level", 15, "Robot_R1")
     await state_watch.update_state("emergency_level", "critical", "Coordinator")
     
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.01)
 
 
 async def demonstrate_behavior_call_pattern(forest: BehaviorForest):
@@ -437,7 +437,7 @@ async def demonstrate_behavior_call_pattern(forest: BehaviorForest):
     except Exception as e:
         print(f"❌ Behavior call failed: {e}")
     
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.01)
 
 
 async def demonstrate_task_board_pattern(forest: BehaviorForest):
@@ -497,7 +497,7 @@ async def demonstrate_task_board_pattern(forest: BehaviorForest):
     if task_board.complete_task(task1_id, {"completion_time": "2:30", "quality": "excellent"}):
         print(f"✅ Task {task1_id} completed")
     
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.01)
 
 
 # ==================== Main Function ====================
@@ -594,7 +594,7 @@ async def main():
             forest.forest_blackboard.set("available_tasks", 2)
             print("📋 Tasks added!")
         
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(0.01)
     
     # 8. Stop forest
     print("\n🛑 Stopping behavior forest...")
@@ -606,7 +606,6 @@ async def main():
     print(f"  Name: {stats['name']}")
     print(f"  Total nodes: {stats['total_nodes']}")
     print(f"  Middleware count: {stats['middleware_count']}")
-    print(f"  Tick rate: {stats['tick_rate']}")
     
     print("\n✅ Behavior Forest example completed!")
 
