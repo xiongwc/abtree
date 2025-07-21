@@ -9,12 +9,6 @@ import asyncio
 import logging
 import time
 
-try:
-    import psutil
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-    psutil = None  # type: ignore
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -77,13 +71,6 @@ class PerformanceMetrics:
 @dataclass
 class ResourceUsage:
     """Resource usage metrics."""
-    cpu_percent: float = 0.0
-    memory_percent: float = 0.0
-    memory_mb: float = 0.0
-    disk_io_read: float = 0.0
-    disk_io_write: float = 0.0
-    network_io_sent: float = 0.0
-    network_io_recv: float = 0.0
     timestamp: datetime = field(default_factory=datetime.now)
 
 
@@ -91,7 +78,7 @@ class PerformanceMonitor:
     """
     Performance monitor for behavior forests.
     
-    Tracks execution times, success rates, resource usage, and other
+    Tracks execution times, success rates, and other
     performance metrics for forests and individual nodes.
     """
     
@@ -115,8 +102,6 @@ class PerformanceMonitor:
         # Performance thresholds
         self.execution_time_threshold = 1.0  # seconds
         self.success_rate_threshold = 90.0   # percentage
-        self.cpu_threshold = 80.0           # percentage
-        self.memory_threshold = 80.0        # percentage
         
     async def start_monitoring(self, interval: float = 1.0) -> None:
         """Start performance monitoring."""
@@ -157,45 +142,13 @@ class PerformanceMonitor:
     
     async def _collect_metrics(self) -> None:
         """Collect current performance metrics."""
-        # Collect resource usage
-        resource_usage = self._get_resource_usage()
+        # Collect basic resource usage (timestamp only)
+        resource_usage = ResourceUsage(timestamp=datetime.now())
         self.resource_history.append(resource_usage)
         
         # Trim history if too long
         if len(self.resource_history) > self.max_history_size:
             self.resource_history.pop(0)
-    
-    def _get_resource_usage(self) -> ResourceUsage:
-        """Get current resource usage."""
-        if not PSUTIL_AVAILABLE:
-            # Return default values when psutil is not available
-            return ResourceUsage(timestamp=datetime.now())
-        
-        try:
-            process = psutil.Process()
-            cpu_percent = process.cpu_percent()
-            memory_info = process.memory_info()
-            memory_percent = process.memory_percent()
-            
-            # Get disk I/O
-            disk_io = process.io_counters()
-            
-            # Get network I/O
-            network_io = psutil.net_io_counters()
-            
-            return ResourceUsage(
-                cpu_percent=cpu_percent,
-                memory_percent=memory_percent,
-                memory_mb=memory_info.rss / 1024 / 1024,
-                disk_io_read=disk_io.read_bytes / 1024 / 1024,
-                disk_io_write=disk_io.write_bytes / 1024 / 1024,
-                network_io_sent=network_io.bytes_sent / 1024 / 1024,
-                network_io_recv=network_io.bytes_recv / 1024 / 1024,
-                timestamp=datetime.now()
-            )
-        except Exception as e:
-            self.logger.error(f"Error collecting resource usage: {e}")
-            return ResourceUsage()
     
     async def _check_thresholds(self) -> None:
         """Check performance thresholds and log warnings."""
@@ -211,21 +164,6 @@ class PerformanceMonitor:
                 f"Forest success rate ({self.forest_metrics.get_success_rate():.1f}%) "
                 f"below threshold ({self.success_rate_threshold}%)"
             )
-        
-        # Check resource usage
-        if self.resource_history:
-            latest = self.resource_history[-1]
-            if latest.cpu_percent > self.cpu_threshold:
-                self.logger.warning(
-                    f"CPU usage ({latest.cpu_percent:.1f}%) "
-                    f"exceeds threshold ({self.cpu_threshold}%)"
-                )
-            
-            if latest.memory_percent > self.memory_threshold:
-                self.logger.warning(
-                    f"Memory usage ({latest.memory_percent:.1f}%) "
-                    f"exceeds threshold ({self.memory_threshold}%)"
-                )
     
     def record_forest_execution(self, execution_time: float, success: bool) -> None:
         """Record forest execution metrics."""
@@ -277,17 +215,11 @@ class PerformanceMonitor:
                 'average_execution_time': metrics.average_execution_time
             }
         
-        # Resource usage
+        # Basic resource usage (timestamp only)
         if self.resource_history:
             latest = self.resource_history[-1]
             report['resource_usage'] = {
-                'cpu_percent': latest.cpu_percent,
-                'memory_percent': latest.memory_percent,
-                'memory_mb': latest.memory_mb,
-                'disk_io_read_mb': latest.disk_io_read,
-                'disk_io_write_mb': latest.disk_io_write,
-                'network_io_sent_mb': latest.network_io_sent,
-                'network_io_recv_mb': latest.network_io_recv
+                'timestamp': latest.timestamp.isoformat()
             }
         
         return report
@@ -312,14 +244,6 @@ Node Performance:
             if metrics.total_executions > 0:
                 summary += f"  {node_name}: {metrics.get_success_rate():.1f}% success, "
                 summary += f"{metrics.average_execution_time:.3f}s avg\n"
-        
-        if self.resource_history:
-            latest = self.resource_history[-1]
-            summary += f"""
-Resource Usage:
-  CPU: {latest.cpu_percent:.1f}%
-  Memory: {latest.memory_percent:.1f}% ({latest.memory_mb:.1f} MB)
-"""
         
         return summary
 
