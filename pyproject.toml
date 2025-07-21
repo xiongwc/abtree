@@ -51,10 +51,10 @@ cli = [
 abtree-cli = "cli.abtree_cli:main"
 
 [project.urls]
-Homepage = "https://github.com/abtree/abtree"
-Repository = "https://github.com/abtree/abtree"
+Homepage = "https://github.com/xiongwc/abtree"
+Repository = "https://github.com/xiongwc/abtree"
 Documentation = "https://abtree.readthedocs.io"
-Issues = "https://github.com/abtree/abtree/issues"
+Issues = "https://github.com/xiongwc/abtree/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

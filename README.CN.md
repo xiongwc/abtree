@@ -5,7 +5,7 @@
 **基于Python asyncio构建的异步行为树框架，专为智能决策系统设计**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Stars](https://img.shields.io/github/stars/abtree/abtree?style=social)](https://github.com/xiongwc/abtree/stargazers)[![Forks](https://img.shields.io/github/forks/abtree/abtree?style=social)](https://github.com/xiongwc/abtree/network/members)
+[![Stars](https://img.shields.io/github/stars/xiongwc/abtree?style=social)](https://github.com/xiongwc/abtree/stargazers)[![Forks](https://img.shields.io/github/forks/xiongwc/abtree?style=social)](https://github.com/xiongwc/abtree/network/members)
 
 <!-- Star section -->
 <div align="center">
@@ -76,7 +76,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/abtree/abtree.git
+git clone https://github.com/xiongwc/abtree.git
 cd abtree
 
 # 安装依赖
@@ -295,6 +295,6 @@ abtree/
   </a>
 </div>
 
-[![GitHub Discussions](https://img.shields.io/github/discussions/abtree/abtree?color=blue&logo=github)](https://github.com/abtree/abtree/discussions)[![GitHub Issues](https://img.shields.io/github/issues/abtree/abtree?color=green&logo=github)](https://github.com/abtree/abtree/issues)[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/abtree/abtree?color=orange&logo=github)](https://github.com/abtree/abtree/pulls)
+[![GitHub Discussions](https://img.shields.io/github/discussions/xiongwc/abtree?color=blue&logo=github)](https://github.com/xiongwc/abtree/discussions)[![GitHub Issues](https://img.shields.io/github/issues/xiongwc/abtree?color=green&logo=github)](https://github.com/xiongwc/abtree/issues)[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/xiongwc/abtree?color=orange&logo=github)](https://github.com/xiongwc/abtree/pulls)
 
 </div> 

@@ -319,9 +319,9 @@ python examples/test_all_examples.py
 - [最佳实践](docs/best_practices.md)
 
 ### 社区资源
-- [GitHub仓库](https://github.com/abtree/abtree)
-- [问题反馈](https://github.com/abtree/abtree/issues)
-- [讨论区](https://github.com/abtree/abtree/discussions)
+- [GitHub仓库](https://github.com/xiongwc/abtree)
+- [问题反馈](https://github.com/xiongwc/abtree/issues)
+- [讨论区](https://github.com/xiongwc/abtree/discussions)
 
 ## 🤝 贡献指南
 
@@ -341,8 +341,8 @@ python examples/test_all_examples.py
 
 ## 📞 联系方式
 
-- 项目主页: https://github.com/abtree/abtree
-- 问题反馈: https://github.com/abtree/abtree/issues
+- 项目主页: https://github.com/xiongwc/abtree
+- 问题反馈: https://github.com/xiongwc/abtree/issues
 - 邮箱: support@abtree.org
 
 ---
