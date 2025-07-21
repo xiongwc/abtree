@@ -14,7 +14,8 @@ import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Type, Callable, Union
+from typing import Any, Callable, Dict, List, Optional, Type, Union
+
 from typing_extensions import Protocol
 
 from .core import BehaviorForest, ForestNode, ForestNodeType
@@ -325,8 +326,8 @@ class ExampleNodePlugin(NodePlugin):
     
     def register_custom_nodes(self) -> None:
         """Register custom node types."""
-        from abtree.nodes.action import Action
         from abtree.core import Status
+        from abtree.nodes.action import Action
         
         class ExampleAction(Action):
             """Example custom action node."""

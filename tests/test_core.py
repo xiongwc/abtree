@@ -9,10 +9,8 @@ from datetime import datetime
 
 import pytest
 
+from abtree import Blackboard, EventSystem, TickManager
 from abtree.core import Policy, Status
-from abtree.core.blackboard import Blackboard
-from abtree.core.event_system import EventSystem
-from abtree.core.tick_manager import TickManager
 
 
 class TestStatus:

@@ -10,8 +10,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..engine.blackboard import Blackboard
 from ..core.status import Status
+from ..engine.blackboard import Blackboard
 
 
 @dataclass

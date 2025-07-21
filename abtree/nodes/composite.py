@@ -11,9 +11,9 @@ import asyncio
 from dataclasses import dataclass
 from typing import List, Optional
 
-from .base import BaseNode
-from ..engine.blackboard import Blackboard
 from ..core.status import Policy, Status
+from ..engine.blackboard import Blackboard
+from .base import BaseNode
 
 
 @dataclass

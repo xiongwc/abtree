@@ -7,11 +7,11 @@ and coordination between behavior trees in a forest.
 
 # Import middleware classes from communication module
 from ..communication import (
+    BehaviorCallMiddleware,
     PubSubMiddleware,
     ReqRespMiddleware,
     SharedBlackboardMiddleware,
     StateWatchingMiddleware,
-    BehaviorCallMiddleware,
     TaskBoardMiddleware,
 )
 

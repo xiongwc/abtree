@@ -8,8 +8,8 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from ..nodes.base import BaseNode
 from ..engine.behavior_tree import BehaviorTree
+from ..nodes.base import BaseNode
 from ..registry.node_registry import get_global_registry
 
 

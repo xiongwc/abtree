@@ -7,21 +7,21 @@ enabling complex multi-system coordination and monitoring.
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
 from enum import Enum, auto
+from typing import Any, Dict, List, Optional, Set
 
-from .core import BehaviorForest, ForestNode, ForestNodeType
+from ..core.status import Status
+from ..engine.blackboard import Blackboard
+from ..engine.event_system import EventSystem
 from .communication import (
+    BehaviorCallMiddleware,
     PubSubMiddleware,
     ReqRespMiddleware,
     SharedBlackboardMiddleware,
     StateWatchingMiddleware,
-    BehaviorCallMiddleware,
     TaskBoardMiddleware,
 )
-from ..engine.blackboard import Blackboard
-from ..engine.event_system import EventSystem
-from ..core.status import Status
+from .core import BehaviorForest, ForestNode, ForestNodeType
 
 
 class ForestStatus(Enum):

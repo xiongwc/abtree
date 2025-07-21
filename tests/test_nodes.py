@@ -8,8 +8,8 @@ import asyncio
 
 import pytest
 
+from abtree import Blackboard
 from abtree.core import Status
-from abtree.core.blackboard import Blackboard
 from abtree.nodes.action import Action, Wait
 from abtree.nodes.composite import Parallel, Selector, Sequence
 from abtree.nodes.condition import Condition

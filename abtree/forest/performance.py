@@ -6,8 +6,8 @@ including execution time tracking, resource usage monitoring, and performance me
 """
 
 import asyncio
-import time
 import logging
+import time
 
 try:
     import psutil
@@ -17,9 +17,9 @@ except ImportError:
     psutil = None
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable
 from datetime import datetime, timedelta
 from statistics import mean, median, stdev
+from typing import Any, Callable, Dict, List, Optional
 
 from .core import BehaviorForest, ForestNode, ForestNodeType
 

@@ -6,11 +6,11 @@ with different communication patterns and middleware configurations.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
 from enum import Enum, auto
+from typing import Any, Dict, List, Optional, Set
 
-from .core import ForestNodeType
 from .communication import CommunicationType
+from .core import ForestNodeType
 
 
 class MiddlewareConfig(Enum):

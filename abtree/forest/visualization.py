@@ -10,8 +10,8 @@ import asyncio
 import json
 import logging
 from dataclasses import asdict
-from typing import Dict, List, Optional, Any, Set
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Set
 
 try:
     import matplotlib.pyplot as plt

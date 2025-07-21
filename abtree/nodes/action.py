@@ -8,9 +8,9 @@ such as movement, attack, collection, etc. Users need to inherit this class to i
 from abc import abstractmethod
 from dataclasses import dataclass
 
-from .base import BaseNode
-from ..engine.blackboard import Blackboard
 from ..core.status import Status
+from ..engine.blackboard import Blackboard
+from .base import BaseNode
 
 
 @dataclass

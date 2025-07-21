@@ -10,9 +10,9 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from ..core.status import Status
 from ..nodes.base import BaseNode
 from .blackboard import Blackboard
-from ..core.status import Status
 
 
 @dataclass

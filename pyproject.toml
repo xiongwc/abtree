@@ -62,7 +62,7 @@ include = ["abtree*", "cli*"]
 
 
 [tool.isort]
-profile = "default"
+profile = "black"
 line_length = 88
 
 [tool.mypy]

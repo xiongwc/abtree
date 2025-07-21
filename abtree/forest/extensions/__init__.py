@@ -7,7 +7,12 @@ monitoring, and plugin system for behavior forests.
 
 # Import extension classes from forest module
 try:
-    from ..visualization import ForestVisualizer, ForestDashboard, create_forest_visualizer, create_forest_dashboard
+    from ..visualization import (
+        ForestDashboard,
+        ForestVisualizer,
+        create_forest_dashboard,
+        create_forest_visualizer,
+    )
     VISUALIZATION_AVAILABLE = True
 except ImportError:
     VISUALIZATION_AVAILABLE = False
@@ -17,7 +22,12 @@ except ImportError:
     create_forest_dashboard = None
 
 try:
-    from ..plugin_system import PluginManager, BasePlugin, PluginInfo, create_plugin_manager
+    from ..plugin_system import (
+        BasePlugin,
+        PluginInfo,
+        PluginManager,
+        create_plugin_manager,
+    )
     PLUGIN_SYSTEM_AVAILABLE = True
 except ImportError:
     PLUGIN_SYSTEM_AVAILABLE = False
@@ -27,7 +37,11 @@ except ImportError:
     create_plugin_manager = None
 
 try:
-    from ..performance import PerformanceMonitor, create_performance_monitor, monitor_forest_performance
+    from ..performance import (
+        PerformanceMonitor,
+        create_performance_monitor,
+        monitor_forest_performance,
+    )
     PERFORMANCE_MONITORING_AVAILABLE = True
 except ImportError:
     PERFORMANCE_MONITORING_AVAILABLE = False

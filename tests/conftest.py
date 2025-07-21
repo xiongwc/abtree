@@ -8,8 +8,7 @@ import asyncio
 
 import pytest
 
-from abtree import BehaviorTree, Sequence
-from abtree.core.blackboard import Blackboard
+from abtree import BehaviorTree, Blackboard, Sequence
 
 
 @pytest.fixture

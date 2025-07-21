@@ -5,14 +5,47 @@ A modern, modular, and easy-to-integrate Python asynchronous behavior tree frame
 designed for agent-based systems, game AI, robotics, and other scenarios.
 """
 
-from .engine import BehaviorTree, Blackboard, EventSystem, TickManager
+from typing import Optional, Union
+
 from .core.status import Policy, Status
+from .engine import BehaviorTree, Blackboard, EventSystem, TickManager
+from .forest import (
+    BehaviorForest,
+    ForestConfig,
+    ForestConfigPresets,
+    ForestManager,
+    ForestNode,
+    ForestNodeType,
+)
+from .forest.middleware import (
+    BehaviorCallMiddleware,
+    PubSubMiddleware,
+    ReqRespMiddleware,
+    SharedBlackboardMiddleware,
+    StateWatchingMiddleware,
+    TaskBoardMiddleware,
+)
 from .nodes import (
+    Action,
+    AlwaysFalse,
+    AlwaysTrue,
     BaseNode,
-    Action, Log, SetBlackboard, Wait,
-    Parallel, Selector, Sequence,
-    AlwaysFalse, AlwaysTrue, CheckBlackboard, Compare, Condition, IsFalse, IsTrue,
-    Inverter, Repeater, UntilFailure, UntilSuccess, Decorator,
+    CheckBlackboard,
+    Compare,
+    Condition,
+    Decorator,
+    Inverter,
+    IsFalse,
+    IsTrue,
+    Log,
+    Parallel,
+    Repeater,
+    Selector,
+    Sequence,
+    SetBlackboard,
+    UntilFailure,
+    UntilSuccess,
+    Wait,
 )
 from .parser.tree_builder import TreeBuilder
 from .parser.xml_parser import XMLParser
@@ -22,23 +55,6 @@ from .registry.node_registry import (
     get_registered_nodes,
     register_node,
 )
-from .forest import (
-    BehaviorForest,
-    ForestNode,
-    ForestNodeType,
-    ForestManager,
-    ForestConfig,
-    ForestConfigPresets,
-)
-from .forest.middleware import (
-    PubSubMiddleware,
-    ReqRespMiddleware,
-    SharedBlackboardMiddleware,
-    StateWatchingMiddleware,
-    BehaviorCallMiddleware,
-    TaskBoardMiddleware,
-)
-from typing import Optional, Union
 
 __version__ = "1.0.0"
 __author__ = "ABTree Team"
@@ -59,7 +75,13 @@ def _register_builtin_nodes():
         IsFalse,
         IsTrue,
     )
-    from .nodes.decorator import Inverter, Repeater, UntilFailure, UntilSuccess, Decorator
+    from .nodes.decorator import (
+        Decorator,
+        Inverter,
+        Repeater,
+        UntilFailure,
+        UntilSuccess,
+    )
 
     # 注册复合节点
     register_node("Sequence", Sequence)

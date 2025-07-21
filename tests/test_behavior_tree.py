@@ -178,7 +178,7 @@ class TestBehaviorTree:
         tree = BehaviorTree(name="blackboard_tree")
         tree.load_from_root(root)
         # Confirm blackboard type
-        from abtree.core.blackboard import Blackboard
+        from abtree import Blackboard
 
         assert isinstance(tree.blackboard, Blackboard)
         # Directly use blackboard.set

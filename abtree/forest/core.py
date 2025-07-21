@@ -7,13 +7,13 @@ and ForestNode that enable multiple behavior trees to work together.
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Union
 from enum import Enum, auto
+from typing import Any, Dict, List, Optional, Set, Union
 
+from ..core.status import Status
 from ..engine.behavior_tree import BehaviorTree
 from ..engine.blackboard import Blackboard
 from ..engine.event_system import EventSystem
-from ..core.status import Status
 
 
 class ForestNodeType(Enum):

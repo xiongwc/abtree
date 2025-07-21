@@ -9,10 +9,10 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from ..core.status import Status
 from ..nodes.base import BaseNode
 from .blackboard import Blackboard
 from .event_system import EventSystem
-from ..core.status import Status
 from .tick_manager import TickManager
 
 

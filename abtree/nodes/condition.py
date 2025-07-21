@@ -8,9 +8,9 @@ such as whether the enemy is visible, within range, etc.
 from abc import abstractmethod
 from dataclasses import dataclass
 
-from .base import BaseNode
-from ..engine.blackboard import Blackboard
 from ..core.status import Status
+from ..engine.blackboard import Blackboard
+from .base import BaseNode
 
 
 @dataclass

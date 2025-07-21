@@ -11,15 +11,15 @@ Provides 6 different communication patterns for behavior trees in the forest:
 """
 
 import asyncio
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Set, Union
 from enum import Enum, auto
-import time
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
-from ..engine.event_system import EventSystem, Event
-from ..engine.blackboard import Blackboard
 from ..core.status import Status
+from ..engine.blackboard import Blackboard
+from ..engine.event_system import Event, EventSystem
 from .core import BehaviorForest, ForestNode
 
 
