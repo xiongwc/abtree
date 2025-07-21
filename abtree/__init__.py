@@ -5,7 +5,7 @@ A modern, modular, and easy-to-integrate Python asynchronous behavior tree frame
 designed for agent-based systems, game AI, robotics, and other scenarios.
 """
 
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from .core.status import Policy, Status
 from .engine import BehaviorTree, Blackboard, EventSystem, TickManager
@@ -56,13 +56,9 @@ from .registry.node_registry import (
     register_node,
 )
 
-__version__ = "1.0.0"
-__author__ = "ABTree Team"
-__email__ = "team@abtree.dev"
-
 
 # Register all built-in node types
-def _register_builtin_nodes():
+def _register_builtin_nodes() -> None:
     """Register all built-in node types"""
     from .nodes.action import Action, Log, SetBlackboard, Wait
     from .nodes.composite import Parallel, Selector, Sequence
@@ -83,26 +79,26 @@ def _register_builtin_nodes():
         UntilSuccess,
     )
 
-    # 注册复合节点
-    register_node("Sequence", Sequence)
-    register_node("Selector", Selector)
-    register_node("Parallel", Parallel)
+    # Register composite nodes
+    register_node("Sequence", Sequence)  
+    register_node("Selector", Selector)  
+    register_node("Parallel", Parallel) 
 
-    # 注册装饰器节点
-    register_node("Inverter", Inverter)
-    register_node("Repeater", Repeater)
-    register_node("UntilSuccess", UntilSuccess)
-    register_node("UntilFailure", UntilFailure)
-    register_node("Decorator", Decorator)
+    # Register decorator nodes
+    register_node("Inverter", Inverter)  
+    register_node("Repeater", Repeater)  
+    register_node("UntilSuccess", UntilSuccess)  
+    register_node("UntilFailure", UntilFailure)  
+    register_node("Decorator", Decorator) 
 
-    # 注册动作节点
-    register_node("Action", Action)
+    # Register action nodes
+    # register_node("Action", Action)  # Action is abstract, cannot be registered
     register_node("Wait", Wait)
     register_node("Log", Log)
     register_node("SetBlackboard", SetBlackboard)
 
-    # 注册条件节点
-    register_node("Condition", Condition)
+    # Register condition nodes
+    # register_node("Condition", Condition)  # Condition is abstract, cannot be registered
     register_node("CheckBlackboard", CheckBlackboard)
     register_node("IsTrue", IsTrue)
     register_node("IsFalse", IsFalse)
@@ -111,7 +107,7 @@ def _register_builtin_nodes():
     register_node("AlwaysFalse", AlwaysFalse)
 
 
-# 初始化时注册节点
+# Register nodes when the module is imported
 _register_builtin_nodes()
 
 
@@ -121,7 +117,7 @@ def create_tree(
     xml_file: Optional[str] = None,
     name: str = "BehaviorTree",
     description: str = "",
-    **kwargs
+    **kwargs: Any
 ) -> BehaviorTree:
     """
     Create behavior tree with flexible initialization
@@ -161,15 +157,15 @@ def create_tree(
     return tree
 
 
-def load_from_xml_string(xml_string: str) -> BehaviorTree:
+def load_from_xml_string(xml_string: str) -> Union[BehaviorTree, BehaviorForest]:
     """
-    Load behavior tree from XML string
+    Load behavior tree or forest from XML string
 
     Args:
         xml_string: XML string
 
     Returns:
-        Loaded behavior tree
+        Loaded behavior tree or forest
 
     Raises:
         ValueError: When XML format error or parsing fails
@@ -178,15 +174,15 @@ def load_from_xml_string(xml_string: str) -> BehaviorTree:
     return parser.parse_string(xml_string)
 
 
-def load_from_xml_file(file_path: str) -> BehaviorTree:
+def load_from_xml_file(file_path: str) -> Union[BehaviorTree, BehaviorForest]:
     """
-    Load behavior tree from XML file
+    Load behavior tree or forest from XML file
 
     Args:
         file_path: XML file path
 
     Returns:
-        Loaded behavior tree
+        Loaded behavior tree or forest
 
     Raises:
         ValueError: When file does not exist or XML format error

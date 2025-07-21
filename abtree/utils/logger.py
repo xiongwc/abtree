@@ -102,7 +102,7 @@ class ColoredFormatter(logging.Formatter):
         self.config = config
         self._setup_colors()
     
-    def _setup_colors(self):
+    def _setup_colors(self) -> None:
         """Setup color mappings"""
         self.level_colors = {
             logging.DEBUG: LevelColor.DEBUG,
@@ -126,7 +126,7 @@ class ColoredFormatter(logging.Formatter):
             logging.CRITICAL: "🚨",
         }
     
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         """Format log record"""
         # Check if colors are supported
         if not self.config.enable_colors or not self._supports_color():
@@ -174,7 +174,7 @@ class ColoredFormatter(logging.Formatter):
 class StatusFormatter(ColoredFormatter):
     """Status-specific formatter"""
     
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         """Format status logs"""
         if not self.config.enable_colors or not self._supports_color():
             return super().format(record)
@@ -221,7 +221,7 @@ def setup_logger(
 
     # Create formatter
     if config.enable_colors:
-        formatter = ColoredFormatter(config)
+        formatter: logging.Formatter = ColoredFormatter(config)
     else:
         formatter = logging.Formatter(config.format)
 
@@ -244,13 +244,13 @@ def setup_logger(
 
 def get_logger(name: str = "abtree") -> logging.Logger:
     """
-    Get logger
+    Get logger instance
 
     Args:
         name: Logger name
 
     Returns:
-        Logger
+        Logger instance
     """
     return logging.getLogger(name)
 
@@ -261,15 +261,12 @@ _abtree_logger = None
 
 def get_abtree_logger() -> logging.Logger:
     """
-    Get ABTree main logger
+    Get abtree logger instance
 
     Returns:
-        ABTree logger
+        abtree logger instance
     """
-    global _abtree_logger
-    if _abtree_logger is None:
-        _abtree_logger = setup_logger("abtree")
-    return _abtree_logger
+    return get_logger("abtree")
 
 
 def log_tree_execution(tree_name: str, status: str, duration: float = 0.0) -> None:
@@ -300,7 +297,7 @@ def log_node_execution(node_name: str, node_type: str, status: str) -> None:
     logger.debug(f"Node execution - Name: {node_name}, Type: {node_type}, Status: {status}")
 
 
-def log_blackboard_access(key: str, operation: str, value: any = None) -> None:
+def log_blackboard_access(key: str, operation: str, value: Any = None) -> None:
     """
     Log blackboard access
 
@@ -316,7 +313,7 @@ def log_blackboard_access(key: str, operation: str, value: any = None) -> None:
         logger.debug(f"Blackboard access - Key: {key}, Operation: {operation}")
 
 
-def log_event(event_name: str, source: str = None, data: any = None) -> None:
+def log_event(event_name: str, source: Optional[str] = None, data: Any = None) -> None:
     """
     Log event
 
@@ -334,7 +331,7 @@ def log_event(event_name: str, source: str = None, data: any = None) -> None:
         logger.info(f"Event - Name: {event_name}")
 
 
-def log_error(message: str, error: Exception = None) -> None:
+def log_error(message: str, error: Optional[Exception] = None) -> None:
     """
     Log error
 

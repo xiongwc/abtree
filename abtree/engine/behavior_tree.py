@@ -47,7 +47,7 @@ class BehaviorTree:
         tick_manager: Optional[TickManager] = None,
         name: str = "BehaviorTree",
         description: str = "",
-    ):
+    ) -> None:
         """
         Initialize behavior tree
 
@@ -111,15 +111,21 @@ class BehaviorTree:
         
         parser = XMLParser()
         # Pass the blackboard to the parser for object resolution
-        xml_tree = parser.parse_string(xml_string)
+        xml_result = parser.parse_string(xml_string)
         
-        # Copy XML parsing results
-        self.root = xml_tree.root
-        self.name = xml_tree.name
-        self.description = xml_tree.description
-        self.blackboard = xml_tree.blackboard
-        self.event_system = xml_tree.event_system
-        self.tick_manager = xml_tree.tick_manager
+        # Only handle BehaviorTree, not BehaviorForest
+        if hasattr(xml_result, 'root') and hasattr(xml_result, 'name'):
+            # Copy XML parsing results
+            self.root = xml_result.root
+            self.name = xml_result.name
+            if hasattr(xml_result, 'description'):
+                self.description = xml_result.description
+            if hasattr(xml_result, 'blackboard'):
+                self.blackboard = xml_result.blackboard
+            if hasattr(xml_result, 'event_system'):
+                self.event_system = xml_result.event_system
+            if hasattr(xml_result, 'tick_manager'):
+                self.tick_manager = xml_result.tick_manager
 
     def _init_from_xml_file(self, xml_file: str) -> None:
         """
@@ -132,15 +138,21 @@ class BehaviorTree:
         
         parser = XMLParser()
         # Pass the blackboard to the parser for object resolution
-        xml_tree = parser.parse_file(xml_file, self.blackboard)
+        xml_result = parser.parse_file(xml_file)
         
-        # Copy XML parsing results
-        self.root = xml_tree.root
-        self.name = xml_tree.name
-        self.description = xml_tree.description
-        self.blackboard = xml_tree.blackboard
-        self.event_system = xml_tree.event_system
-        self.tick_manager = xml_tree.tick_manager
+        # Only handle BehaviorTree, not BehaviorForest
+        if hasattr(xml_result, 'root') and hasattr(xml_result, 'name'):
+            # Copy XML parsing results
+            self.root = xml_result.root
+            self.name = xml_result.name
+            if hasattr(xml_result, 'description'):
+                self.description = xml_result.description
+            if hasattr(xml_result, 'blackboard'):
+                self.blackboard = xml_result.blackboard
+            if hasattr(xml_result, 'event_system'):
+                self.event_system = xml_result.event_system
+            if hasattr(xml_result, 'tick_manager'):
+                self.tick_manager = xml_result.tick_manager
 
     def _init_default_components(self) -> None:
         """Initialize default components"""
@@ -155,7 +167,8 @@ class BehaviorTree:
                 root_node=self.root, blackboard=self.blackboard
             )
         else:
-            self.tick_manager.set_root_node(self.root)
+            if self.root is not None:
+                self.tick_manager.set_root_node(self.root)
             self.tick_manager.set_blackboard(self.blackboard)
 
     async def tick(self) -> Status:
@@ -325,11 +338,15 @@ class BehaviorTree:
         for node in nodes:
             # Count node types
             node_type = node.__class__.__name__
-            stats["node_types"][node_type] = stats["node_types"].get(node_type, 0) + 1
+            node_types = stats["node_types"]
+            if isinstance(node_types, dict):
+                node_types[node_type] = node_types.get(node_type, 0) + 1
 
             # Count status distribution
             status_name = node.status.name
-            stats["status_distribution"][status_name] += 1
+            status_distribution = stats["status_distribution"]
+            if isinstance(status_distribution, dict):
+                status_distribution[status_name] += 1
 
         return stats
 
@@ -433,11 +450,11 @@ class BehaviorTree:
         if self.event_system:
             self.event_system.off(event_name, callback)
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "BehaviorTree":
         """Async context manager entry"""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit"""
         await self.stop()
 

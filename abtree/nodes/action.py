@@ -7,6 +7,7 @@ such as movement, attack, collection, etc. Users need to inherit this class to i
 
 from abc import abstractmethod
 from dataclasses import dataclass
+from typing import Any, Optional
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
@@ -22,7 +23,7 @@ class Action(BaseNode):
     Users need to inherit this class and implement the execute method to implement specific actions.
     """
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Ensure no children after initialization"""
         super().__post_init__()
         # Action nodes should not have children
@@ -81,7 +82,7 @@ class Action(BaseNode):
         """Action nodes cannot remove children"""
         return False
 
-    def get_child(self, index: int):
+    def get_child(self, index: int) -> Optional["BaseNode"]:
         """Action nodes do not have children"""
         return None
 
@@ -208,7 +209,7 @@ class SetBlackboard(Action):
     """
 
     key: str = ""
-    value: any = None
+    value: Any = None
 
     async def execute(self, blackboard: Blackboard) -> Status:
         """
@@ -228,7 +229,7 @@ class SetBlackboard(Action):
 
         return Status.SUCCESS
 
-    def set_key_value(self, key: str, value: any) -> None:
+    def set_key_value(self, key: str, value: Any) -> None:
         """
         Set key-value pair
 

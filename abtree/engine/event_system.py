@@ -85,7 +85,7 @@ class EventSystem:
     supporting asynchronous event handling and priority sorting.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize event system"""
         self._listeners: Dict[str, List[EventListener]] = {}
         self._global_listeners: List[EventListener] = []

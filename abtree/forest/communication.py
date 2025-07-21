@@ -569,7 +569,7 @@ class TaskBoardMiddleware(BaseMiddleware):
         self.claim_callbacks: Dict[str, List[Callable]] = {}
     
     def publish_task(self, title: str, description: str, requirements: Set[str], 
-                    priority: int = 0, data: Dict[str, Any] = None) -> str:
+                    priority: int = 0, data: Optional[Dict[str, Any]] = None) -> str:
         """
         Publish a task to the task board
         

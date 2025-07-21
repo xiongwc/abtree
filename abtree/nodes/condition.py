@@ -7,6 +7,7 @@ such as whether the enemy is visible, within range, etc.
 
 from abc import abstractmethod
 from dataclasses import dataclass
+from typing import Any, Optional
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
@@ -22,7 +23,7 @@ class Condition(BaseNode):
     Users need to inherit this class and implement the evaluate method to perform specific condition checks.
     """
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Ensure no child nodes after initialization"""
         super().__post_init__()
         # Condition nodes should not have child nodes
@@ -81,7 +82,7 @@ class Condition(BaseNode):
         """Condition nodes cannot remove child nodes"""
         return False
 
-    def get_child(self, index: int):
+    def get_child(self, index: int) -> Optional["BaseNode"]:
         """Condition nodes have no child nodes"""
         return None
 
@@ -106,7 +107,7 @@ class CheckBlackboard(Condition):
     """
 
     key: str = ""
-    expected_value: any = None
+    expected_value: Any = None
     check_exists: bool = False  # Whether to only check if the key exists
 
     async def evaluate(self, blackboard: Blackboard) -> bool:
@@ -128,7 +129,7 @@ class CheckBlackboard(Condition):
         else:
             # Check key-value pair
             actual_value = blackboard.get(self.key)
-            return actual_value == self.expected_value
+            return bool(actual_value == self.expected_value)
 
     def set_key(self, key: str) -> None:
         """
@@ -139,7 +140,7 @@ class CheckBlackboard(Condition):
         """
         self.key = key
 
-    def set_expected_value(self, value: any) -> None:
+    def set_expected_value(self, value: Any) -> None:
         """
         Set expected value
 
@@ -240,7 +241,7 @@ class Compare(Condition):
 
     key: str = ""
     operator: str = "=="  # ==, !=, >, <, >=, <=
-    value: any = None
+    value: Any = None
 
     async def evaluate(self, blackboard: Blackboard) -> bool:
         """
@@ -259,24 +260,24 @@ class Compare(Condition):
 
         try:
             if self.operator == "==":
-                return actual_value == self.value
+                return bool(actual_value == self.value)
             elif self.operator == "!=":
-                return actual_value != self.value
+                return bool(actual_value != self.value)
             elif self.operator == ">":
-                return actual_value > self.value
+                return bool(actual_value > self.value)
             elif self.operator == "<":
-                return actual_value < self.value
+                return bool(actual_value < self.value)
             elif self.operator == ">=":
-                return actual_value >= self.value
+                return bool(actual_value >= self.value)
             elif self.operator == "<=":
-                return actual_value <= self.value
+                return bool(actual_value <= self.value)
             else:
                 return False
         except (TypeError, ValueError):
             # Comparison failed, return False
             return False
 
-    def set_comparison(self, key: str, operator: str, value: any) -> None:
+    def set_comparison(self, key: str, operator: str, value: Any) -> None:
         """
         Set comparison parameters
 

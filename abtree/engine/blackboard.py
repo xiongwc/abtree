@@ -8,7 +8,7 @@ providing thread-safe data storage and access mechanisms.
 import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, AsyncGenerator
 
 
 @dataclass
@@ -147,7 +147,7 @@ class Blackboard:
             return key in self.data
 
     @asynccontextmanager
-    async def transaction(self):
+    async def transaction(self) -> AsyncGenerator["Blackboard", None]:
         """
         Blackboard transaction context manager
 

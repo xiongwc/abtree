@@ -29,14 +29,14 @@ from ..registry.node_registry import get_global_registry
 @dataclass
 class CommunicationConfig:
     """Communication configuration container"""
-    topics: Dict[str, Dict[str, List[str]]] = None  # topic_name -> {publishers: [], subscribers: []}
-    services: Dict[str, Dict[str, List[str]]] = None  # service_name -> {server: str, clients: []}
-    shared_keys: Set[str] = None
-    states: Dict[str, List[str]] = None  # state_name -> [watchers]
-    calls: Dict[str, Dict[str, List[str]]] = None  # call_name -> {providers: [], callers: []}
-    tasks: Dict[str, Dict[str, List[str]]] = None  # task_name -> {publisher: str, claimants: []}
+    topics: Optional[Dict[str, Dict[str, List[str]]]] = None  # topic_name -> {publishers: [], subscribers: []}
+    services: Optional[Dict[str, Dict[str, Union[str, List[str]]]]] = None  # service_name -> {server: str, clients: []}
+    shared_keys: Optional[Set[str]] = None
+    states: Optional[Dict[str, List[str]]] = None  # state_name -> [watchers]
+    calls: Optional[Dict[str, Dict[str, List[str]]]] = None  # call_name -> {providers: [], callers: []}
+    tasks: Optional[Dict[str, Dict[str, Union[str, List[str]]]]] = None  # task_name -> {publisher: str, claimants: []}
     
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.topics is None:
             self.topics = {}
         if self.services is None:
@@ -263,8 +263,8 @@ class XMLParser:
     def _parse_topic(self, element: ET.Element, config: CommunicationConfig) -> None:
         """Parse topic configuration"""
         topic_name = element.get("name", "")
-        publishers = []
-        subscribers = []
+        publishers: List[str] = []
+        subscribers: List[str] = []
         
         for child in element:
             if child.tag == "ComPublisher":
@@ -276,16 +276,17 @@ class XMLParser:
                 if service:
                     subscribers.append(service)
         
-        config.topics[topic_name] = {
-            "publishers": publishers,
-            "subscribers": subscribers
-        }
+        if config.topics is not None:
+            config.topics[topic_name] = {
+                "publishers": publishers,
+                "subscribers": subscribers
+            }
 
     def _parse_service(self, element: ET.Element, config: CommunicationConfig) -> None:
         """Parse service configuration"""
         service_name = element.get("name", "")
         server = ""
-        clients = []
+        clients: List[str] = []
         
         for child in element:
             if child.tag == "ComServer":
@@ -295,23 +296,24 @@ class XMLParser:
                 if service:
                     clients.append(service)
         
-        config.services[service_name] = {
-            "server": server,
-            "clients": clients
-        }
+        if config.services is not None:
+            config.services[service_name] = {
+                "server": server,
+                "clients": clients
+            }
 
     def _parse_shared(self, element: ET.Element, config: CommunicationConfig) -> None:
         """Parse shared blackboard configuration"""
         for child in element:
             if child.tag == "ComKey":
                 key_name = child.get("name", "")
-                if key_name:
+                if key_name and config.shared_keys is not None:
                     config.shared_keys.add(key_name)
 
     def _parse_state(self, element: ET.Element, config: CommunicationConfig) -> None:
         """Parse state watching configuration"""
         state_name = element.get("name", "")
-        watchers = []
+        watchers: List[str] = []
         
         for child in element:
             if child.tag == "ComWatcher":
@@ -319,13 +321,14 @@ class XMLParser:
                 if service:
                     watchers.append(service)
         
-        config.states[state_name] = watchers
+        if config.states is not None:
+            config.states[state_name] = watchers
 
     def _parse_call(self, element: ET.Element, config: CommunicationConfig) -> None:
         """Parse behavior call configuration"""
         call_name = element.get("name", "")
-        providers = []
-        callers = []
+        providers: List[str] = []
+        callers: List[str] = []
         
         for child in element:
             if child.tag == "ComProvider":
@@ -337,16 +340,17 @@ class XMLParser:
                 if service:
                     callers.append(service)
         
-        config.calls[call_name] = {
-            "providers": providers,
-            "callers": callers
-        }
+        if config.calls is not None:
+            config.calls[call_name] = {
+                "providers": providers,
+                "callers": callers
+            }
 
     def _parse_task(self, element: ET.Element, config: CommunicationConfig) -> None:
         """Parse task board configuration"""
         task_name = element.get("name", "")
         publisher = ""
-        claimants = []
+        claimants: List[str] = []
         
         for child in element:
             if child.tag == "ComPublisher":
@@ -356,10 +360,11 @@ class XMLParser:
                 if service:
                     claimants.append(service)
         
-        config.tasks[task_name] = {
-            "publisher": publisher,
-            "claimants": claimants
-        }
+        if config.tasks is not None:
+            config.tasks[task_name] = {
+                "publisher": publisher,
+                "claimants": claimants
+            }
 
     def _setup_communication(self, forest: BehaviorForest, config: CommunicationConfig) -> None:
         """
@@ -447,7 +452,7 @@ class XMLParser:
         Returns:
             Attributes dictionary
         """
-        attributes = {}
+        attributes: Dict[str, Any] = {}
 
         for key, value in element.attrib.items():
             if key == "name":
@@ -466,7 +471,7 @@ class XMLParser:
                     attributes[key] = value.lower() == "true"
                 else:
                     attributes[key] = value
-            except ValueError:
+            except (ValueError, TypeError):
                 attributes[key] = value
 
         return attributes
@@ -506,4 +511,4 @@ Behavior Forest:
         </ComShared>
     </Communication>
 </BehaviorForest>
-"""
+""" 

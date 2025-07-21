@@ -204,10 +204,6 @@ class Parallel(CompositeNode):
                 self.status = Status.SUCCESS
                 return Status.SUCCESS
 
-        # Default case
-        self.status = Status.FAILURE
-        return Status.FAILURE
-
     def set_policy(self, policy: Policy) -> None:
         """
         Set execution policy

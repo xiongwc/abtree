@@ -34,8 +34,8 @@ def validate_tree(tree: BehaviorTree) -> ValidationResult:
     Returns:
         Validation result
     """
-    errors = []
-    warnings = []
+    errors: List[str] = []
+    warnings: List[str] = []
 
     # Check behavior tree basic information
     if not tree.name:
@@ -90,16 +90,12 @@ def validate_node(node: BaseNode) -> ValidationResult:
     Returns:
         Validation result
     """
-    errors = []
-    warnings = []
+    errors: List[str] = []
+    warnings: List[str] = []
 
     # Check node name
     if not node.name:
         errors.append(f"Node name cannot be empty (type: {node.__class__.__name__})")
-
-    # 检查节点类型
-    if not isinstance(node, BaseNode):
-        errors.append(f"Node must inherit from BaseNode (type: {type(node).__name__})")
 
     # 检查子节点
     for i, child in enumerate(node.children):
@@ -108,16 +104,12 @@ def validate_node(node: BaseNode) -> ValidationResult:
         else:
             child_result = validate_node(child)
             if not child_result.is_valid:
-                errors.extend(child_result.errors)
+                errors.extend(child_result.errors)  # type: ignore[unreachable]
             warnings.extend(child_result.warnings)
 
     # Check node specific properties
     node_specific_errors = _validate_node_specific(node)
     errors.extend(node_specific_errors)
-
-    # Check node status
-    if node.status not in Status:
-        warnings.append(f"Node '{node.name}' has an invalid status: {node.status}")
 
     is_valid = len(errors) == 0
     return ValidationResult(is_valid, errors, warnings)
@@ -157,21 +149,26 @@ def _validate_node_specific(node: BaseNode) -> List[str]:
 
     # Check specific node type properties
     if hasattr(node, "duration"):
-        if getattr(node, "duration", 0) < 0:
+        duration = getattr(node, "duration", 0)
+        if isinstance(duration, (int, float)) and duration < 0:
             errors.append(f"Node '{node.name}' has a negative duration")
 
     if hasattr(node, "repeat_count"):
         repeat_count = getattr(node, "repeat_count", 0)
-        if repeat_count < -1:
+        if isinstance(repeat_count, int) and repeat_count < -1:
             errors.append(f"Node '{node.name}' has a repeat_count less than -1")
 
     if hasattr(node, "policy"):
         policy = getattr(node, "policy", None)
-        if (
-            policy is not None
-            and policy not in Status.__class__.__bases__[0].__subclasses__()
-        ):
-            errors.append(f"Node '{node.name}' has an invalid policy")
+        if policy is not None:
+            # Simple policy validation - check if it's a valid enum value
+            try:
+                from ..core.status import Policy
+                if policy not in Policy:
+                    errors.append(f"Node '{node.name}' has an invalid policy: {policy}")
+            except (ImportError, AttributeError):
+                # Skip policy validation if Policy enum is not available
+                pass  # type: ignore[unreachable]
 
     return errors
 
@@ -182,12 +179,10 @@ def validate_blackboard_data(data: Dict[str, Any]) -> ValidationResult:
     for key, value in data.items():
         if not isinstance(key, str):
             errors.append(f"Blackboard key must be a string, found: {type(key).__name__}")
+        elif not key or key.strip() == "":
+            errors.append("Blackboard key must be a non-empty string")
         if value is None:
             warnings.append(f"Blackboard key '{key}' has a None value")
-    for key in data.keys():
-        if isinstance(key, str):
-            if not key or key.strip() == "":
-                errors.append("Blackboard key must be a non-empty string")
     return ValidationResult(is_valid=not errors, errors=errors, warnings=warnings)
 
 
@@ -253,8 +248,8 @@ def get_tree_statistics(tree: BehaviorTree) -> Dict[str, Any]:
         return {"error": "Behavior tree has no root node"}
 
     all_nodes = tree.get_all_nodes()
-    node_types = {}
-    status_distribution = {status.name: 0 for status in Status}
+    node_types: Dict[str, int] = {}
+    status_distribution: Dict[str, int] = {status.name: 0 for status in Status}
 
     for node in all_nodes:
         # 统计节点类型

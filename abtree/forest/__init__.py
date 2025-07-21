@@ -5,6 +5,8 @@ A high-performance asynchronous behavior forest framework that enables multiple 
 to collaborate through various communication patterns, supporting complex multi-agent systems.
 """
 
+from typing import Any
+
 from .core import BehaviorForest, ForestNode, ForestNodeType
 from .forest_config import ForestConfig, ForestConfigPresets
 from .forest_manager import ForestManager
@@ -20,10 +22,10 @@ try:
     VISUALIZATION_AVAILABLE = True
 except ImportError:
     VISUALIZATION_AVAILABLE = False
-    ForestVisualizer = None
-    ForestDashboard = None
-    create_forest_visualizer = None
-    create_forest_dashboard = None
+    ForestVisualizer: Any = None  # type: ignore[no-redef]
+    ForestDashboard: Any = None  # type: ignore[no-redef]
+    create_forest_visualizer: Any = None  # type: ignore[no-redef]
+    create_forest_dashboard: Any = None  # type: ignore[no-redef]
 
 try:
     from .plugin_system import (
@@ -35,10 +37,10 @@ try:
     PLUGIN_SYSTEM_AVAILABLE = True
 except ImportError:
     PLUGIN_SYSTEM_AVAILABLE = False
-    PluginManager = None
-    BasePlugin = None
-    PluginInfo = None
-    create_plugin_manager = None
+    PluginManager: Any = None  # type: ignore[no-redef]
+    BasePlugin: Any = None  # type: ignore[no-redef]
+    PluginInfo: Any = None  # type: ignore[no-redef]
+    create_plugin_manager: Any = None  # type: ignore[no-redef]
 
 try:
     from .performance import (
@@ -49,9 +51,9 @@ try:
     PERFORMANCE_MONITORING_AVAILABLE = True
 except ImportError:
     PERFORMANCE_MONITORING_AVAILABLE = False
-    PerformanceMonitor = None
-    create_performance_monitor = None
-    monitor_forest_performance = None
+    PerformanceMonitor: Any = None  # type: ignore[no-redef]
+    create_performance_monitor: Any = None  # type: ignore[no-redef]
+    monitor_forest_performance: Any = None  # type: ignore[no-redef]
 
 __all__ = [
     # Core classes

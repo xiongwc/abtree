@@ -46,7 +46,7 @@ class DecoratorNode(BaseNode):
         if children and len(children) == 1:
             self.child = children[0]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set child node after initialization"""
         super().__post_init__()
         if self.children and len(self.children) == 1:
@@ -89,6 +89,23 @@ class DecoratorNode(BaseNode):
             True if there is a child node, False otherwise
         """
         return self.child is not None
+
+    async def tick(self, blackboard: Blackboard) -> Status:
+        """
+        Execute decorator node
+
+        Default implementation that delegates to the child node.
+
+        Args:
+            blackboard: Blackboard system
+
+        Returns:
+            Execution status
+        """
+        if not self.child:
+            return Status.FAILURE
+        
+        return await self.child.tick(blackboard)
 
 
 @dataclass

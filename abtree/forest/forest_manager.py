@@ -337,7 +337,7 @@ class ForestManager:
             status=status,
             node_count=stats["total_nodes"],
             middleware_count=stats["middleware_count"],
-            tick_rate=stats.get("tick_rate", None),
+            tick_rate=stats.get("tick_rate", 0.0),
             uptime=asyncio.get_event_loop().time() - self._start_time if self.running else 0.0,
             total_ticks=0,  # TODO: Add tick counting
             error_count=0    # TODO: Add error counting
@@ -345,7 +345,12 @@ class ForestManager:
     
     def get_all_forest_info(self) -> List[ForestInfo]:
         """Get information about all forests"""
-        return [self.get_forest_info(name) for name in self.forests.keys()]
+        forest_infos = []
+        for name in self.forests.keys():
+            info = self.get_forest_info(name)
+            if info is not None:
+                forest_infos.append(info)
+        return forest_infos
     
     def get_manager_stats(self) -> Dict[str, Any]:
         """
@@ -413,7 +418,7 @@ class ForestManager:
         self.global_state_watching.watch_state(key, callback, self.name)
     
     def publish_global_task(self, title: str, description: str, requirements: Set[str],
-                           priority: int = 0, data: Dict[str, Any] = None) -> str:
+                           priority: int = 0, data: Optional[Dict[str, Any]] = None) -> str:
         """
         Publish task to global task board
         

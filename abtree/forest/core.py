@@ -50,7 +50,7 @@ class ForestNode:
     status: Status = Status.FAILURE
     metadata: Dict[str, Any] = field(default_factory=dict)
     
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize node after creation"""
         if not self.capabilities:
             self.capabilities = {self.node_type.name.lower()}
@@ -92,11 +92,17 @@ class ForestNode:
     
     def get_blackboard(self) -> Blackboard:
         """Get node's blackboard"""
-        return self.tree.blackboard
+        blackboard = self.tree.blackboard
+        if blackboard is None:
+            raise ValueError("Tree blackboard is not initialized")
+        return blackboard
     
     def get_event_system(self) -> EventSystem:
         """Get node's event system"""
-        return self.tree.event_system
+        event_system = self.tree.event_system
+        if event_system is None:
+            raise ValueError("Tree event system is not initialized")
+        return event_system
     
     def reset(self) -> None:
         """Reset node status"""

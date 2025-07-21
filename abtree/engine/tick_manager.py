@@ -46,7 +46,7 @@ class TickManager:
     _tick_count: int = field(default=0, init=False)
     _last_status: Status = field(default=Status.FAILURE, init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the blackboard after initialization"""
         if self.blackboard is None:
             self.blackboard = Blackboard()
@@ -261,13 +261,13 @@ class TickManager:
         """
         return self._last_status
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "TickManager":
         """Async context manager entry"""
         if self.root_node is not None:
             await self.start()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit"""
         await self.stop()
 

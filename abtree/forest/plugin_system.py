@@ -79,7 +79,7 @@ class PluginInfo:
     author: str
     dependencies: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
-    plugin_class: Type[BasePlugin] = None
+    plugin_class: Optional[Type[BasePlugin]] = None
 
 
 class MiddlewarePlugin(BasePlugin):
@@ -99,7 +99,7 @@ class MiddlewarePlugin(BasePlugin):
     @abstractmethod
     def create_middleware(self) -> Any:
         """Create the middleware instance."""
-        pass
+        raise NotImplementedError  # type: ignore[unreachable]
 
 
 class NodePlugin(BasePlugin):
@@ -117,7 +117,7 @@ class NodePlugin(BasePlugin):
     @abstractmethod
     def register_custom_nodes(self) -> None:
         """Register custom node types."""
-        pass
+        raise NotImplementedError  # type: ignore[unreachable]
 
 
 class UtilityPlugin(BasePlugin):
@@ -131,7 +131,7 @@ class UtilityPlugin(BasePlugin):
     @abstractmethod
     def setup_utilities(self) -> None:
         """Setup utility functions."""
-        pass
+        raise NotImplementedError  # type: ignore[unreachable]
 
 
 class PluginManager:
@@ -179,10 +179,12 @@ class PluginManager:
         """Load plugin information from a file."""
         try:
             # Create a temporary module
-            spec = importlib.util.spec_from_file_location(
+            spec = importlib.util.spec_from_file_location(  # type: ignore[attr-defined]
                 f"plugin_{plugin_file.stem}", plugin_file
             )
-            module = importlib.util.module_from_spec(spec)
+            if spec.loader is None:
+                return None
+            module = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
             spec.loader.exec_module(module)
             
             # Look for plugin class
@@ -194,7 +196,8 @@ class PluginManager:
                     plugin_class = obj
                     break
             
-            if not plugin_class:
+            # If no plugin class found, return None
+            if plugin_class is None:
                 return None
                 
             # Create plugin info
@@ -226,7 +229,9 @@ class PluginManager:
         plugin_info = self.plugin_info[plugin_name]
         
         try:
-            plugin = plugin_info.plugin_class()
+            if plugin_info.plugin_class is None:
+                return None
+            plugin = plugin_info.plugin_class(plugin_name)
             self.plugins[plugin_name] = plugin
             self.logger.info(f"Loaded plugin '{plugin_name}' v{plugin.version}")
             return plugin
@@ -336,7 +341,7 @@ class ExampleNodePlugin(NodePlugin):
                 super().__init__(name)
                 self.message = message
                 
-            async def execute(self, blackboard):
+            async def execute(self, blackboard) -> Status:
                 print(f"Plugin Action: {self.message}")
                 return Status.SUCCESS
         

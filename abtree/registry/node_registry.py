@@ -70,7 +70,7 @@ class NodeRegistry:
             return True
         return False
 
-    def create(self, node_type: str, **kwargs) -> Optional[BaseNode]:
+    def create(self, node_type: str, **kwargs: Any) -> Optional[BaseNode]:
         """
         Create node instance
 
@@ -205,7 +205,7 @@ def register_node(
     _global_registry.register(name, node_class, metadata)
 
 
-def create_node(node_type: str, **kwargs) -> Optional[BaseNode]:
+def create_node(node_type: str, **kwargs: Any) -> Optional[BaseNode]:
     """
     Create node instance from global registry
 

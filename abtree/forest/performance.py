@@ -14,7 +14,7 @@ try:
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
-    psutil = None
+    psutil = None  # type: ignore
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -241,7 +241,7 @@ class PerformanceMonitor:
     
     def get_forest_performance_report(self) -> Dict[str, Any]:
         """Get comprehensive forest performance report."""
-        report = {
+        report: Dict[str, Any] = {
             'forest_name': self.forest.name,
             'timestamp': datetime.now().isoformat(),
             'forest_metrics': {
@@ -335,9 +335,9 @@ class PerformanceDecorator:
     def __init__(self, monitor: PerformanceMonitor):
         self.monitor = monitor
     
-    def __call__(self, func: Callable):
+    def __call__(self, func: Callable) -> Callable:
         """Decorator implementation."""
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args, **kwargs) -> Any:
             start_time = time.time()
             success = False
             
@@ -359,6 +359,6 @@ def create_performance_monitor(forest: BehaviorForest) -> PerformanceMonitor:
     return PerformanceMonitor(forest)
 
 
-def monitor_forest_performance(monitor: PerformanceMonitor):
+def monitor_forest_performance(monitor: PerformanceMonitor) -> PerformanceDecorator:
     """Decorator for monitoring forest performance."""
     return PerformanceDecorator(monitor) 

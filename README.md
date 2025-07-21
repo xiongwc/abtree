@@ -66,7 +66,6 @@
 - **Communication Modes** - Pub/Sub, Req/Resp, Shared Blackboard, State Monitoring, Behavior Invocation, Task Board
 - **Forest Management** - Centralized forest configuration and lifecycle management
 - **Performance Monitoring** - Real-time performance analysis and optimization suggestions
-- **Visualization Support** - Forest structure and execution state visualization
 
 ---
 
@@ -247,7 +246,6 @@ abtree/
 | **Data Validation** | Pydantic | 2.0+ |
 | **XML Processing** | xml.etree | Built-in |
 | **Testing** | pytest | 7.0+ |
-| **Code Formatting** | isort | 5.0+ |
 | **Type Checking** | mypy | 1.0+ |
 
 ### 📋 Code Standards

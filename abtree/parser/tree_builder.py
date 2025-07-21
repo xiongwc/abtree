@@ -62,6 +62,7 @@ class TreeBuilder:
             raise ValueError("Node type not specified")
         
         # Create node based on type
+        node: BaseNode
         if node_type == "Sequence":
             from ..nodes.composite import Sequence
             node = Sequence(name=node_dict.get("name", "Sequence"))
@@ -114,7 +115,8 @@ class TreeBuilder:
         root_node_element = ET.SubElement(root_element, "Root")
 
         # Recursively export nodes
-        self._export_node(tree.root, root_node_element)
+        if tree.root is not None:
+            self._export_node(tree.root, root_node_element)
 
         # Create XML tree
         xml_tree = ET.ElementTree(root_element)
@@ -159,7 +161,7 @@ class TreeBuilder:
             element: XML element
         """
         # Get all attributes of the node
-        node_attrs = {}
+        node_attrs: Dict[str, str] = {}
 
         # For different types of nodes, export different attributes
         if hasattr(node, "duration"):
@@ -250,7 +252,10 @@ class TreeBuilder:
         root.add_child(sequence1)
         root.add_child(sequence2)
 
-        return self.build_tree(root, name, "Simple example behavior tree")
+        # Create tree
+        tree = BehaviorTree(name=name, description="Simple example behavior tree")
+        tree.load_from_root(root)
+        return tree
 
     def create_advanced_tree(self, name: str = "AdvancedTree") -> BehaviorTree:
         """
@@ -312,7 +317,10 @@ class TreeBuilder:
         root.add_child(patrol_sequence)
         root.add_child(parallel_tasks)
 
-        return self.build_tree(root, name, "Advanced example behavior tree")
+        # Create tree
+        tree = BehaviorTree(name=name, description="Advanced example behavior tree")
+        tree.load_from_root(root)
+        return tree
 
     def validate_tree(self, tree: BehaviorTree) -> bool:
         """

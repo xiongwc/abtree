@@ -35,7 +35,7 @@ class BaseNode(ABC):
     status: Status = Status.FAILURE
     _last_tick_time: float = field(default=0.0, init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set parent node reference for child nodes after initialization"""
         for child in self.children:
             child.parent = self

@@ -62,7 +62,7 @@ class ForestConfig:
     node_configs: List[NodeConfig] = field(default_factory=list)
     global_settings: Dict[str, Any] = field(default_factory=dict)
     
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize default configurations after creation"""
         if not self.enabled_middleware:
             # Enable all communication patterns by default
