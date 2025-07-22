@@ -212,7 +212,7 @@ def get_tree_statistics(tree: BehaviorTree) -> Dict[str, Any]:
     all_nodes = tree.get_all_nodes()
     
     # Count node types
-    node_types = {}
+    node_types: Dict[str, int] = {}
     for node in all_nodes:
         node_type = node.__class__.__name__
         node_types[node_type] = node_types.get(node_type, 0) + 1

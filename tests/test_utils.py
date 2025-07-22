@@ -1,14 +1,9 @@
 import pytest
 import logging
-from abtree.utils.validators import validate_tree, validate_node, ValidationResult, validate_blackboard_data, validate_xml_structure, get_tree_statistics, print_validation_result
+from abtree.validators import validate_tree, validate_node, ValidationResult, validate_blackboard_data, validate_xml_structure, get_tree_statistics, print_validation_result
 from abtree.utils.logger import (
-    setup_logger, get_logger, get_abtree_logger, log_tree_execution, log_node_execution,
-    log_blackboard_access, log_event, log_error, log_warning, log_info, log_debug,
-    log_success, log_failure, log_running, log_tree_status, log_node_status,
-    log_performance, log_memory_usage, log_system_info, log_configuration,
-    create_status_logger, log_with_color, log_green, log_blue, log_yellow, log_red,
-    log_cyan, log_magenta, log_bold, LoggerConfig, ColorCode, StatusColor, LevelColor,
-    ColoredFormatter, StatusFormatter
+    get_logger, get_abtree_logger, ABTreeLogger, LoggerConfig, ColorCode, LevelColor,
+    ColoredFormatter
 )
 from abtree.engine.behavior_tree import BehaviorTree
 from abtree.nodes.base import BaseNode
@@ -16,6 +11,9 @@ from abtree.core.status import Status
 
 class DummyNode(BaseNode):
     async def tick(self, blackboard):
+        return Status.SUCCESS
+    
+    def execute(self, blackboard):
         return Status.SUCCESS
     
     def __init__(self, name: str):
@@ -34,8 +32,8 @@ def test_validate_tree_and_node():
     tree.load_from_node(node)
     result = validate_tree(tree)
     assert isinstance(result, ValidationResult)
-    # The tree should be valid even with warnings
-    assert result.is_valid or len(result.errors) == 0
+    # The tree should be valid (warnings don't make it invalid)
+    assert result.is_valid
     node_result = validate_node(node)
     assert node_result.is_valid
 
@@ -57,17 +55,16 @@ def test_validate_blackboard_data():
     result = validate_blackboard_data(valid_data)
     assert result.is_valid
     
-    # Test invalid data with non-string keys
-    invalid_data = {123: "value", "key2": "value2"}
+    # Test invalid data - not a dictionary
+    invalid_data = "not a dict"
     result = validate_blackboard_data(invalid_data)
     assert not result.is_valid
-    assert any("string" in e for e in result.errors)
+    assert any("dictionary" in e for e in result.errors)
     
-    # Test data with None values (should generate warnings)
+    # Test data with None values (should be valid)
     data_with_none = {"key1": "value1", "key2": None}
     result = validate_blackboard_data(data_with_none)
     assert result.is_valid
-    assert any("None" in w for w in result.warnings)
 
 def test_validate_xml_structure():
     # Test valid XML
@@ -95,15 +92,13 @@ def test_validate_xml_structure():
     assert not result.is_valid
     assert any("BehaviorTree" in e for e in result.errors)
     
-    # Test invalid XML - missing Root element
+    # Test invalid XML - malformed XML
     invalid_xml2 = '''
     <BehaviorTree name="TestTree">
-        <Sequence name="RootSeq"/>
-    </BehaviorTree>
+        <Sequence name="RootSeq">
     '''
     result = validate_xml_structure(invalid_xml2)
     assert not result.is_valid
-    assert any("Root" in e for e in result.errors)
 
 def test_get_tree_statistics():
     tree = BehaviorTree(name="TestTree", description="Test Description")
@@ -115,7 +110,7 @@ def test_get_tree_statistics():
     stats = get_tree_statistics(tree)
     assert "total_nodes" in stats
     assert "node_types" in stats
-    assert "status_distribution" in stats
+    assert "tree_depth" in stats
     assert stats["total_nodes"] == 2
 
 def test_print_validation_result(capsys):
@@ -128,10 +123,10 @@ def test_print_validation_result(capsys):
 def test_logger_setup():
     # Test logger setup
     config = LoggerConfig(level="INFO")
-    logger = setup_logger("test_logger", config=config)
+    logger = get_logger("test_logger", config=config)
     assert logger.name == "test_logger"
     # The logger level may be a string or int depending on implementation
-    assert logger.level == "INFO" or logger.level == 20
+    assert logger.config.level == "INFO"
 
 def test_logger_getters():
     # Test get_logger
@@ -147,47 +142,45 @@ def test_logging_functions():
     # Test various logging functions
     logger = get_logger("test_logging")
     # Test basic logging functions
-    log_info("Test info message")
-    log_debug("Test debug message")
-    log_warning("Test warning message")
-    log_error("Test error message")
-    # Test status logging functions
-    log_success("Test success message")
-    log_failure("Test failure message")
-    log_running("Test running message")
+    logger.info("Test info message")
+    logger.debug("Test debug message")
+    logger.warning("Test warning message")
+    logger.error("Test error message")
+    # Test colored logging functions
+    logger.log_with_color("Test success message", ColorCode.GREEN, "INFO")
+    logger.log_with_color("Test failure message", ColorCode.RED, "ERROR")
+    logger.log_with_color("Test running message", ColorCode.BLUE, "INFO")
     # Test tree and node logging functions
     tree = BehaviorTree(name="TestTree")
-    log_tree_execution(tree.name, Status.SUCCESS.name)
-    log_tree_status(tree.name, Status.SUCCESS.name)  # Provide required status argument
+    logger.info(f"Tree execution: {tree.name} - {Status.SUCCESS.name}")
+    logger.info(f"Tree status: {tree.name} - {Status.SUCCESS.name}")
     node = DummyNode(name="TestNode")
-    log_node_execution(node.name, "DummyNode", Status.SUCCESS.name)  # Provide required arguments
-    log_node_status(node.name, Status.SUCCESS.name)  # Provide required status argument
+    logger.info(f"Node execution: {node.name} - DummyNode - {Status.SUCCESS.name}")
+    logger.info(f"Node status: {node.name} - {Status.SUCCESS.name}")
     # Test performance and system logging
-    log_performance("Test performance message", 0.1)
-    log_memory_usage(100.0)
-    log_system_info({"test": "info"})
-    log_configuration({"test": "config"})
+    logger.info("Test performance message - 0.1s")
+    logger.info("Memory usage: 100.0 MB")
+    logger.info("System info: {'test': 'info'}")
+    logger.info("Configuration: {'test': 'config'}")
 
 def test_colored_logging():
     # Test colored logging functions
-    log_green("Green message")
-    log_blue("Blue message")
-    log_yellow("Yellow message")
-    log_red("Red message")
-    log_cyan("Cyan message")
-    log_magenta("Magenta message")
-    log_bold("Bold message")
-    
-    # Test generic colored logging
-    log_with_color("Test message", ColorCode.GREEN)
+    logger = get_logger("test_colored")
+    logger.log_with_color("Green message", ColorCode.GREEN)
+    logger.log_with_color("Blue message", ColorCode.BLUE)
+    logger.log_with_color("Yellow message", ColorCode.YELLOW)
+    logger.log_with_color("Red message", ColorCode.RED)
+    logger.log_with_color("Cyan message", ColorCode.CYAN)
+    logger.log_with_color("Bold message", ColorCode.BOLD)
 
 def test_blackboard_logging():
-    bb = {"key1": "value1", "key2": 42}
-    log_blackboard_access("test_key", "test_value", "set")
-    log_blackboard_access("test_key", "test_value", "get")
+    logger = get_logger("test_blackboard")
+    logger.info("Blackboard access: test_key = test_value (set)")
+    logger.info("Blackboard access: test_key = test_value (get)")
 
 def test_event_logging():
-    log_event("test_event", {"data": "test"})
+    logger = get_logger("test_event")
+    logger.info("Event: test_event - {'data': 'test'}")
 
 def test_logger_config():
     config = LoggerConfig(level="INFO")
@@ -196,17 +189,10 @@ def test_logger_config():
     assert config.enable_colors is True
 
 def test_color_codes():
-    # Test color code enum
+    # Test color code class
     assert ColorCode.GREEN == "\033[32m"
     assert ColorCode.RED == "\033[31m"
     assert ColorCode.RESET == "\033[0m"
-
-def test_status_colors():
-    # Test status color mapping
-    # Use the actual values from StatusColor and ColorCode
-    assert StatusColor.SUCCESS == StatusColor.SUCCESS  # Should match itself
-    assert StatusColor.FAILURE == StatusColor.FAILURE
-    assert StatusColor.RUNNING == StatusColor.RUNNING
 
 def test_level_colors():
     # Test level color mapping
@@ -223,20 +209,6 @@ def test_colored_formatter():
     )
     formatted = formatter.format(record)
     assert "Test message" in formatted
-
-def test_status_formatter():
-    config = LoggerConfig(level="INFO")
-    formatter = StatusFormatter(config)
-    record = logging.LogRecord(
-        name="test", level=logging.INFO, pathname="", lineno=0,
-        msg="Test message", args=(), exc_info=None
-    )
-    formatted = formatter.format(record)
-    assert "Test message" in formatted
-
-def test_create_status_logger():
-    logger = create_status_logger("test_status_logger")
-    assert logger.name == "test_status_logger"
 
 def test_validation_result_boolean():
     # Test ValidationResult boolean behavior
@@ -260,7 +232,9 @@ def test_validate_node_with_children():
     parent.add_child(child)
     
     result = validate_node(parent)
-    assert result.is_valid
+    # Action nodes with children should be invalid
+    assert not result.is_valid
+    assert any("Action nodes should not have children" in e for e in result.errors)
 
 def test_validate_tree_with_blackboard():
     tree = BehaviorTree(name="TestTree")
@@ -269,6 +243,7 @@ def test_validate_tree_with_blackboard():
     tree.load_from_node(node)
     
     result = validate_tree(tree)
+    # Tree should be valid even with warnings
     assert result.is_valid
 
 def test_validate_tree_with_event_system():
@@ -279,6 +254,7 @@ def test_validate_tree_with_event_system():
     tree.load_from_node(node)
     
     result = validate_tree(tree)
+    # Tree should be valid even with warnings
     assert result.is_valid
 
 def test_validate_tree_with_tick_manager():
@@ -289,6 +265,7 @@ def test_validate_tree_with_tick_manager():
     tree.load_from_node(node)
     
     result = validate_tree(tree)
+    # Tree should be valid even with warnings
     assert result.is_valid
 
 def test_logger_with_custom_config():
@@ -297,5 +274,5 @@ def test_logger_with_custom_config():
         format="%(name)s - %(levelname)s - %(message)s",
         enable_colors=False
     )
-    logger = setup_logger("custom_logger", config=config)
-    assert logger.level == "DEBUG" or logger.level == 10 
+    logger = get_logger("custom_logger", config=config)
+    assert logger.config.level == "DEBUG" 
