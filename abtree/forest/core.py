@@ -204,8 +204,9 @@ class BehaviorForest:
         node = self.nodes.pop(node_name)
         
         # Cancel and clean up task tracking for the removed node
-        if node_name in self._node_tasks and self._node_tasks[node_name]:
-            self._node_tasks[node_name].cancel()
+        task = self._node_tasks.get(node_name)
+        if task is not None:
+            task.cancel()
             self._node_tasks[node_name] = None
         
         # Clean up task execution state
@@ -232,7 +233,7 @@ class BehaviorForest:
 
     async def tick(self) -> Dict[str, Status]:
         """
-        Collect status from all nodes in the forest
+        Execute tick for all nodes in the forest
         
         Returns:
             Dictionary mapping node names to their execution status
@@ -244,15 +245,15 @@ class BehaviorForest:
             if hasattr(middleware, 'pre_tick'):
                 await middleware.pre_tick()
         
-        # Collect status from all nodes
+        # Execute tick for all nodes
         for node_name, node in self.nodes.items():
-            # Get current status from the behavior tree
-            if node.tree.tick_manager:
-                # Get status from tick manager
-                results[node_name] = node.tree.tick_manager.get_last_status()
-            else:
-                # Fallback to node status
-                results[node_name] = node.status
+            try:
+                # Execute the node's tick
+                status = await node.tick()
+                results[node_name] = status
+            except Exception as e:
+                print(f"Error ticking node '{node_name}': {e}")
+                results[node_name] = Status.FAILURE
         
         # Execute middleware post-tick processing
         for middleware in self.middleware:
@@ -450,10 +451,10 @@ class BehaviorForest:
     
     def reset(self) -> None:
         """Reset all nodes in the forest and their behavior trees"""
-        # Reset each behavior tree
+        # Reset each node and its behavior tree
         for node_name, node in self.nodes.items():
             try:
-                node.tree.reset()
+                node.reset()
                 print(f"🔄 Reset behavior tree: {node_name}")
             except Exception as e:
                 print(f"❌ Failed to reset behavior tree {node_name}: {e}")
