@@ -55,6 +55,15 @@ from .registry.node_registry import (
     get_registered_nodes,
     register_node,
 )
+from .validators import (
+    ValidationResult,
+    validate_tree,
+    validate_node,
+    validate_blackboard_data,
+    validate_xml_structure,
+    get_tree_statistics,
+    print_validation_result,
+)
 
 
 # Register all built-in node types
@@ -278,4 +287,12 @@ __all__ = [
     "StateWatchingMiddleware",
     "BehaviorCallMiddleware",
     "TaskBoardMiddleware",
+    # Validation utilities
+    "ValidationResult",
+    "validate_tree",
+    "validate_node",
+    "validate_blackboard_data",
+    "validate_xml_structure",
+    "get_tree_statistics",
+    "print_validation_result",
 ]

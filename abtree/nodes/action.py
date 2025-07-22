@@ -11,6 +11,7 @@ from typing import Any, Optional
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
+from ..utils.logger import get_logger
 from .base import BaseNode
 
 
@@ -162,6 +163,14 @@ class Log(Action):
     message: str = ""
     level: str = "INFO"
 
+    def __init__(self, name: str = "", message: str = "", level: str = "INFO"):
+        """Initialize Log node with level as name if not specified"""
+        if not name or name == "Log":
+            name = level.upper()
+        super().__init__(name=name)
+        self.message = message
+        self.level = level
+
     async def execute(self, blackboard: Blackboard) -> Status:
         """
         Execute log output
@@ -176,8 +185,12 @@ class Log(Action):
         log_message = blackboard.get("log_message", self.message)
         log_level = blackboard.get("log_level", self.level)
 
-        # Output log
-        print(f"[{log_level}] {log_message}")
+        # Create a logger with the level as name
+        logger = get_logger(log_level.upper())
+        
+        # Use getattr to dynamically call the appropriate logging method
+        log_method = getattr(logger, log_level.lower(), logger.info)
+        log_method(log_message)
 
         return Status.SUCCESS
 

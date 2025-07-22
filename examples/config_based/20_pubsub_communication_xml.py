@@ -44,12 +44,12 @@ class SubscriberAction(Action):
 
 def create_pubsub_xml() -> str:
     """Create XML configuration for PubSub communication"""
-    return '''<?xml version="1.0" encoding="UTF-8"?>
+    return '''
 <BehaviorForest name="PubSubForest" description="PubSub Communication Example">
     
     <BehaviorTree name="Publisher" description="Publisher Service">
         <Sequence name="Publisher Behavior">
-            <Log name="Publisher Start" message="Publisher starting" />
+            <Log message="Publisher starting" />
             <PublisherAction name="Publish Event" topic="news" message="Hello World" />
             <Wait name="Publisher Wait" duration="1.0" />
         </Sequence>
@@ -57,7 +57,7 @@ def create_pubsub_xml() -> str:
     
     <BehaviorTree name="Subscriber" description="Subscriber Service">
         <Sequence name="Subscriber Behavior">
-            <Log name="Subscriber Start" message="Subscriber starting" />
+            <Log message="Subscriber starting" />
             <SubscriberAction name="Subscribe Event" topic="news" />
             <Wait name="Subscriber Wait" duration="1.0" />
         </Sequence>
@@ -93,6 +93,8 @@ async def main():
     await asyncio.sleep(0.05)
     await forest.stop()
 
+    from loguru import logger
+    logger.info("PubSub Communication Example")
 
 if __name__ == "__main__":
     asyncio.run(main()) 
