@@ -54,6 +54,12 @@ from .registry.node_registry import (
     create_node,
     get_registered_nodes,
     register_node,
+    get_global_registry,
+    get_builtin_nodes,
+    get_custom_nodes,
+    unregister_node,
+    get_node_class,
+    is_node_registered,
 )
 from .validators import (
     ValidationResult,
@@ -89,31 +95,31 @@ def _register_builtin_nodes() -> None:
     )
 
     # Register composite nodes
-    register_node("Sequence", Sequence)  
-    register_node("Selector", Selector)  
-    register_node("Parallel", Parallel) 
+    register_node("Sequence", Sequence, is_builtin=True)  
+    register_node("Selector", Selector, is_builtin=True)  
+    register_node("Parallel", Parallel, is_builtin=True) 
 
     # Register decorator nodes
-    register_node("Inverter", Inverter)  
-    register_node("Repeater", Repeater)  
-    register_node("UntilSuccess", UntilSuccess)  
-    register_node("UntilFailure", UntilFailure)  
-    register_node("Decorator", Decorator) 
+    register_node("Inverter", Inverter, is_builtin=True)  
+    register_node("Repeater", Repeater, is_builtin=True)  
+    register_node("UntilSuccess", UntilSuccess, is_builtin=True)  
+    register_node("UntilFailure", UntilFailure, is_builtin=True)  
+    register_node("Decorator", Decorator, is_builtin=True) 
 
     # Register action nodes
     # register_node("Action", Action)  # Action is abstract, cannot be registered
-    register_node("Wait", Wait)
-    register_node("Log", Log)
-    register_node("SetBlackboard", SetBlackboard)
+    register_node("Wait", Wait, is_builtin=True)
+    register_node("Log", Log, is_builtin=True)
+    register_node("SetBlackboard", SetBlackboard, is_builtin=True)
 
     # Register condition nodes
     # register_node("Condition", Condition)  # Condition is abstract, cannot be registered
-    register_node("CheckBlackboard", CheckBlackboard)
-    register_node("IsTrue", IsTrue)
-    register_node("IsFalse", IsFalse)
-    register_node("Compare", Compare)
-    register_node("AlwaysTrue", AlwaysTrue)
-    register_node("AlwaysFalse", AlwaysFalse)
+    register_node("CheckBlackboard", CheckBlackboard, is_builtin=True)
+    register_node("IsTrue", IsTrue, is_builtin=True)
+    register_node("IsFalse", IsFalse, is_builtin=True)
+    register_node("Compare", Compare, is_builtin=True)
+    register_node("AlwaysTrue", AlwaysTrue, is_builtin=True)
+    register_node("AlwaysFalse", AlwaysFalse, is_builtin=True)
 
 
 # Register nodes when the module is imported
@@ -266,6 +272,12 @@ __all__ = [
     "register_node",
     "create_node",
     "get_registered_nodes",
+    "get_global_registry",
+    "get_builtin_nodes",
+    "get_custom_nodes",
+    "unregister_node",
+    "get_node_class",
+    "is_node_registered",
     # XML parsing and exporting
     "XMLParser",
     "TreeBuilder",

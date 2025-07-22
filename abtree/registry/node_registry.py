@@ -22,12 +22,14 @@ class NodeRegistry:
 
     _registered_nodes: Dict[str, Type[BaseNode]] = field(default_factory=dict)
     _node_metadata: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    _builtin_nodes: set = field(default_factory=set)
 
     def register(
         self,
         name: str,
         node_class: Type[BaseNode],
         metadata: Optional[Dict[str, Any]] = None,
+        is_builtin: bool = False,
     ) -> None:
         """
         Register node type
@@ -36,6 +38,7 @@ class NodeRegistry:
             name: node type name
             node_class: node class
             metadata: node metadata
+            is_builtin: whether this is a built-in node
         """
         if not issubclass(node_class, BaseNode):
             raise ValueError(f"Node class {node_class} must inherit from BaseNode")
@@ -52,6 +55,10 @@ class NodeRegistry:
         metadata.setdefault("description", getattr(node_class, "__doc__", ""))
 
         self._node_metadata[name] = metadata
+        
+        # Mark as built-in if specified
+        if is_builtin:
+            self._builtin_nodes.add(name)
 
     def unregister(self, name: str) -> bool:
         """
@@ -67,6 +74,8 @@ class NodeRegistry:
             del self._registered_nodes[name]
             if name in self._node_metadata:
                 del self._node_metadata[name]
+            if name in self._builtin_nodes:
+                self._builtin_nodes.remove(name)
             return True
         return False
 
@@ -163,6 +172,28 @@ class NodeRegistry:
             "has_metadata": len(self._node_metadata) > 0,
         }
 
+    def get_builtin_nodes(self) -> List[str]:
+        """
+        Get list of built-in node types
+
+        Returns:
+            List of built-in node type names
+        """
+        return list(self._builtin_nodes)
+
+    def get_custom_nodes(self) -> List[str]:
+        """
+        Get list of custom (non-builtin) node types
+
+        Returns:
+            List of custom node type names
+        """
+        all_nodes = set(self._registered_nodes.keys())
+        builtin_nodes = set(self._builtin_nodes)
+        
+        # Return custom nodes (all registered nodes minus built-in nodes)
+        return list(all_nodes - builtin_nodes)
+
     def __contains__(self, name: str) -> bool:
         """Check if node type is registered"""
         return name in self._registered_nodes
@@ -192,7 +223,7 @@ def get_global_registry() -> NodeRegistry:
 
 
 def register_node(
-    name: str, node_class: Type[BaseNode], metadata: Optional[Dict[str, Any]] = None
+    name: str, node_class: Type[BaseNode], metadata: Optional[Dict[str, Any]] = None, is_builtin: bool = False
 ) -> None:
     """
     Register node type to global registry
@@ -201,8 +232,9 @@ def register_node(
         name: node type name
         node_class: node class
         metadata: node metadata
+        is_builtin: whether this is a built-in node
     """
-    _global_registry.register(name, node_class, metadata)
+    _global_registry.register(name, node_class, metadata, is_builtin)
 
 
 def create_node(node_type: str, **kwargs: Any) -> Optional[BaseNode]:
@@ -240,3 +272,49 @@ def is_node_registered(name: str) -> bool:
         Return True if registered, otherwise return False
     """
     return _global_registry.is_registered(name)
+
+
+def get_builtin_nodes() -> List[str]:
+    """
+    Get list of built-in node types from global registry
+
+    Returns:
+        List of built-in node type names
+    """
+    return _global_registry.get_builtin_nodes()
+
+
+def get_custom_nodes() -> List[str]:
+    """
+    Get list of custom (non-builtin) node types from global registry
+
+    Returns:
+        List of custom node type names
+    """
+    return _global_registry.get_custom_nodes()
+
+
+def unregister_node(name: str) -> bool:
+    """
+    Unregister node type from global registry
+
+    Args:
+        name: node type name
+
+    Returns:
+        Return True if found and removed, otherwise return False
+    """
+    return _global_registry.unregister(name)
+
+
+def get_node_class(name: str) -> Optional[Type[BaseNode]]:
+    """
+    Get node class by name from global registry
+
+    Args:
+        name: node type name
+
+    Returns:
+        Node class if found, None otherwise
+    """
+    return _global_registry.get_node_class(name)

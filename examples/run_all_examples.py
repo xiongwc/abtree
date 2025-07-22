@@ -69,7 +69,8 @@ async def main():
         ("16_automation_testing", "Automation Testing"),
         ("17_robot_control", "Robot Control"),
         ("18_smart_home", "Smart Home System"),
-        ("19_game_ai", "Game AI")
+        ("19_game_ai", "Game AI"),
+        ("20_list_registered_nodes", "List Registered Nodes")
     ]
     
     # Define all XML-based examples
@@ -98,7 +99,8 @@ async def main():
         ("22_shared_blackboard_xml", "Shared Blackboard Communication (XML)"),
         ("23_state_watching_xml", "State Watching Communication (XML)"),
         ("24_behavior_call_xml", "Behavior Call Communication (XML)"),
-        ("25_task_board_xml", "Task Board Communication (XML)")
+        ("25_task_board_xml", "Task Board Communication (XML)"),
+        ("26_list_registered_nodes_xml", "List Registered Nodes (XML)")
     ]
     
     # Run code-based examples
