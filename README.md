@@ -282,7 +282,6 @@ abtree/
 |-----------|------------|---------|
 | **Language** | Python | 3.8+ |
 | **Async Framework** | asyncio | Built-in |
-| **Data Validation** | Pydantic | 2.0+ |
 | **XML Processing** | xml.etree | Built-in |
 | **Testing** | pytest | 7.0+ |
 | **Type Checking** | mypy | 1.0+ |

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "abtree"
-version = "0.3.3"
+version = "0.3.4"
 description = """High-performance asynchronous behavior tree framework with behavior forest collaboration,
     built on Python asyncio for embodied intelligence, multi-agent systems, and autonomous decision-making"""
 authors = [
@@ -38,7 +38,6 @@ dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.0.0",
-    "isort>=5.0.0",
     "mypy>=1.0.0",
     "bandit>=1.7.0",
     "safety>=2.0.0",
@@ -62,11 +61,6 @@ Issues = "https://github.com/xiongwc/abtree/issues"
 where = ["."]
 include = ["abtree*", "cli*"]
 
-
-
-[tool.isort]
-profile = "black"
-line_length = 88
 
 [tool.mypy]
 python_version = "3.8"
