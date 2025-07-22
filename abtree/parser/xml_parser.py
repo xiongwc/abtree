@@ -24,6 +24,7 @@ from ..forest.communication import (
 )
 from ..nodes.base import BaseNode
 from ..registry.node_registry import get_global_registry
+from ..core.status import Status
 
 
 @dataclass
@@ -185,18 +186,21 @@ class XMLParser:
         tree_name = element.get("name", "BehaviorTree")
         tree_description = element.get("description", "")
 
-        # Create behavior tree using existing XML parser
-        # We need to create a temporary XML structure for the tree
-        tree_xml = f'<BehaviorTree name="{tree_name}" description="{tree_description}">'
-        
-        # Add all child elements
+        # Parse root node directly from the behavior tree element
+        root_node = None
         for child in element:
-            tree_xml += ET.tostring(child, encoding='unicode')
-        
-        tree_xml += '</BehaviorTree>'
-        
-        # Parse the tree
-        behavior_tree = self._parse_behavior_tree(ET.fromstring(tree_xml))
+            if child.tag != "Root":  # Skip Root tags, directly parse other nodes
+                root_node = self._parse_node(child)
+                break
+
+        if root_node is None:
+            raise ValueError(f"Root node not found in behavior tree: {tree_name}")
+
+        # Create behavior tree
+        behavior_tree = BehaviorTree(
+            name=tree_name, description=tree_description
+        )
+        behavior_tree.load_from_node(root_node)
         
         # Determine node type based on tree name
         node_type = self._determine_node_type(tree_name)
@@ -433,6 +437,16 @@ class XMLParser:
 
         if node is None:
             raise ValueError(f"Unknown node type: {node_type}")
+
+        # Ensure node has children attribute initialized
+        if not hasattr(node, 'children'):
+            node.children = []
+        if not hasattr(node, 'parent'):
+            node.parent = None
+        if not hasattr(node, 'status'):
+            node.status = Status.FAILURE
+        if not hasattr(node, '_last_tick_time'):
+            node._last_tick_time = 0.0
 
         # Parse child nodes
         for child_element in element:

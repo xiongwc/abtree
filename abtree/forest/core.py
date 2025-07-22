@@ -151,7 +151,13 @@ class BehaviorForest:
         self.forest_event_system = forest_event_system or EventSystem()
         self.running = False
         self._task: Optional[asyncio.Task] = None
-        
+        # Track running tasks for each node to prevent duplicate task creation
+        self._node_tasks: Dict[str, Optional[asyncio.Task]] = {}
+        # Track execution states to prevent race conditions
+        self._node_execution_states: Dict[str, bool] = {}
+        # Track last execution time to prevent rapid re-execution
+        self._node_last_execution: Dict[str, float] = {} 
+
     def add_node(self, node: ForestNode) -> None:
         """
         Add node to the forest
@@ -163,6 +169,12 @@ class BehaviorForest:
             raise ValueError(f"Node '{node.name}' already exists in forest")
         
         self.nodes[node.name] = node
+        # Initialize task tracking for the new node
+        self._node_tasks[node.name] = None
+        # Initialize execution state for the new node
+        self._node_execution_states[node.name] = False
+        # Initialize last execution time for the new node
+        self._node_last_execution[node.name] = 0.0
         
         # Emit node added event
         try:
@@ -174,8 +186,8 @@ class BehaviorForest:
             )
         except RuntimeError:
             # No running event loop, skip async event emission
-            pass
-    
+            pass 
+
     def remove_node(self, node_name: str) -> bool:
         """
         Remove node from the forest
@@ -191,6 +203,19 @@ class BehaviorForest:
         
         node = self.nodes.pop(node_name)
         
+        # Cancel and clean up task tracking for the removed node
+        if node_name in self._node_tasks and self._node_tasks[node_name]:
+            self._node_tasks[node_name].cancel()
+            self._node_tasks[node_name] = None
+        
+        # Clean up task execution state
+        if node_name in self._node_execution_states:
+            self._node_execution_states.pop(node_name)
+        
+        # Clean up last execution time
+        if node_name in self._node_last_execution:
+            self._node_last_execution.pop(node_name)
+        
         # Emit node removed event
         try:
             asyncio.create_task(
@@ -203,7 +228,38 @@ class BehaviorForest:
             # No running event loop, skip async event emission
             pass
         
-        return True
+        return True 
+
+    async def tick(self) -> Dict[str, Status]:
+        """
+        Collect status from all nodes in the forest
+        
+        Returns:
+            Dictionary mapping node names to their execution status
+        """
+        results = {}
+        
+        # Execute middleware pre-tick processing
+        for middleware in self.middleware:
+            if hasattr(middleware, 'pre_tick'):
+                await middleware.pre_tick()
+        
+        # Collect status from all nodes
+        for node_name, node in self.nodes.items():
+            # Get current status from the behavior tree
+            if node.tree.tick_manager:
+                # Get status from tick manager
+                results[node_name] = node.tree.tick_manager.get_last_status()
+            else:
+                # Fallback to node status
+                results[node_name] = node.status
+        
+        # Execute middleware post-tick processing
+        for middleware in self.middleware:
+            if hasattr(middleware, 'post_tick'):
+                await middleware.post_tick(results)
+        
+        return results
     
     def get_node(self, node_name: str) -> Optional[ForestNode]:
         """
@@ -269,42 +325,6 @@ class BehaviorForest:
             return True
         return False
     
-    async def tick(self) -> Dict[str, Status]:
-        """
-        Execute one tick of all nodes in the forest
-        
-        Returns:
-            Dictionary mapping node names to their execution status
-        """
-        results = {}
-        
-        # Execute middleware pre-tick processing
-        for middleware in self.middleware:
-            if hasattr(middleware, 'pre_tick'):
-                await middleware.pre_tick()
-        
-        # Execute all nodes
-        tasks = []
-        for node_name, node in self.nodes.items():
-            task = asyncio.create_task(self._tick_node(node))
-            tasks.append((node_name, task))
-        
-        # Wait for all nodes to complete
-        for node_name, task in tasks:
-            try:
-                status = await task
-                results[node_name] = status
-            except Exception as e:
-                print(f"Node '{node_name}' tick error: {e}")
-                results[node_name] = Status.FAILURE
-        
-        # Execute middleware post-tick processing
-        for middleware in self.middleware:
-            if hasattr(middleware, 'post_tick'):
-                await middleware.post_tick(results)
-        
-        return results
-    
     async def _tick_node(self, node: ForestNode) -> Status:
         """
         Execute tick for a single node
@@ -317,14 +337,49 @@ class BehaviorForest:
         """
         return await node.tick()
     
+    async def _tick_node_async(self, node_name: str, node: ForestNode) -> None:
+        """
+        Execute tick for a single node asynchronously
+        
+        Args:
+            node_name: Name of the node
+            node: Forest node to tick
+        """
+        try:
+            status = await self._tick_node(node)
+            # Update node status after completion
+            node.status = status
+        except Exception as e:
+            print(f"Node '{node_name}' tick error: {e}")
+            node.status = Status.FAILURE
+        finally:
+            # Clean up task tracking when task completes
+            if node_name in self._node_tasks:
+                self._node_tasks[node_name] = None
+            # Reset execution state after task completion
+            if node_name in self._node_execution_states:
+                self._node_execution_states[node_name] = False
+    
     async def start(self) -> None:
         """
         Start forest execution - runs as an infinite loop service
+        Also starts each behavior tree's tick manager
         """
         if self.running:
             return
         
         self.running = True
+        
+        # Start each behavior tree's tick manager
+        for node_name, node in self.nodes.items():
+            try:
+                if node.tree.tick_manager:
+                    # Get the tick rate from the tick manager
+                    tick_rate = node.tree.tick_manager.tick_rate
+                    await node.tree.start(tick_rate=tick_rate)
+                    print(f"🌳 Started behavior tree: {node_name} (tick_rate: {tick_rate})")
+            except Exception as e:
+                print(f"❌ Failed to start behavior tree {node_name}: {e}")
         
         # Emit forest start event
         await self.forest_event_system.emit(
@@ -332,15 +387,38 @@ class BehaviorForest:
             {"forest_name": self.name}
         )
         
-        # Start forest execution task
+        # Start forest execution task for coordination and monitoring
         self._task = asyncio.create_task(self._run())
     
     async def stop(self) -> None:
-        """Stop forest execution"""
+        """Stop forest execution and all behavior trees"""
         if not self.running:
             return
         
         self.running = False
+        
+        # Stop each behavior tree's tick manager
+        for node_name, node in self.nodes.items():
+            try:
+                if node.tree.tick_manager:
+                    await node.tree.stop()
+                    print(f"🛑 Stopped behavior tree: {node_name}")
+            except Exception as e:
+                print(f"❌ Failed to stop behavior tree {node_name}: {e}")
+        
+        # Cancel all running node tasks
+        for node_name, task in self._node_tasks.items():
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+                self._node_tasks[node_name] = None
+        
+        # Reset all task execution states
+        for node_name in self._node_execution_states:
+            self._node_execution_states[node_name] = False
         
         if self._task:
             self._task.cancel()
@@ -357,11 +435,13 @@ class BehaviorForest:
         )
     
     async def _run(self) -> None:
-        """Forest execution loop - infinite loop service"""
+        """Forest execution loop - monitors and coordinates behavior trees"""
         while self.running:
             try:
+                # Collect status from all behavior trees (for monitoring and coordination)
                 await self.tick()
-                # Continuous execution without delay; let each BehaviorTree control its own tick rate
+                # Brief pause to prevent excessive CPU usage
+                await asyncio.sleep(0.1)  # 100ms delay for monitoring
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -369,9 +449,28 @@ class BehaviorForest:
                 await asyncio.sleep(0.1)  # Brief pause on error
     
     def reset(self) -> None:
-        """Reset all nodes in the forest"""
-        for node in self.nodes.values():
-            node.reset()
+        """Reset all nodes in the forest and their behavior trees"""
+        # Reset each behavior tree
+        for node_name, node in self.nodes.items():
+            try:
+                node.tree.reset()
+                print(f"🔄 Reset behavior tree: {node_name}")
+            except Exception as e:
+                print(f"❌ Failed to reset behavior tree {node_name}: {e}")
+        
+        # Cancel all running node tasks
+        for node_name, task in self._node_tasks.items():
+            if task and not task.done():
+                task.cancel()
+                self._node_tasks[node_name] = None
+        
+        # Reset all task execution states
+        for node_name in self._node_execution_states:
+            self._node_execution_states[node_name] = False
+        
+        # Reset all last execution times
+        for node_name in self._node_last_execution:
+            self._node_last_execution[node_name] = 0.0
         
         # Emit forest reset event
         asyncio.create_task(
