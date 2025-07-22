@@ -92,7 +92,13 @@ async def main():
         ("16_automation_testing_xml", "Automation Testing (XML)"),
         ("17_robot_control_xml", "Robot Control (XML)"),
         ("18_smart_home_xml", "Smart Home System (XML)"),
-        ("19_game_ai_xml", "Game AI (XML)")
+        ("19_game_ai_xml", "Game AI (XML)"),
+        ("20_pubsub_communication_xml", "PubSub Communication (XML)"),
+        ("21_reqresp_communication_xml", "Request-Response Communication (XML)"),
+        ("22_shared_blackboard_xml", "Shared Blackboard Communication (XML)"),
+        ("23_state_watching_xml", "State Watching Communication (XML)"),
+        ("24_behavior_call_xml", "Behavior Call Communication (XML)"),
+        ("25_task_board_xml", "Task Board Communication (XML)")
     ]
     
     # Run code-based examples

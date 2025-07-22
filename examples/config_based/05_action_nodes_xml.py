@@ -138,7 +138,7 @@ async def main():
     
     # XML string configuration
     xml_config = '''
-    <BehaviorTree name="ActionNodesXML" description="Action nodes example with XML configuration">
+    <BehaviorTree name="ActionNodes" description="Action nodes example with XML configuration">
         <Sequence name="Root Sequence">
             <Sequence name="Simple Actions">
                 <SimpleAction name="Task 1" />

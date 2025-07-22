@@ -405,6 +405,65 @@ class BehaviorForest:
             "node_stats": node_stats
         }
     
+    def load_from_string(self, xml_string: str) -> None:
+        """
+        Load behavior forest configuration from XML string
+        
+        Args:
+            xml_string: XML configuration string
+            
+        Raises:
+            ValueError: If parsing fails or configuration is invalid
+        """
+        try:
+            from ..parser.xml_parser import XMLParser
+            parser = XMLParser()
+            loaded_forest = parser.parse_string(xml_string)
+            
+            if not isinstance(loaded_forest, BehaviorForest):
+                raise ValueError("XML string does not contain a valid behavior forest configuration")
+            
+            # Copy forest properties
+            self.name = loaded_forest.name
+            self.nodes = loaded_forest.nodes
+            self.middleware = loaded_forest.middleware
+            self.forest_blackboard = loaded_forest.forest_blackboard
+            self.forest_event_system = loaded_forest.forest_event_system
+            
+        except Exception as e:
+            raise ValueError(f"Failed to load forest from XML string: {e}")
+    
+    def load_from_file(self, file_path: str) -> None:
+        """
+        Load behavior forest configuration from XML file
+        
+        Args:
+            file_path: Path to XML configuration file
+            
+        Raises:
+            ValueError: If parsing fails or configuration is invalid
+            FileNotFoundError: If file does not exist
+        """
+        try:
+            from ..parser.xml_parser import XMLParser
+            parser = XMLParser()
+            loaded_forest = parser.parse_file(file_path)
+            
+            if not isinstance(loaded_forest, BehaviorForest):
+                raise ValueError("XML file does not contain a valid behavior forest configuration")
+            
+            # Copy forest properties
+            self.name = loaded_forest.name
+            self.nodes = loaded_forest.nodes
+            self.middleware = loaded_forest.middleware
+            self.forest_blackboard = loaded_forest.forest_blackboard
+            self.forest_event_system = loaded_forest.forest_event_system
+            
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"XML configuration file not found: {file_path}")
+        except Exception as e:
+            raise ValueError(f"Failed to load forest from XML file: {e}")
+    
     def __repr__(self) -> str:
         stats = self.get_stats()
         return f"BehaviorForest(name='{self.name}', nodes={stats['total_nodes']}, running={self.running})" 

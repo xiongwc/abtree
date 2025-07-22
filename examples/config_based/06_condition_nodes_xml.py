@@ -178,7 +178,7 @@ async def main():
     
     # XML string configuration
     xml_config = '''
-    <BehaviorTree name="ConditionNodesXML" description="Condition nodes example with XML configuration">
+    <BehaviorTree name="ConditionNodes" description="Condition nodes example with XML configuration">
         <Sequence name="Root Sequence">
             <Selector name="Condition Tests">
                 <Sequence name="Simple Condition Test">

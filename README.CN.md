@@ -2,7 +2,7 @@
 
 # 🚀 ABTree - 异步行为树框架
 
-**基于Python asyncio构建的异步行为树框架，专为智能决策系统设计**
+**基于Python asyncio构建的异步行为树框架，专为智能决策系统设计，采用声明式编程范式**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Stars](https://img.shields.io/github/stars/xiongwc/abtree?style=social)](https://github.com/xiongwc/abtree/stargazers)[![Forks](https://img.shields.io/github/forks/xiongwc/abtree?style=social)](https://github.com/xiongwc/abtree/network/members)
@@ -128,13 +128,13 @@ async def main():
 asyncio.run(main())
 ```
 
-#### 📄 方法2: XML配置
+#### 📄 方法2: 声明式XML配置
 
 ```python
 import asyncio
 from abtree import load_from_xml_string
 
-# 定义XML字符串
+# 声明式XML：以可读、结构化的格式表达行为逻辑
 xml_string = '''<BehaviorTree name="机器人决策">
     <Selector name="机器人决策">
         <Sequence name="门控制序列">
@@ -145,7 +145,7 @@ xml_string = '''<BehaviorTree name="机器人决策">
     </Selector>
 </BehaviorTree>'''
 
-# 从XML字符串加载行为树
+# 从声明式XML配置加载行为树
 tree = load_from_xml_string(xml_string)
 
 # 执行

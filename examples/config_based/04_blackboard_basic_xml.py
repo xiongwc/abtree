@@ -110,7 +110,7 @@ async def main():
     
     # XML string configuration
     xml_config = '''
-    <BehaviorTree name="BlackboardBasicXML" description="Blackboard basic example with XML configuration">
+    <BehaviorTree name="BlackboardBasic" description="Blackboard basic example with XML configuration">
         <Sequence name="Root Sequence">
             <Sequence name="Robot Task">
                 <CheckBatteryCondition name="Check Battery" />
