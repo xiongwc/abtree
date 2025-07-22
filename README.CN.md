@@ -209,11 +209,7 @@ def create_robot_tree(robot_id: str) -> BehaviorTree:
 
 async def main():
     # Create behavior forest
-    forest = BehaviorForest("Robot Forest")
-    
-    # Add middleware
-    forest.add_middleware(PubSubMiddleware("PubSub"))
-    forest.add_middleware(SharedBlackboardMiddleware("Shared Blackboard"))
+    forest = BehaviorForest("Robot Forest")    
     
     # Add robot nodes
     for robot_id in ["R1", "R2", "R3"]:

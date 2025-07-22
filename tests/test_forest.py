@@ -11,6 +11,12 @@ from abtree.engine.behavior_tree import BehaviorTree
 from abtree.core.status import Status
 
 class DummyTree(BehaviorTree):
+    def __init__(self, name: str = "DummyTree"):
+        super().__init__(name=name)
+        # 创建一个简单的根节点
+        from abtree.nodes.action import Log
+        self.root = Log(name="dummy_root", message="dummy execution")
+    
     async def tick(self):
         return Status.SUCCESS
 
