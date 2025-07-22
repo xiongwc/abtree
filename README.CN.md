@@ -315,6 +315,12 @@ abtree/
 
 ---
 
+## 🙏 Acknowledgments
+
+Inspiration from [BehaviorTree.CPP](https://github.com/BehaviorTree/BehaviorTree.CPP).
+
+---
+
 ## 📜 许可证
 
 本项目采用 [MIT许可证](LICENSE)。
