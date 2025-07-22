@@ -75,13 +75,18 @@
 
 ### 🔧 Environment Setup
 
+#### Development Environment Installation
+For source code development, debugging, and contributing:
 ```bash
-# Clone repository
 git clone https://github.com/xiongwc/abtree.git
 cd abtree
-
-# Install dependencies
 pip install -e .
+```
+
+#### Production Environment Installation
+For production deployment and daily use:
+```bash
+pip install abtree
 ```
 
 ### 📝 Basic Usage
