@@ -23,7 +23,7 @@ class Step1Action(Action):
     
     async def execute(self, blackboard):
         print("Step 1: Checking system status...")
-        await asyncio.sleep(0.01)  # Reduced from 0.5
+        await asyncio.sleep(0.01)  
         print("System status check completed")
         return Status.SUCCESS
 
@@ -33,7 +33,7 @@ class Step2Action(Action):
     
     async def execute(self, blackboard):
         print("Step 2: Initializing system...")
-        await asyncio.sleep(0.01)  # Reduced from 0.5
+        await asyncio.sleep(0.01)  
         print("System initialization completed")
         return Status.SUCCESS
 
@@ -43,7 +43,7 @@ class Step3Action(Action):
     
     async def execute(self, blackboard):
         print("Step 3: Starting services...")
-        await asyncio.sleep(0.01)  # Reduced from 0.5
+        await asyncio.sleep(0.01)  
         print("Services started successfully")
         return Status.SUCCESS
 
@@ -60,7 +60,7 @@ async def main():
     
     # XML string configuration
     xml_config = '''
-    <BehaviorTree name="SimpleSequenceXML" description="Simple sequence example with XML configuration">
+    <BehaviorTree name="SimpleSequence" description="Simple sequence example with XML configuration">
         <Sequence name="Root Sequence">
             <Sequence name="System Startup Sequence">
                 <Step1Action name="Check Status" />

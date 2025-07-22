@@ -82,7 +82,7 @@ async def main():
     
     # XML string configuration
     xml_config = '''
-    <BehaviorTree name="SelectorBasicXML" description="Selector basic example with XML configuration">
+    <BehaviorTree name="SelectorBasic" description="Selector basic example with XML configuration">
         <Sequence name="Root Sequence">
             <Selector name="Data Retrieval Strategy">
                 <Sequence name="Network Strategy">

@@ -1,8 +1,10 @@
-# 🚀 ABTree - Asynchronous Behavior Tree Framework
+<div align="center">
+  <h1>🚀 ABTree</h1>
+</div>
 
 <div align="center">
 
-**Asynchronous behavior tree framework built on Python asyncio, designed for intelligent decision systems**
+**Asynchronous behavior tree framework built on Python asyncio, designed for intelligent decision systems with declarative programming paradigm**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Stars](https://img.shields.io/github/stars/xiongwc/abtree?style=social)](https://github.com/xiongwc/abtree/stargazers)[![Forks](https://img.shields.io/github/forks/xiongwc/abtree?style=social)](https://github.com/xiongwc/abtree/network/members)
@@ -128,13 +130,13 @@ async def main():
 asyncio.run(main())
 ```
 
-#### 📄 Method 2: XML Configuration
+#### 📄 Method 2: Declarative XML Configuration
 
 ```python
 import asyncio
 from abtree import load_from_xml_string
 
-# Define XML string
+# Declarative XML: Express behavior logic in a readable, structured format
 xml_string = '''<BehaviorTree name="Robot Decision">
     <Selector name="Robot Decision">
         <Sequence name="Door Control Sequence">
@@ -145,7 +147,7 @@ xml_string = '''<BehaviorTree name="Robot Decision">
     </Selector>
 </BehaviorTree>'''
 
-# Load behavior tree from XML string
+# Load behavior tree from declarative XML configuration
 tree = load_from_xml_string(xml_string)
 
 # Execute
@@ -270,10 +272,6 @@ abtree/
 ├── test_reports/               # 📊 Test reports
 └── pyproject.toml              # ⚙️ Build and dependency configuration
 ```
-
----
-
-
 
 ---
 

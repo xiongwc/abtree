@@ -36,7 +36,7 @@ async def main():
     
     # XML string configuration
     xml_config = '''
-    <BehaviorTree name="HelloWorldXML" description="Hello World example with XML configuration">
+    <BehaviorTree name="HelloWorld" description="Hello World example with XML configuration">
         <Sequence name="RootSequence">
             <HelloWorldAction name="Greeting" />
         </Sequence>

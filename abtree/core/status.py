@@ -2,11 +2,11 @@
 Status and policy enumeration definitions
 """
 
-from enum import Enum, auto
+from enum import IntEnum
 from typing import Any
 
 
-class Status(Enum):
+class Status(IntEnum):
     """
     Behavior tree node execution status enumeration
 
@@ -16,9 +16,9 @@ class Status(Enum):
     - RUNNING: Node is currently executing
     """
 
-    SUCCESS = auto()
-    FAILURE = auto()
-    RUNNING = auto()
+    SUCCESS = 1
+    FAILURE = 0
+    RUNNING = 2
 
     def __str__(self) -> str:
         return self.name
@@ -27,7 +27,7 @@ class Status(Enum):
         return f"Status.{self.name}"
 
 
-class Policy(Enum):
+class Policy(IntEnum):
     """
     Parallel node execution policy enumeration
 
@@ -38,10 +38,10 @@ class Policy(Enum):
     - FAIL_ON_ALL: All child nodes must fail to fail
     """
 
-    SUCCEED_ON_ONE = auto()
-    SUCCEED_ON_ALL = auto()
-    FAIL_ON_ONE = auto()
-    FAIL_ON_ALL = auto()
+    SUCCEED_ON_ONE = 1
+    SUCCEED_ON_ALL = 2
+    FAIL_ON_ONE = 3
+    FAIL_ON_ALL = 4
 
     def __str__(self) -> str:
         return self.name
