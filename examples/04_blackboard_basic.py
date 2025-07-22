@@ -1,166 +1,150 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Example 04: Blackboard Basics – Using the Blackboard System
+Example 04: Blackboard Basic - {} Parameter Passing Demo
 
-Demonstrates how to use the blackboard system to share data between nodes.
-The blackboard is the core mechanism for cross-node data sharing in ABTree.
-
-Key Learning Points:
-
-    Basic operations of the blackboard
-
-    Data sharing mechanisms
-
-    Interactions between condition nodes and the blackboard
-
-    Modifying blackboard data in action nodes
-
-    How to configure blackboard-related behavior trees using XML strings
+Demonstrates {} parameter passing in node configuration.
+Shows how variables from blackboard are substituted into node parameters.
 """
 
 import asyncio
-from abtree import BehaviorTree, Sequence, Action, Condition, register_node
+from abtree import BehaviorTree, Action, Condition, register_node
 from abtree.core import Status
-from abtree.parser.xml_parser import XMLParser
 
 
-# Register custom node types
+class CheckValueCondition(Condition):
+    """Check if value exceeds threshold"""
+    
+    def __init__(self, name: str = "", **kwargs):
+        super().__init__(name)
+        self.params = kwargs
+    
+    async def evaluate(self, blackboard):
+        threshold = blackboard.get("threshold", 50)
+        value = blackboard.get("current_value", 0)
+        
+        print(f"Check: {value} > {threshold} = {value > threshold}")
+        return value > threshold
+
+
+class UpdateValueAction(Action):
+    """Update value in blackboard"""
+    
+    def __init__(self, name: str = "", **kwargs):
+        super().__init__(name)
+        self.params = kwargs
+    
+    async def execute(self, blackboard):
+        increment = blackboard.get("increment", 10)
+        current = blackboard.get("current_value", 0)
+        
+        new_value = current + increment
+        blackboard.set("current_value", new_value)
+        
+        print(f"Update: {current} + {increment} = {new_value}")
+        return Status.SUCCESS
+
+
+class SetConfigAction(Action):
+    """Set configuration in blackboard"""
+    
+    def __init__(self, name: str = "", **kwargs):
+        super().__init__(name)
+        self.params = kwargs
+    
+    async def execute(self, blackboard):
+        config_name = blackboard.get("config_name", "default")
+        config_value = blackboard.get("config_value", {})
+        
+        blackboard.set(f"config_{config_name}", config_value)
+        print(f"Set config '{config_name}': {config_value}")
+        return Status.SUCCESS
+
+
 def register_custom_nodes():
     """Register custom node types"""
-    register_node("CheckBatteryCondition", CheckBatteryCondition)
-    register_node("CheckDoorCondition", CheckDoorCondition)
-    register_node("CloseDoorAction", CloseDoorAction)
-    register_node("ChargeBatteryAction", ChargeBatteryAction)
-    register_node("PatrolAction", PatrolAction)
-
-
-class CheckBatteryCondition(Condition):
-    """Check battery level"""
-    
-    async def evaluate(self, blackboard):
-        battery_level = blackboard.get("battery_level", 100)
-        print(f"Checking battery level: {battery_level}%")
-        return battery_level > 20
-
-
-class CheckDoorCondition(Condition):
-    """Check door status"""
-    
-    async def evaluate(self, blackboard):
-        door_open = blackboard.get("door_open", False)
-        print(f"Checking door status: {'Open' if door_open else 'Closed'}")
-        return door_open
-
-
-class CloseDoorAction(Action):
-    """Close door"""
-    
-    async def execute(self, blackboard):
-        print("Executing door closing operation...")
-        await asyncio.sleep(0.01)
-        
-        # Modify blackboard data
-        blackboard.set("door_open", False)
-        blackboard.set("last_action", "Close Door")
-        blackboard.set("action_count", blackboard.get("action_count", 0) + 1)
-        
-        print("Door closed")
-        return Status.SUCCESS
-
-
-class ChargeBatteryAction(Action):
-    """Charge battery"""
-    
-    async def execute(self, blackboard):
-        print("Starting charging...")
-        await asyncio.sleep(0.01)
-        
-        # Modify blackboard data
-        current_battery = blackboard.get("battery_level", 0)
-        new_battery = min(100, current_battery + 50)
-        blackboard.set("battery_level", new_battery)
-        blackboard.set("last_action", "Charge Battery")
-        blackboard.set("action_count", blackboard.get("action_count", 0) + 1)
-        
-        print(f"Charging completed, current battery: {new_battery}%")
-        return Status.SUCCESS
-
-
-class PatrolAction(Action):
-    """Patrol"""
-    
-    async def execute(self, blackboard):
-        print("Starting patrol...")
-        await asyncio.sleep(0.01)
-        
-        # Consume battery
-        current_battery = blackboard.get("battery_level", 100)
-        new_battery = max(0, current_battery - 10)
-        blackboard.set("battery_level", new_battery)
-        blackboard.set("last_action", "Patrol")
-        blackboard.set("action_count", blackboard.get("action_count", 0) + 1)
-        
-        print(f"Patrol completed, remaining battery: {new_battery}%")
-        return Status.SUCCESS
+    register_node("CheckValueCondition", CheckValueCondition)
+    register_node("UpdateValueAction", UpdateValueAction)
+    register_node("SetConfigAction", SetConfigAction)
 
 
 async def main():
-    """Main function - demonstrate blackboard system usage"""
+    """Demonstrate {} parameter passing"""
     
-    # Register custom node types
+    print("=== {} Parameter Passing Demo ===\n")
+    
     register_custom_nodes()
     
-    print("=== ABTree Blackboard Basic Example ===\n")
-    
-    # 1. Create behavior tree
-    root = Sequence("Robot Task")
-    
-    # 2. Add child nodes
-    root.add_child(CheckBatteryCondition("Check Battery"))
-    root.add_child(CheckDoorCondition("Check Door"))
-    root.add_child(CloseDoorAction("Close Door"))
-    root.add_child(PatrolAction("Patrol"))
-    
-    # 3. Create behavior tree
+    # Create behavior tree with {} parameter substitution
     tree = BehaviorTree()
-    tree.load_from_node(root)
     blackboard = tree.blackboard
     
-    # 4. Initialize blackboard data
-    blackboard.set("battery_level", 80)
-    blackboard.set("door_open", True)
-    blackboard.set("action_count", 0)
+    # Set blackboard values for {} substitution
+    blackboard.set("increment", 15)
+    blackboard.set("threshold", 25)
+    blackboard.set("float_increment", 5.5)
+    blackboard.set("config_dict", {"enabled": True, "timeout": 30})
+    blackboard.set("current_value", 0)
     
-    print("Initial state:")
-    print(f"  Battery level: {blackboard.get('battery_level')}%")
-    print(f"  Door status: {'Open' if blackboard.get('door_open') else 'Closed'}")
-    print(f"  Action count: {blackboard.get('action_count')}")
+    # Create nodes with {} parameter substitution
+    update_action1 = UpdateValueAction("Update1", increment="{increment}")
+    check_condition = CheckValueCondition("Check", threshold="{threshold}")
+    update_action2 = UpdateValueAction("Update2", increment="{float_increment}")
+    set_config_action = SetConfigAction("SetConfig", config_name="settings", config_value="{config_dict}")
     
-    # 5. Execute behavior tree
-    print("\nStarting task execution...")
+    # Build tree structure
+    from abtree.nodes.composite import Sequence
+    sequence = Sequence("Root")
+    sequence.add_child(update_action1)
+    sequence.add_child(check_condition)
+    sequence.add_child(update_action2)
+    sequence.add_child(set_config_action)
+    
+    tree.load_from_node(sequence)
+    
+    print("Tree Configuration:")
+    print("  Sequence(Root)")
+    print("    ├── UpdateValueAction(increment='{increment}')")
+    print("    ├── CheckValueCondition(threshold='{threshold}')")
+    print("    ├── UpdateValueAction(increment='{float_increment}')")
+    print("    └── SetConfigAction(config_name='settings', config_value='{config_dict}')")
+    
+    print("\nBlackboard values for substitution:")
+    print(f"  increment: {blackboard.get('increment')}")
+    print(f"  threshold: {blackboard.get('threshold')}")
+    print(f"  float_increment: {blackboard.get('float_increment')}")
+    print(f"  config_dict: {blackboard.get('config_dict')}")
+    
+    print("\nExecuting...")
     result = await tree.tick()
     
-    # 6. Display final state
-    print(f"\nExecution result: {result}")
-    print("\nFinal state:")
-    print(f"  Battery level: {blackboard.get('battery_level')}%")
-    print(f"  Door status: {'Open' if blackboard.get('door_open') else 'Closed'}")
-    print(f"  Last action: {blackboard.get('last_action')}")
-    print(f"  Action count: {blackboard.get('action_count')}")
+    print(f"\nResult: {result}")
+    print(f"Final value: {blackboard.get('current_value')}")
+    print(f"Config set: {blackboard.get('config_settings')}")
     
-    # 7. Demonstrate low battery scenario
-    print("\n=== Demonstrate Low Battery Scenario ===")
-    blackboard.set("battery_level", 15)
-    blackboard.set("door_open", False)
+    # Demonstrate parameter substitution in different scenarios
+    print("\n=== Parameter Substitution Scenarios ===")
     
-    print("Battery level low, should execute charging...")
+    # Scenario 1: Different threshold
+    print("\nScenario 1: Higher threshold")
+    blackboard.set("threshold", 40)
+    blackboard.set("current_value", 35)
     result2 = await tree.tick()
-    print(f"Execution result: {result2}")
-    print(f"Current battery: {blackboard.get('battery_level')}%")
+    print(f"Result: {result2}")
     
-    # 8. Demonstrate XML configuration method
-    print("\n=== XML Configuration Method Demo ===")   
+    # Scenario 2: Different increment
+    print("\nScenario 2: Larger increment")
+    blackboard.set("increment", 25)
+    blackboard.set("current_value", 10)
+    result3 = await tree.tick()
+    print(f"Result: {result3}")
+    
+    # Scenario 3: Different config
+    print("\nScenario 3: New config")
+    blackboard.set("config_dict", {"mode": "debug", "level": 3})
+    result4 = await tree.tick()
+    print(f"Result: {result4}")
+    print(f"New config: {blackboard.get('config_settings')}")
 
 
 if __name__ == "__main__":
