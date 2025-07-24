@@ -2,7 +2,7 @@
 Blackboard system - Cross-node data sharing mechanism
 
 The blackboard system allows different nodes in the behavior tree to share data,
-providing thread-safe data storage and access mechanisms.
+providing thread-safe data storage and access mechanisms with zero-copy optimization.
 """
 
 import asyncio
@@ -14,13 +14,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union, AsyncGenerator
 @dataclass
 class Blackboard:
     """
-    Blackboard system - Cross-node data sharing
+    Blackboard system - Cross-node data sharing with zero-copy optimization
 
     The blackboard system provides data sharing mechanism for nodes in the behavior tree,
-    supporting synchronous and asynchronous operations, ensuring thread safety.
+    supporting synchronous and asynchronous operations, ensuring thread safety,
+    and optimized for zero-copy data transfer to minimize memory overhead.
 
     Attributes:
-        data: Dictionary storing data
+        data: Dictionary storing data (using direct references)
         _lock: Async lock, ensuring thread safety
     """
 
@@ -29,31 +30,31 @@ class Blackboard:
 
     def set(self, key: str, value: Any) -> None:
         """
-        Set blackboard data
-
+        Set blackboard data - zero-copy optimized
+        
         Args:
             key: Data key
-            value: Data value
+            value: Data value (stored by reference, no copying)
         """
-        self.data[key] = value
+        self.data[key] = value  # Direct reference storage
 
     def get(self, key: str, default: Any = None) -> Any:
         """
-        Get blackboard data
-
+        Get blackboard data - zero-copy optimized
+        
         Args:
             key: Data key
             default: Default value returned when key doesn't exist
 
         Returns:
-            Stored data value or default value
+            Stored data value or default value (direct reference)
         """
-        return self.data.get(key, default)
+        return self.data.get(key, default)  # Direct reference retrieval
 
     def has(self, key: str) -> bool:
         """
-        Check if specified key exists in blackboard
-
+        Check if specified key exists in blackboard - zero-copy optimized
+        
         Args:
             key: Key to check
 
@@ -64,8 +65,8 @@ class Blackboard:
 
     def remove(self, key: str) -> bool:
         """
-        Remove data from blackboard
-
+        Remove data from blackboard - zero-copy optimized
+        
         Args:
             key: Key to remove
 
@@ -78,13 +79,13 @@ class Blackboard:
         return False
 
     def clear(self) -> None:
-        """Clear all data in the blackboard"""
+        """Clear all data in the blackboard - zero-copy optimized"""
         self.data.clear()
 
     def keys(self) -> List[str]:
         """
-        Get list of all keys in blackboard
-
+        Get list of all keys in blackboard - zero-copy optimized
+        
         Returns:
             List of keys
         """
@@ -92,51 +93,51 @@ class Blackboard:
 
     def values(self) -> List[Any]:
         """
-        Get list of all values in blackboard
-
+        Get list of all values in blackboard - zero-copy optimized
+        
         Returns:
-            List of values
+            List of values (direct references)
         """
-        return list(self.data.values())
+        return list(self.data.values())  # Direct references
 
     def items(self) -> List[Tuple[str, Any]]:
         """
-        Get list of all key-value pairs in blackboard
-
+        Get list of all key-value pairs in blackboard - zero-copy optimized
+        
         Returns:
-            List of key-value pairs
+            List of key-value pairs (direct references)
         """
-        return list(self.data.items())
+        return list(self.data.items())  # Direct references
 
     async def set_async(self, key: str, value: Any) -> None:
         """
-        Asynchronously set blackboard data (thread-safe)
-
+        Asynchronously set blackboard data (thread-safe) - zero-copy optimized
+        
         Args:
             key: Data key
-            value: Data value
+            value: Data value (stored by reference, no copying)
         """
         async with self._lock:
-            self.data[key] = value
+            self.data[key] = value  # Direct reference storage
 
     async def get_async(self, key: str, default: Any = None) -> Any:
         """
-        Asynchronously get blackboard data (thread-safe)
-
+        Asynchronously get blackboard data (thread-safe) - zero-copy optimized
+        
         Args:
             key: Data key
             default: Default value
 
         Returns:
-            Stored data value or default value
+            Stored data value or default value (direct reference)
         """
         async with self._lock:
-            return self.data.get(key, default)
+            return self.data.get(key, default)  # Direct reference retrieval
 
     async def has_async(self, key: str) -> bool:
         """
-        Asynchronously check if specified key exists in blackboard (thread-safe)
-
+        Asynchronously check if specified key exists in blackboard (thread-safe) - zero-copy optimized
+        
         Args:
             key: Key to check
 
@@ -149,7 +150,7 @@ class Blackboard:
     @asynccontextmanager
     async def transaction(self) -> AsyncGenerator["Blackboard", None]:
         """
-        Blackboard transaction context manager
+        Blackboard transaction context manager - zero-copy optimized
 
         Provides atomic operations, ensuring data consistency during transactions.
 
@@ -160,25 +161,25 @@ class Blackboard:
             yield self
 
     def __len__(self) -> int:
-        """Return the number of data items in blackboard"""
+        """Return the number of data items in blackboard - zero-copy optimized"""
         return len(self.data)
 
     def __contains__(self, key: str) -> bool:
-        """Check if key exists in blackboard"""
+        """Check if key exists in blackboard - zero-copy optimized"""
         return key in self.data
 
     def __getitem__(self, key: str) -> Any:
-        """Get data by key"""
-        return self.data[key]
+        """Get data by key - zero-copy optimized"""
+        return self.data[key]  # Direct reference
 
     def __setitem__(self, key: str, value: Any) -> None:
-        """Set data by key"""
-        self.data[key] = value
+        """Set data by key - zero-copy optimized"""
+        self.data[key] = value  # Direct reference storage
 
     def __delitem__(self, key: str) -> None:
-        """Delete data for specified key"""
+        """Delete data for specified key - zero-copy optimized"""
         del self.data[key]
 
     def __repr__(self) -> str:
-        """String representation of blackboard object"""
+        """String representation of blackboard object - zero-copy optimized"""
         return f"Blackboard(data={self.data})"

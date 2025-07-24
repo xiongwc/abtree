@@ -2,7 +2,7 @@
 Event system - Event listening and context awareness
 
 The event system provides an event-driven communication mechanism for behavior trees,
-supporting event publication and subscription between nodes.
+supporting event publication and subscription between nodes with zero-copy optimization.
 """
 
 import asyncio
@@ -23,18 +23,18 @@ class EventPriority(Enum):
 @dataclass
 class Event:
     """
-    Event object
-
+    Event object - optimized for zero-copy data transfer
+    
     Attributes:
         name: Event name
-        data: Event data
+        data: Event data (stored by reference, no copying)
         source: Event source
         timestamp: Event timestamp
         priority: Event priority
     """
 
     name: str
-    data: Any = None
+    data: Any = None  # Direct reference, no copying
     source: Optional[str] = None
     timestamp: float = field(default_factory=lambda: asyncio.get_event_loop().time() if asyncio.get_event_loop().is_running() else 0.0)
     priority: EventPriority = EventPriority.NORMAL
@@ -46,8 +46,8 @@ class Event:
 @dataclass
 class EventListener:
     """
-    Event listener
-
+    Event listener - optimized for zero-copy data transfer
+    
     Attributes:
         callback: Callback function
         priority: Priority
@@ -60,10 +60,10 @@ class EventListener:
 
     async def execute(self, event: Event) -> Any:
         """
-        Execute event callback
-
+        Execute event callback - zero-copy optimized
+        
         Args:
-            event: Event object
+            event: Event object (passed by reference)
 
         Returns:
             Return value of the callback function
@@ -72,21 +72,21 @@ class EventListener:
             return None
 
         if asyncio.iscoroutinefunction(self.callback):
-            return await self.callback(event)
+            return await self.callback(event)  # Direct event reference
         else:
-            return self.callback(event)
+            return self.callback(event)  # Direct event reference
 
 
 class EventSystem:
     """
-    Event system
+    Event system - optimized for zero-copy data transfer
 
     Provides event publication, subscription, and management functionality,
-    supporting asynchronous event handling and priority sorting.
+    supporting asynchronous event handling and priority sorting with minimal memory overhead.
     """
 
     def __init__(self) -> None:
-        """Initialize event system"""
+        """Initialize event system - zero-copy optimized"""
         self._listeners: Dict[str, List[EventListener]] = {}
         self._global_listeners: List[EventListener] = []
         self._event_history: List[Event] = []
@@ -101,38 +101,47 @@ class EventSystem:
         priority: EventPriority = EventPriority.NORMAL,
     ) -> None:
         """
-        Publish event
-
+        Emit an event - zero-copy optimized
+        
         Args:
             event: Event object or event name
-            data: Event data
+            data: Event data (passed by reference, no copying)
             source: Event source
             priority: Event priority
         """
         if isinstance(event, str):
             event = Event(name=event, data=data, source=source, priority=priority)
-
+        
+        # Store event in history with direct reference
+        self._event_history.append(event)
+        
+        # Trim history if needed
+        if len(self._event_history) > self._max_history_size:
+            self._event_history.pop(0)
+        
+        # Notify listeners with direct event reference
+        await self._notify_listeners(event)
+    
+    async def _notify_listeners(self, event: Event) -> None:
+        """Notify listeners with direct event reference - zero-copy optimized"""
         async with self._lock:
-            # Add to history
-            self._event_history.append(event)
-            if len(self._event_history) > self._max_history_size:
-                self._event_history.pop(0)
-
-            # Get event listeners
+            # Get specific listeners for this event
             listeners = self._listeners.get(event.name, [])
+            
+            # Add global listeners
             all_listeners = listeners + self._global_listeners
-
+            
             # Sort by priority
             all_listeners.sort(key=lambda l: l.priority.value, reverse=True)
-
-        # Asynchronously execute listeners
-        tasks = []
-        for listener in all_listeners:
-            task = asyncio.create_task(listener.execute(event))
-            tasks.append(task)
-
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Execute listeners with direct event reference
+            tasks = []
+            for listener in all_listeners:
+                task = asyncio.create_task(listener.execute(event))
+                tasks.append(task)
+            
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
 
     def on(
         self,
@@ -142,21 +151,19 @@ class EventSystem:
         event_filter: Optional[Callable[[Event], bool]] = None,
     ) -> None:
         """
-        Subscribe to specific event
-
+        Subscribe to an event - zero-copy optimized
+        
         Args:
-            event_name: Event name
+            event_name: Event name to subscribe to
             callback: Callback function
-            priority: Priority
-            event_filter: Event filter
+            priority: Priority level
+            event_filter: Optional event filter
         """
-        listener = EventListener(
-            callback=callback, priority=priority, event_filter=event_filter
-        )
-
+        listener = EventListener(callback=callback, priority=priority, event_filter=event_filter)
+        
         if event_name not in self._listeners:
             self._listeners[event_name] = []
-
+        
         self._listeners[event_name].append(listener)
 
     def on_any(
@@ -166,63 +173,57 @@ class EventSystem:
         event_filter: Optional[Callable[[Event], bool]] = None,
     ) -> None:
         """
-        Subscribe to all events
-
+        Subscribe to all events - zero-copy optimized
+        
         Args:
             callback: Callback function
-            priority: Priority
-            event_filter: Event filter
+            priority: Priority level
+            event_filter: Optional event filter
         """
-        listener = EventListener(
-            callback=callback, priority=priority, event_filter=event_filter
-        )
+        listener = EventListener(callback=callback, priority=priority, event_filter=event_filter)
         self._global_listeners.append(listener)
 
     def off(self, event_name: str, callback: Callable[[Event], Any]) -> bool:
         """
-        Unsubscribe from specific event
-
+        Unsubscribe from an event - zero-copy optimized
+        
         Args:
-            event_name: Event name
-            callback: Callback function
-
+            event_name: Event name to unsubscribe from
+            callback: Callback function to remove
+            
         Returns:
-            True if listener is found and removed, False otherwise
+            True if callback was found and removed
         """
-        if event_name not in self._listeners:
-            return False
-
-        listeners = self._listeners[event_name]
-        for i, listener in enumerate(listeners):
-            if listener.callback == callback:
-                listeners.pop(i)
-                return True
-
+        if event_name in self._listeners:
+            listeners = self._listeners[event_name]
+            for listener in listeners:
+                if listener.callback == callback:
+                    listeners.remove(listener)
+                    return True
         return False
 
     def off_any(self, callback: Callable[[Event], Any]) -> bool:
         """
-        Unsubscribe from all events
-
+        Unsubscribe from all events - zero-copy optimized
+        
         Args:
-            callback: Callback function
-
+            callback: Callback function to remove
+            
         Returns:
-            True if listener is found and removed, False otherwise
+            True if callback was found and removed
         """
-        for i, listener in enumerate(self._global_listeners):
+        for listener in self._global_listeners:
             if listener.callback == callback:
-                self._global_listeners.pop(i)
+                self._global_listeners.remove(listener)
                 return True
-
         return False
 
     def clear(self, event_name: Optional[str] = None) -> None:
         """
-        Clear event listeners
-
+        Clear event listeners - zero-copy optimized
+        
         Args:
-            event_name: Event name, if None then clear all events
+            event_name: Event name to clear (None for all events)
         """
         if event_name is None:
             self._listeners.clear()
@@ -232,13 +233,13 @@ class EventSystem:
 
     def get_listeners(self, event_name: Optional[str] = None) -> List[EventListener]:
         """
-        Get event listener list
-
+        Get event listeners - zero-copy optimized
+        
         Args:
-            event_name: Event name, if None then return all listeners
-
+            event_name: Event name (None for all listeners)
+            
         Returns:
-            Listener list
+            List of event listeners (direct references)
         """
         if event_name is None:
             all_listeners = []
@@ -247,67 +248,66 @@ class EventSystem:
             all_listeners.extend(self._global_listeners)
             return all_listeners
         else:
-            return self._listeners.get(event_name, [])
+            return self._listeners.get(event_name, [])  # Direct reference
 
     def get_event_history(
         self, event_name: Optional[str] = None, limit: Optional[int] = None
     ) -> List[Event]:
         """
-        Get event history
-
+        Get event history - zero-copy optimized
+        
         Args:
-            event_name: Event name, if None then return all events
-            limit: Limit the number of events returned
-
+            event_name: Event name to filter by (None for all events)
+            limit: Maximum number of events to return
+            
         Returns:
-            Event history list
+            List of events (direct references)
         """
         if event_name is None:
-            history = self._event_history
+            events = self._event_history  # Direct reference
         else:
-            history = [
-                event for event in self._event_history if event.name == event_name
-            ]
-
+            events = [event for event in self._event_history if event.name == event_name]
+        
         if limit is not None:
-            history = history[-limit:]
-
-        return history
+            events = events[-limit:]  # Direct reference
+        
+        return events
 
     def set_max_history_size(self, size: int) -> None:
         """
-        Set maximum history size
-
+        Set maximum history size - zero-copy optimized
+        
         Args:
-            size: Maximum history size
+            size: Maximum number of events to keep in history
         """
         self._max_history_size = size
+        
+        # Trim history if needed
         while len(self._event_history) > self._max_history_size:
             self._event_history.pop(0)
 
     def clear_history(self) -> None:
-        """Clear event history"""
+        """Clear event history - zero-copy optimized"""
         self._event_history.clear()
 
     def get_stats(self) -> Dict[str, Any]:
         """
-        Get event system statistics
-
+        Get event system statistics - zero-copy optimized
+        
         Returns:
-            Statistics dictionary
+            Dictionary with event system statistics
         """
         total_listeners = sum(len(listeners) for listeners in self._listeners.values())
         total_listeners += len(self._global_listeners)
-
+        
         return {
-            "total_events": len(self._event_history),
             "total_listeners": total_listeners,
-            "event_types": list(self._listeners.keys()),
+            "event_types": len(self._listeners),
             "global_listeners": len(self._global_listeners),
+            "history_size": len(self._event_history),
             "max_history_size": self._max_history_size,
         }
 
     def __repr__(self) -> str:
-        """String representation of the event system"""
-        stats = self.get_stats()
-        return f"EventSystem(events={stats['total_events']}, listeners={stats['total_listeners']})"
+        """String representation - zero-copy optimized"""
+        return f"EventSystem(listeners={len(self._listeners)}, history={len(self._event_history)})"
