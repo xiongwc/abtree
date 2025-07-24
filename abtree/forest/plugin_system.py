@@ -316,8 +316,8 @@ class ExampleMiddlewarePlugin(MiddlewarePlugin):
     
     def create_middleware(self) -> Any:
         """Create example middleware."""
-        from .communication import PubSubMiddleware
-        return PubSubMiddleware("ExamplePubSub")
+        from .communication import CommunicationMiddleware
+        return CommunicationMiddleware("ExampleCommunication")
 
 
 class ExampleNodePlugin(NodePlugin):

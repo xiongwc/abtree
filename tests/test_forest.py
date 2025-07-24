@@ -4,8 +4,12 @@ from abtree.forest.core import ForestNode, BehaviorForest, ForestNodeType
 from abtree.forest.forest_manager import ForestManager, ForestStatus
 from abtree.forest.config import ForestConfig, ForestConfigPresets
 from abtree.forest.communication import (
-    PubSubMiddleware, ReqRespMiddleware, SharedBlackboardMiddleware,
-    StateWatchingMiddleware, BehaviorCallMiddleware, TaskBoardMiddleware
+    CommunicationMiddleware,
+    CommunicationType,
+    Message,
+    Request,
+    Response,
+    Task,
 )
 from abtree.engine.behavior_tree import BehaviorTree
 from abtree.core.status import Status
@@ -74,7 +78,7 @@ async def test_behavior_forest_middleware():
     forest.add_node(node1)
     
     # Test middleware addition
-    middleware = PubSubMiddleware("test_pubsub")
+    middleware = CommunicationMiddleware("test_pubsub")
     forest.add_middleware(middleware)
     assert middleware in forest.middleware
     
@@ -167,7 +171,7 @@ def test_forest_config_presets():
 @pytest.mark.skip(reason="Temporarily skipped to avoid hanging")
 @pytest.mark.asyncio
 async def test_pubsub_middleware():
-    middleware = PubSubMiddleware("test_pubsub")
+    middleware = CommunicationMiddleware("test_pubsub")
     forest = BehaviorForest(name="test_forest")
     middleware.initialize(forest)
     
@@ -190,7 +194,7 @@ async def test_pubsub_middleware():
 @pytest.mark.skip(reason="Temporarily skipped to avoid hanging")
 @pytest.mark.asyncio
 async def test_reqresp_middleware():
-    middleware = ReqRespMiddleware("test_reqresp")
+    middleware = CommunicationMiddleware("test_reqresp")
     forest = BehaviorForest(name="test_forest")
     middleware.initialize(forest)
     
@@ -211,7 +215,7 @@ async def test_reqresp_middleware():
 @pytest.mark.skip(reason="Temporarily skipped to avoid hanging")
 @pytest.mark.asyncio
 async def test_shared_blackboard_middleware():
-    middleware = SharedBlackboardMiddleware("test_shared_bb")
+    middleware = CommunicationMiddleware("test_shared_bb")
     forest = BehaviorForest(name="test_forest")
     middleware.initialize(forest)
     
@@ -227,7 +231,7 @@ async def test_shared_blackboard_middleware():
 @pytest.mark.skip(reason="Temporarily skipped to avoid hanging")
 @pytest.mark.asyncio
 async def test_state_watching_middleware():
-    middleware = StateWatchingMiddleware("test_state_watch")
+    middleware = CommunicationMiddleware("test_state_watch")
     forest = BehaviorForest(name="test_forest")
     middleware.initialize(forest)
     
@@ -247,7 +251,7 @@ async def test_state_watching_middleware():
 @pytest.mark.skip(reason="Temporarily skipped to avoid hanging")
 @pytest.mark.asyncio
 async def test_behavior_call_middleware():
-    middleware = BehaviorCallMiddleware("test_behavior_call")
+    middleware = CommunicationMiddleware("test_behavior_call")
     forest = BehaviorForest(name="test_forest")
     middleware.initialize(forest)
     
@@ -267,7 +271,7 @@ async def test_behavior_call_middleware():
 @pytest.mark.skip(reason="Temporarily skipped to avoid hanging")
 @pytest.mark.asyncio
 async def test_task_board_middleware():
-    middleware = TaskBoardMiddleware("test_task_board")
+    middleware = CommunicationMiddleware("test_task_board")
     forest = BehaviorForest(name="test_forest")
     middleware.initialize(forest)
     

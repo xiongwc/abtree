@@ -1,5 +1,5 @@
 """
-Communication Middleware - Inter-Behavior Tree Communication Patterns
+Communication Middleware - Unified Inter-Behavior Tree Communication
 
 Provides 6 different communication patterns for behavior trees in the forest:
 1. Pub/Sub (Publish-Subscribe) - Event-driven communication
@@ -73,13 +73,53 @@ class Task:
     data: Dict[str, Any] = field(default_factory=dict)
 
 
-class BaseMiddleware(ABC):
-    """Base middleware class"""
+class CommunicationMiddleware:
+    """
+    Unified Communication Middleware
     
-    def __init__(self, name: str):
+    Provides all 6 communication patterns in a single middleware:
+    - Pub/Sub: Event-driven communication
+    - Req/Resp: Service call communication
+    - Shared Blackboard: Cross-tree data sharing
+    - State Watching: State change monitoring
+    - Behavior Call: Direct behavior tree calls
+    - Task Board: Task distribution and claiming
+    """
+    
+    def __init__(self, name: str = "CommunicationMiddleware"):
         self.name = name
         self.forest: Optional[BehaviorForest] = None
         self.enabled = True
+        
+        # Pub/Sub components
+        self.subscribers: Dict[str, List[Callable]] = {}
+        self.event_history: List[Event] = []
+        self.max_history = 1000
+        
+        # Req/Resp components
+        self.services: Dict[str, Callable] = {}
+        self.pending_requests: Dict[str, asyncio.Future] = {}
+        self.request_counter = 0
+        
+        # Shared Blackboard components
+        self.shared_blackboard = Blackboard()
+        self.access_log: List[Dict[str, Any]] = []
+        self.max_log_size = 1000
+        
+        # State Watching components
+        self.watchers: Dict[str, List[Callable]] = {}
+        self.state_cache: Dict[str, Any] = {}
+        self.state_history: Dict[str, List[Dict[str, Any]]] = {}
+        self.max_history_per_key = 100
+        
+        # Behavior Call components
+        self.registered_behaviors: Dict[str, Callable] = {}
+        self.call_log: List[Dict[str, Any]] = []
+        
+        # Task Board components
+        self.tasks: Dict[str, Task] = {}
+        self.task_counter = 0
+        self.claim_callbacks: Dict[str, List[Callable]] = {}
     
     def initialize(self, forest: BehaviorForest) -> None:
         """Initialize middleware with forest"""
@@ -92,21 +132,8 @@ class BaseMiddleware(ABC):
     async def post_tick(self, results: Dict[str, Status]) -> None:
         """Post-tick processing"""
         pass
-
-
-class PubSubMiddleware(BaseMiddleware):
-    """
-    Publish-Subscribe Middleware
     
-    Enables event-driven communication between behavior trees.
-    Trees can publish events and subscribe to events from other trees.
-    """
-    
-    def __init__(self, name: str = "PubSubMiddleware"):
-        super().__init__(name)
-        self.subscribers: Dict[str, List[Callable]] = {}
-        self.event_history: List[Event] = []
-        self.max_history = 1000
+    # ==================== Pub/Sub Methods ====================
     
     def subscribe(self, topic: str, callback: Callable) -> None:
         """
@@ -184,21 +211,8 @@ class PubSubMiddleware(BaseMiddleware):
         if topic is None:
             return self.event_history
         return [event for event in self.event_history if event.name == topic]
-
-
-class ReqRespMiddleware(BaseMiddleware):
-    """
-    Request-Response Middleware
     
-    Enables service call communication between behavior trees.
-    Trees can make requests to other trees and receive responses.
-    """
-    
-    def __init__(self, name: str = "ReqRespMiddleware"):
-        super().__init__(name)
-        self.services: Dict[str, Callable] = {}
-        self.pending_requests: Dict[str, asyncio.Future] = {}
-        self.request_counter = 0
+    # ==================== Req/Resp Methods ====================
     
     def register_service(self, service_name: str, handler: Callable) -> None:
         """
@@ -255,21 +269,8 @@ class ReqRespMiddleware(BaseMiddleware):
     def get_available_services(self) -> List[str]:
         """Get list of available services"""
         return list(self.services.keys())
-
-
-class SharedBlackboardMiddleware(BaseMiddleware):
-    """
-    Shared Blackboard Middleware
     
-    Enables cross-tree data sharing through a unified blackboard.
-    All trees can read and write to the shared blackboard.
-    """
-    
-    def __init__(self, name: str = "SharedBlackboardMiddleware"):
-        super().__init__(name)
-        self.shared_blackboard = Blackboard()
-        self.access_log: List[Dict[str, Any]] = []
-        self.max_log_size = 1000
+    # ==================== Shared Blackboard Methods ====================
     
     def set(self, key: str, value: Any, source: str) -> None:
         """
@@ -347,22 +348,8 @@ class SharedBlackboardMiddleware(BaseMiddleware):
         if source is None:
             return self.access_log
         return [entry for entry in self.access_log if entry["source"] == source]
-
-
-class StateWatchingMiddleware(BaseMiddleware):
-    """
-    State Watching Middleware
     
-    Enables behavior trees to watch for state changes in other trees
-    or external systems and react accordingly.
-    """
-    
-    def __init__(self, name: str = "StateWatchingMiddleware"):
-        super().__init__(name)
-        self.watchers: Dict[str, List[Callable]] = {}
-        self.state_cache: Dict[str, Any] = {}
-        self.state_history: Dict[str, List[Dict[str, Any]]] = {}
-        self.max_history_per_key = 100
+    # ==================== State Watching Methods ====================
     
     def watch_state(self, key: str, callback: Callable, source: str) -> None:
         """
@@ -455,21 +442,8 @@ class StateWatchingMiddleware(BaseMiddleware):
     def get_watched_keys(self) -> List[str]:
         """Get list of watched state keys"""
         return list(self.watchers.keys())
-
-
-class BehaviorCallMiddleware(BaseMiddleware):
-    """
-    Behavior Call Middleware
     
-    Enables one behavior tree to call nodes from another behavior tree
-    during execution, promoting behavior reuse and modular composition.
-    """
-    
-    def __init__(self, name: str = "BehaviorCallMiddleware"):
-        super().__init__(name)
-        self.registered_behaviors: Dict[str, Callable] = {}
-        self.call_log: List[Dict[str, Any]] = []
-        self.max_log_size = 1000
+    # ==================== Behavior Call Methods ====================
     
     def register_behavior(self, behavior_name: str, behavior_func: Callable) -> None:
         """
@@ -552,21 +526,8 @@ class BehaviorCallMiddleware(BaseMiddleware):
         if behavior_name is None:
             return self.call_log
         return [entry for entry in self.call_log if entry["behavior"] == behavior_name]
-
-
-class TaskBoardMiddleware(BaseMiddleware):
-    """
-    Task Board Middleware
     
-    Enables behavior trees to publish tasks to a public task pool
-    and have other trees claim and execute them automatically.
-    """
-    
-    def __init__(self, name: str = "TaskBoardMiddleware"):
-        super().__init__(name)
-        self.tasks: Dict[str, Task] = {}
-        self.task_counter = 0
-        self.claim_callbacks: Dict[str, List[Callable]] = {}
+    # ==================== Task Board Methods ====================
     
     def publish_task(self, title: str, description: str, requirements: Set[str], 
                     priority: int = 0, data: Optional[Dict[str, Any]] = None) -> str:

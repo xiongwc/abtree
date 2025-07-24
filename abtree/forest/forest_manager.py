@@ -14,12 +14,12 @@ from ..core.status import Status
 from ..engine.blackboard import Blackboard
 from ..engine.event_system import EventSystem
 from .communication import (
-    BehaviorCallMiddleware,
-    PubSubMiddleware,
-    ReqRespMiddleware,
-    SharedBlackboardMiddleware,
-    StateWatchingMiddleware,
-    TaskBoardMiddleware,
+    CommunicationMiddleware,
+    CommunicationType,
+    Message,
+    Request,
+    Response,
+    Task,
 )
 from .core import BehaviorForest, ForestNode, ForestNodeType
 
@@ -82,21 +82,9 @@ class ForestManager:
     
     def _init_cross_forest_middleware(self) -> None:
         """Initialize cross-forest communication middleware"""
-        # Global pub/sub for cross-forest events
-        self.global_pubsub = PubSubMiddleware("GlobalPubSub")
-        self.cross_forest_middleware.append(self.global_pubsub)
-        
-        # Global shared blackboard for cross-forest data
-        self.global_shared_blackboard = SharedBlackboardMiddleware("GlobalSharedBlackboard")
-        self.cross_forest_middleware.append(self.global_shared_blackboard)
-        
-        # Global state watching for cross-forest state monitoring
-        self.global_state_watching = StateWatchingMiddleware("GlobalStateWatching")
-        self.cross_forest_middleware.append(self.global_state_watching)
-        
-        # Global task board for cross-forest task distribution
-        self.global_task_board = TaskBoardMiddleware("GlobalTaskBoard")
-        self.cross_forest_middleware.append(self.global_task_board)
+        # Global communication middleware for cross-forest communication
+        self.global_communication = CommunicationMiddleware("GlobalCommunication")
+        self.cross_forest_middleware.append(self.global_communication)
     
     def add_forest(self, forest: BehaviorForest) -> None:
         """
@@ -381,7 +369,7 @@ class ForestManager:
             data: Event data
         """
         asyncio.create_task(
-            self.global_pubsub.publish(topic, data, self.name)
+            self.global_communication.publish(topic, data, self.name)
         )
     
     def set_global_data(self, key: str, value: Any) -> None:
@@ -392,7 +380,7 @@ class ForestManager:
             key: Data key
             value: Data value
         """
-        self.global_shared_blackboard.set(key, value, self.name)
+        self.global_communication.set(key, value, self.name)
     
     def get_global_data(self, key: str, default: Any = None) -> Any:
         """
@@ -405,7 +393,7 @@ class ForestManager:
         Returns:
             Data value
         """
-        return self.global_shared_blackboard.get(key, default, self.name)
+        return self.global_communication.get(key, default, self.name)
     
     def watch_global_state(self, key: str, callback: Any) -> None:
         """
@@ -415,7 +403,7 @@ class ForestManager:
             key: State key to watch
             callback: Callback function
         """
-        self.global_state_watching.watch_state(key, callback, self.name)
+        self.global_communication.watch_state(key, callback, self.name)
     
     def publish_global_task(self, title: str, description: str, requirements: Set[str],
                            priority: int = 0, data: Optional[Dict[str, Any]] = None) -> str:
@@ -432,7 +420,7 @@ class ForestManager:
         Returns:
             Task ID
         """
-        return self.global_task_board.publish_task(
+        return self.global_communication.publish_task(
             title, description, requirements, priority, data
         )
     

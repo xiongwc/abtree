@@ -22,11 +22,17 @@ from abtree import (
     BehaviorTree, Blackboard, EventSystem, Status,
     Sequence, Selector, Action, Condition, Log, Wait, SetBlackboard, CheckBlackboard,
     BehaviorForest, ForestNode, ForestNodeType, ForestManager,
-    PubSubMiddleware, ReqRespMiddleware, SharedBlackboardMiddleware,
-    StateWatchingMiddleware, BehaviorCallMiddleware, TaskBoardMiddleware,
     register_node,
 )
 from abtree.parser.xml_parser import XMLParser
+from abtree.forest.communication import (
+    CommunicationMiddleware,
+    CommunicationType,
+    Message,
+    Request,
+    Response,
+    Task,
+)
 
 
 class SystemAction(Action):

@@ -17,13 +17,13 @@ from .forest import (
     ForestNode,
     ForestNodeType,
 )
-from .forest.middleware import (
-    BehaviorCallMiddleware,
-    PubSubMiddleware,
-    ReqRespMiddleware,
-    SharedBlackboardMiddleware,
-    StateWatchingMiddleware,
-    TaskBoardMiddleware,
+from .forest.communication import (
+    CommunicationMiddleware,
+    CommunicationType,
+    Message,
+    Request,
+    Response,
+    Task,
 )
 from .nodes import (
     Action,
@@ -293,12 +293,12 @@ __all__ = [
     "ForestManager",
     "ForestConfig",
     "ForestConfigPresets",
-    "PubSubMiddleware",
-    "ReqRespMiddleware",
-    "SharedBlackboardMiddleware",
-    "StateWatchingMiddleware",
-    "BehaviorCallMiddleware",
-    "TaskBoardMiddleware",
+    "CommunicationMiddleware",
+    "CommunicationType",
+    "Message",
+    "Request",
+    "Response",
+    "Task",
     # Validation utilities
     "ValidationResult",
     "validate_tree",

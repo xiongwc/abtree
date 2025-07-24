@@ -14,11 +14,18 @@ from typing import Dict, Any
 
 from abtree import (
     BehaviorForest, ForestNode, ForestNodeType,
-    PubSubMiddleware, SharedBlackboardMiddleware, TaskBoardMiddleware,
     BehaviorTree, Sequence, Selector, Action, Condition, Status
 )
 from abtree.forest.plugin_system import PluginManager, BasePlugin
 from abtree.forest.performance import PerformanceMonitor, create_performance_monitor
+from abtree.forest.communication import (
+    CommunicationMiddleware,
+    CommunicationType,
+    Message,
+    Request,
+    Response,
+    Task,
+)
 
 
 # Setup logging
@@ -172,8 +179,7 @@ async def demonstrate_performance_monitoring():
     forest = BehaviorForest("PerformanceDemo")
     
     # Add middleware
-    forest.add_middleware(PubSubMiddleware("PubSub"))
-    forest.add_middleware(TaskBoardMiddleware("TaskBoard"))
+    forest.add_middleware(CommunicationMiddleware("Communication"))
     
     # Add robot nodes
     for robot_id in ["R1", "R2", "R3"]:
@@ -239,8 +245,7 @@ async def demonstrate_real_time_dashboard():
         forest = BehaviorForest(f"DashboardDemo_{i+1}")
         
         # Add middleware
-        forest.add_middleware(PubSubMiddleware(f"PubSub_{i+1}"))
-        forest.add_middleware(SharedBlackboardMiddleware(f"SharedBlackboard_{i+1}"))
+        forest.add_middleware(CommunicationMiddleware(f"Communication_{i+1}"))
         
         # Add robot nodes
         for robot_id in [f"R{i+1}_{j+1}" for j in range(2)]:

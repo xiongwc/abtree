@@ -16,8 +16,14 @@ from abtree import (
     Sequence, Selector, Action, Condition, Log, Wait, SetBlackboard, CheckBlackboard,
     # Forest components
     BehaviorForest, ForestNode, ForestNodeType, ForestManager, ForestConfig,
-    PubSubMiddleware, ReqRespMiddleware, SharedBlackboardMiddleware,
-    StateWatchingMiddleware, BehaviorCallMiddleware, TaskBoardMiddleware,
+)
+from abtree.forest.communication import (
+    CommunicationMiddleware,
+    CommunicationType,
+    Message,
+    Request,
+    Response,
+    Task,
 )
 
 
@@ -151,9 +157,7 @@ def create_production_forest() -> BehaviorForest:
     )
     
     # Add middleware
-    forest.add_middleware(PubSubMiddleware("ProductionPubSub"))
-    forest.add_middleware(SharedBlackboardMiddleware("ProductionSharedBB"))
-    forest.add_middleware(StateWatchingMiddleware("ProductionStateWatch"))
+    forest.add_middleware(CommunicationMiddleware("ProductionCommunication"))
     
     # Create and add forest node
     node = ForestNode(
@@ -205,9 +209,7 @@ def create_monitoring_forest() -> BehaviorForest:
     )
     
     # Add middleware
-    forest.add_middleware(PubSubMiddleware("MonitoringPubSub"))
-    forest.add_middleware(SharedBlackboardMiddleware("MonitoringSharedBB"))
-    forest.add_middleware(StateWatchingMiddleware("MonitoringStateWatch"))
+    forest.add_middleware(CommunicationMiddleware("MonitoringCommunication"))
     
     # Create and add forest node
     node = ForestNode(
@@ -259,10 +261,7 @@ def create_coordination_forest() -> BehaviorForest:
     )
     
     # Add middleware
-    forest.add_middleware(PubSubMiddleware("CoordinationPubSub"))
-    forest.add_middleware(SharedBlackboardMiddleware("CoordinationSharedBB"))
-    forest.add_middleware(StateWatchingMiddleware("CoordinationStateWatch"))
-    forest.add_middleware(TaskBoardMiddleware("CoordinationTaskBoard"))
+    forest.add_middleware(CommunicationMiddleware("CoordinationCommunication"))
     
     # Create and add forest node
     node = ForestNode(

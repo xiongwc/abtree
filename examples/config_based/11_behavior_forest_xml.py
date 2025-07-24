@@ -22,11 +22,17 @@ from abtree import (
     BehaviorTree, Blackboard, EventSystem, Status,
     Sequence, Selector, Action, Condition, Log, Wait, SetBlackboard, CheckBlackboard,
     BehaviorForest, ForestNode, ForestNodeType, ForestManager,
-    PubSubMiddleware, ReqRespMiddleware, SharedBlackboardMiddleware,
-    StateWatchingMiddleware, BehaviorCallMiddleware, TaskBoardMiddleware,
     register_node,
 )
 from abtree.parser.xml_parser import XMLParser
+from abtree.forest.communication import (
+    CommunicationMiddleware,
+    CommunicationType,
+    Message,
+    Request,
+    Response,
+    Task,
+)
 
 
 class RobotAction(Action):
@@ -262,15 +268,15 @@ async def demonstrate_pubsub_pattern(forest: BehaviorForest):
     """Demonstrate PubSub communication pattern"""
     print("\n=== PubSub Communication Pattern ===")
     
-    # Get pub/sub middleware
-    pubsub = None
+    # Get communication middleware
+    comm_middleware = None
     for middleware in forest.middleware:
-        if isinstance(middleware, PubSubMiddleware):
-            pubsub = middleware
+        if isinstance(middleware, CommunicationMiddleware):
+            comm_middleware = middleware
             break
     
-    if not pubsub:
-        print("❌ Pub/Sub middleware not found")
+    if not comm_middleware:
+        print("❌ Communication middleware not found")
         return
     
     # Register event handlers
@@ -281,27 +287,27 @@ async def demonstrate_pubsub_pattern(forest: BehaviorForest):
         print(f"📡 PubSub: Task event received: {event}")
     
     # Subscribe to events
-    pubsub.subscribe("emergency_events", emergency_handler)
-    pubsub.subscribe("task_events", task_handler)
+    comm_middleware.subscribe("emergency_events", emergency_handler)
+    comm_middleware.subscribe("task_events", task_handler)
     
     # Publish events
-    await pubsub.publish("emergency_events", {"location": "Zone A", "severity": "high"}, "Coordinator")
-    await pubsub.publish("task_events", {"type": "patrol", "area": "Zone B"}, "Coordinator")
+    await comm_middleware.publish("emergency_events", {"location": "Zone A", "severity": "high"}, "Coordinator")
+    await comm_middleware.publish("task_events", {"type": "patrol", "area": "Zone B"}, "Coordinator")
 
 
 async def demonstrate_reqresp_pattern(forest: BehaviorForest):
     """Demonstrate Request-Response communication pattern"""
     print("\n=== Request-Response Communication Pattern ===")
     
-    # Get req/resp middleware
-    reqresp = None
+    # Get communication middleware
+    comm_middleware = None
     for middleware in forest.middleware:
-        if isinstance(middleware, ReqRespMiddleware):
-            reqresp = middleware
+        if isinstance(middleware, CommunicationMiddleware):
+            comm_middleware = middleware
             break
     
-    if not reqresp:
-        print("❌ Req/Resp middleware not found")
+    if not comm_middleware:
+        print("❌ Communication middleware not found")
         return
     
     # Register request handlers
@@ -314,12 +320,12 @@ async def demonstrate_reqresp_pattern(forest: BehaviorForest):
         return {"task_count": 3, "completed": 1}
     
     # Register handlers
-    reqresp.register_service("battery_status", get_battery_status)
-    reqresp.register_service("task_status", get_task_status)
+    comm_middleware.register_service("battery_status", get_battery_status)
+    comm_middleware.register_service("task_status", get_task_status)
     
     # Make requests
-    battery_response = await reqresp.request("battery_status", {}, "Robot_001")
-    task_response = await reqresp.request("task_status", {}, "Coordinator")
+    battery_response = await comm_middleware.request("battery_status", {}, "Robot_001")
+    task_response = await comm_middleware.request("task_status", {}, "Coordinator")
     
     print(f"📡 ReqResp: Battery response: {battery_response}")
     print(f"📡 ReqResp: Task response: {task_response}")
@@ -329,28 +335,28 @@ async def demonstrate_shared_blackboard_pattern(forest: BehaviorForest):
     """Demonstrate Shared Blackboard communication pattern"""
     print("\n=== Shared Blackboard Communication Pattern ===")
     
-    # Get shared blackboard middleware
-    shared_bb = None
+    # Get communication middleware
+    comm_middleware = None
     for middleware in forest.middleware:
-        if isinstance(middleware, SharedBlackboardMiddleware):
-            shared_bb = middleware
+        if isinstance(middleware, CommunicationMiddleware):
+            comm_middleware = middleware
             break
     
-    if not shared_bb:
-        print("❌ Shared Blackboard middleware not found")
+    if not comm_middleware:
+        print("❌ Communication middleware not found")
         return
     
     # Set shared data
-    shared_bb.set("system_status", "operational", "Coordinator")
-    shared_bb.set("emergency", False, "Coordinator")
-    shared_bb.set("battery_level", 85, "Robot_001")
-    shared_bb.set("task_available", True, "Coordinator")
+    comm_middleware.set("system_status", "operational", "Coordinator")
+    comm_middleware.set("emergency", False, "Coordinator")
+    comm_middleware.set("battery_level", 85, "Robot_001")
+    comm_middleware.set("task_available", True, "Coordinator")
     
     # Read shared data
-    system_status = shared_bb.get("system_status", "unknown", "Robot_001")
-    emergency = shared_bb.get("emergency", False, "Robot_002")
-    battery_level = shared_bb.get("battery_level", 0, "Monitor")
-    task_available = shared_bb.get("task_available", False, "Monitor")
+    system_status = comm_middleware.get("system_status", "unknown", "Robot_001")
+    emergency = comm_middleware.get("emergency", False, "Robot_002")
+    battery_level = comm_middleware.get("battery_level", 0, "Monitor")
+    task_available = comm_middleware.get("task_available", False, "Monitor")
     
     print(f"📊 Shared data - System: {system_status}, Emergency: {emergency}")
     print(f"📊 Shared data - Battery: {battery_level}%, Task available: {task_available}")
@@ -360,15 +366,15 @@ async def demonstrate_state_watching_pattern(forest: BehaviorForest):
     """Demonstrate State Watching communication pattern"""
     print("\n=== State Watching Communication Pattern ===")
     
-    # Get state watching middleware
-    state_watch = None
+    # Get communication middleware
+    comm_middleware = None
     for middleware in forest.middleware:
-        if isinstance(middleware, StateWatchingMiddleware):
-            state_watch = middleware
+        if isinstance(middleware, CommunicationMiddleware):
+            comm_middleware = middleware
             break
     
-    if not state_watch:
-        print("❌ State Watching middleware not found")
+    if not comm_middleware:
+        print("❌ Communication middleware not found")
         return
     
     # Watch for state changes
@@ -378,28 +384,28 @@ async def demonstrate_state_watching_pattern(forest: BehaviorForest):
     def battery_state_handler(key, old_value, new_value, source):
         print(f"🔋 Battery state changed: {old_value} -> {new_value} (from {source})")
     
-    state_watch.watch_state("emergency_state", emergency_state_handler, "Monitor")
-    state_watch.watch_state("battery_state", battery_state_handler, "Monitor")
+    comm_middleware.watch_state("emergency_state", emergency_state_handler, "Monitor")
+    comm_middleware.watch_state("battery_state", battery_state_handler, "Monitor")
     
     # Update states
-    await state_watch.update_state("emergency_state", True, "Coordinator")
-    await state_watch.update_state("battery_state", 15, "Robot_001")
-    await state_watch.update_state("emergency_state", False, "Coordinator")
+    await comm_middleware.update_state("emergency_state", True, "Coordinator")
+    await comm_middleware.update_state("battery_state", 15, "Robot_001")
+    await comm_middleware.update_state("emergency_state", False, "Coordinator")
 
 
 async def demonstrate_behavior_call_pattern(forest: BehaviorForest):
     """Demonstrate Behavior Call communication pattern"""
     print("\n=== Behavior Call Communication Pattern ===")
     
-    # Get behavior call middleware
-    behavior_call = None
+    # Get communication middleware
+    comm_middleware = None
     for middleware in forest.middleware:
-        if isinstance(middleware, BehaviorCallMiddleware):
-            behavior_call = middleware
+        if isinstance(middleware, CommunicationMiddleware):
+            comm_middleware = middleware
             break
     
-    if not behavior_call:
-        print("❌ Behavior Call middleware not found")
+    if not comm_middleware:
+        print("❌ Communication middleware not found")
         return
     
     # Register behaviors
@@ -411,12 +417,12 @@ async def demonstrate_behavior_call_pattern(forest: BehaviorForest):
         print(f"📡 BehaviorCall: Charge behavior called with params: {params}")
         return {"status": "charging", "duration": params.get("duration", 60)}
     
-    behavior_call.register_behavior("patrol_behavior", patrol_behavior)
-    behavior_call.register_behavior("charge_behavior", charge_behavior)
+    comm_middleware.register_behavior("patrol_behavior", patrol_behavior)
+    comm_middleware.register_behavior("charge_behavior", charge_behavior)
     
     # Call behaviors
-    patrol_result = await behavior_call.call_behavior("patrol_behavior", {"area": "Zone A"}, "Coordinator")
-    charge_result = await behavior_call.call_behavior("charge_behavior", {"duration": 120}, "Robot_001")
+    patrol_result = await comm_middleware.call_behavior("patrol_behavior", {"area": "Zone A"}, "Coordinator")
+    charge_result = await comm_middleware.call_behavior("charge_behavior", {"duration": 120}, "Robot_001")
     
     print(f"📡 BehaviorCall: Patrol result: {patrol_result}")
     print(f"📡 BehaviorCall: Charge result: {charge_result}")
@@ -426,34 +432,34 @@ async def demonstrate_task_board_pattern(forest: BehaviorForest):
     """Demonstrate Task Board communication pattern"""
     print("\n=== Task Board Communication Pattern ===")
     
-    # Get task board middleware
-    task_board = None
+    # Get communication middleware
+    comm_middleware = None
     for middleware in forest.middleware:
-        if isinstance(middleware, TaskBoardMiddleware):
-            task_board = middleware
+        if isinstance(middleware, CommunicationMiddleware):
+            comm_middleware = middleware
             break
     
-    if not task_board:
-        print("❌ Task Board middleware not found")
+    if not comm_middleware:
+        print("❌ Communication middleware not found")
         return
     
     # Publish tasks
-    task_board.publish_task("patrol_task", "Patrol area", {"patrol"}, 0, {"area": "Zone A", "priority": "high"})
-    task_board.publish_task("maintenance_task", "Perform maintenance", {"maintenance"}, 0, {"type": "routine", "priority": "medium"})
+    comm_middleware.publish_task("patrol_task", "Patrol area", {"patrol"}, 0, {"area": "Zone A", "priority": "high"})
+    comm_middleware.publish_task("maintenance_task", "Perform maintenance", {"maintenance"}, 0, {"type": "routine", "priority": "medium"})
     
     # Get available tasks
-    available_tasks = task_board.get_available_tasks({"patrol", "maintenance"})
+    available_tasks = comm_middleware.get_available_tasks({"patrol", "maintenance"})
     print(f"📡 TaskBoard: Available tasks: {len(available_tasks)}")
     
     # Claim task
     if available_tasks:
         task = available_tasks[0]
-        claimed = task_board.claim_task(task.id, "Robot_001", {"patrol", "maintenance"})
+        claimed = comm_middleware.claim_task(task.id, "Robot_001", {"patrol", "maintenance"})
         print(f"📡 TaskBoard: Robot_001 claimed task: {claimed}")
         
         if claimed:
             # Complete task
-            task_board.complete_task(task.id, {"result": "success"})
+            comm_middleware.complete_task(task.id, {"result": "success"})
             print("📡 TaskBoard: Task completed")
 
 

@@ -15,12 +15,12 @@ from typing import Any, Dict, List, Optional, Set, Union
 from ..engine.behavior_tree import BehaviorTree
 from ..forest.core import BehaviorForest, ForestNode, ForestNodeType
 from ..forest.communication import (
-    PubSubMiddleware,
-    ReqRespMiddleware,
-    SharedBlackboardMiddleware,
-    StateWatchingMiddleware,
-    BehaviorCallMiddleware,
-    TaskBoardMiddleware,
+    CommunicationMiddleware,
+    CommunicationType,
+    Message,
+    Request,
+    Response,
+    Task,
 )
 from ..nodes.base import BaseNode
 from ..registry.node_registry import get_global_registry
@@ -378,35 +378,11 @@ class XMLParser:
             forest: Behavior forest
             config: Communication configuration
         """
-        # Setup Pub/Sub middleware
-        if config.topics:
-            pubsub = PubSubMiddleware("ForestPubSub")
-            forest.add_middleware(pubsub)
-        
-        # Setup Req/Resp middleware
-        if config.services:
-            reqresp = ReqRespMiddleware("ForestReqResp")
-            forest.add_middleware(reqresp)
-        
-        # Setup Shared Blackboard middleware
-        if config.shared_keys:
-            shared_bb = SharedBlackboardMiddleware("ForestSharedBlackboard")
-            forest.add_middleware(shared_bb)
-        
-        # Setup State Watching middleware
-        if config.states:
-            state_watch = StateWatchingMiddleware("ForestStateWatching")
-            forest.add_middleware(state_watch)
-        
-        # Setup Behavior Call middleware
-        if config.calls:
-            behavior_call = BehaviorCallMiddleware("ForestBehaviorCall")
-            forest.add_middleware(behavior_call)
-        
-        # Setup Task Board middleware
-        if config.tasks:
-            task_board = TaskBoardMiddleware("ForestTaskBoard")
-            forest.add_middleware(task_board)
+        # Setup unified communication middleware
+        if (config.topics or config.services or config.shared_keys or 
+            config.states or config.calls or config.tasks):
+            communication = CommunicationMiddleware("ForestCommunication")
+            forest.add_middleware(communication)
 
     def _parse_node(self, element: ET.Element) -> BaseNode:
         """
