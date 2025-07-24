@@ -126,6 +126,10 @@ class BehaviorTree:
                 self.event_system = xml_result.event_system
             if hasattr(xml_result, 'tick_manager'):
                 self.tick_manager = xml_result.tick_manager
+            
+            # Store event_system in blackboard if available
+            if self.event_system is not None and self.blackboard is not None:
+                self.blackboard.set("__event_system", self.event_system)
 
     def _init_from_xml_file(self, xml_file: str) -> None:
         """
@@ -153,6 +157,10 @@ class BehaviorTree:
                 self.event_system = xml_result.event_system
             if hasattr(xml_result, 'tick_manager'):
                 self.tick_manager = xml_result.tick_manager
+            
+            # Store event_system in blackboard if available
+            if self.event_system is not None and self.blackboard is not None:
+                self.blackboard.set("__event_system", self.event_system)
 
     def _init_default_components(self) -> None:
         """Initialize default components"""
@@ -161,6 +169,10 @@ class BehaviorTree:
 
         if self.event_system is None:
             self.event_system = EventSystem()
+
+        # Store event_system in blackboard
+        if self.event_system is not None:
+            self.blackboard.set("__event_system", self.event_system)
 
         if self.tick_manager is None:
             self.tick_manager = TickManager(
@@ -418,6 +430,29 @@ class BehaviorTree:
         if self.blackboard:
             return self.blackboard.get(key, default)
         return default
+
+    def get_event_system_from_blackboard(self) -> Optional[EventSystem]:
+        """
+        Get event system from blackboard
+
+        Returns:
+            Event system instance or None if not found
+        """
+        if self.blackboard:
+            event_system = self.blackboard.get("__event_system")
+            if isinstance(event_system, EventSystem):
+                return event_system
+        return None
+
+    def set_event_system_to_blackboard(self, event_system: EventSystem) -> None:
+        """
+        Store event system to blackboard
+
+        Args:
+            event_system: Event system to store
+        """
+        if self.blackboard:
+            self.blackboard.set("__event_system", event_system)
 
     def subscribe_event(self, event_name: str, callback: Any) -> None:
         """

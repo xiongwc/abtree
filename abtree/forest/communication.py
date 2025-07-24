@@ -22,6 +22,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union, MutableMappi
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
 from ..engine.event_system import EventSystem
+from ..engine.behavior_tree import BehaviorTree
 from .core import BehaviorForest, ForestNode
 
 
@@ -95,6 +96,10 @@ class CommunicationMiddleware:
         self.forest: Optional[BehaviorForest] = None
         self.enabled = True
         
+        # Shared EventSystem for all behavior trees - zero-copy optimized
+        self.shared_event_system = EventSystem()
+        self.event_system_nodes: Dict[str, str] = {}  # node_name -> event_system_key
+        
         # Pub/Sub components - using direct references
         self.subscribers: Dict[str, List[Callable]] = {}
         self.event_history: List[Dict[str, Any]] = []
@@ -126,8 +131,32 @@ class CommunicationMiddleware:
         self.claim_callbacks: Dict[str, List[Callable]] = {}
     
     def initialize(self, forest: BehaviorForest) -> None:
-        """Initialize middleware with forest"""
+        """Initialize middleware with forest and setup shared EventSystem"""
         self.forest = forest
+        
+        # Setup shared EventSystem for all behavior trees
+        self._setup_shared_event_system()
+    
+    def _setup_shared_event_system(self) -> None:
+        """Setup shared EventSystem for all behavior trees in the forest"""
+        if not self.forest:
+            return
+        
+        # Store shared EventSystem in forest's blackboard
+        self.forest.forest_blackboard.set("__event_system", self.shared_event_system)
+        
+        # Setup shared EventSystem and blackboard for each behavior tree
+        for node_name, node in self.forest.nodes.items():
+            # Store shared EventSystem in each tree's blackboard
+            if node.tree.blackboard:
+                node.tree.blackboard.set("__event_system", self.shared_event_system)
+                # Also set the tree's event_system to the shared one
+                node.tree.event_system = self.shared_event_system
+                # Set tree's blackboard to forest's shared blackboard
+                node.tree.blackboard = self.forest.forest_blackboard
+                self.event_system_nodes[node_name] = "__event_system"
+        
+        print(f"🔗 Setup shared EventSystem and blackboard for {len(self.forest.nodes)} behavior trees")
     
     async def pre_tick(self) -> None:
         """Pre-tick processing"""
@@ -722,4 +751,74 @@ class CommunicationMiddleware:
             "claimed_tasks": claimed_tasks,
             "completed_tasks": completed_tasks,
             "failed_tasks": failed_tasks
+        }
+    
+    # ==================== Shared EventSystem Methods - Zero-Copy Optimized ====================
+    
+    def get_shared_event_system(self) -> EventSystem:
+        """Get the shared EventSystem - zero-copy optimized"""
+        return self.shared_event_system
+    
+    def add_tree_to_shared_event_system(self, node_name: str, tree: BehaviorTree) -> None:
+        """
+        Add a behavior tree to the shared EventSystem - zero-copy optimized
+        
+        Args:
+            node_name: Name of the behavior tree node
+            tree: Behavior tree instance
+        """
+        if not self.enabled:
+            return
+        
+        # Store shared EventSystem in tree's blackboard
+        if tree.blackboard:
+            tree.blackboard.set("__event_system", self.shared_event_system)
+        
+        # Set tree's event_system to shared one
+        tree.event_system = self.shared_event_system
+        self.event_system_nodes[node_name] = "__event_system"
+        
+        print(f"🔗 Added tree '{node_name}' to shared EventSystem")
+    
+    def remove_tree_from_shared_event_system(self, node_name: str) -> bool:
+        """
+        Remove a behavior tree from the shared EventSystem - zero-copy optimized
+        
+        Args:
+            node_name: Name of the behavior tree node to remove
+            
+        Returns:
+            True if tree was found and removed
+        """
+        if node_name in self.event_system_nodes:
+            del self.event_system_nodes[node_name]
+            print(f"🔗 Removed tree '{node_name}' from shared EventSystem")
+            return True
+        return False
+    
+    def get_trees_with_shared_event_system(self) -> List[str]:
+        """Get list of trees using shared EventSystem - zero-copy optimized"""
+        return list(self.event_system_nodes.keys())
+    
+    def emit_shared_event(self, event_name: str, source: str) -> None:
+        """
+        Emit event through shared EventSystem - zero-copy optimized
+        
+        Args:
+            event_name: Name of the event to emit
+            source: Source node name
+        """
+        if not self.enabled:
+            return
+        
+        asyncio.create_task(
+            self.shared_event_system.emit(event_name, source=source)
+        )
+    
+    def get_shared_event_system_stats(self) -> Dict[str, Any]:
+        """Get shared EventSystem statistics - zero-copy optimized"""
+        return {
+            "shared_trees": len(self.event_system_nodes),
+            "tree_names": list(self.event_system_nodes.keys()),
+            "event_system_stats": self.shared_event_system.get_stats()
         } 

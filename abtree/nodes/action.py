@@ -123,16 +123,22 @@ class Wait(Action):
         # Get wait time from blackboard, if not set then use default value
         wait_duration = blackboard.get("wait_duration", self.duration)
 
+        # Check if this is the first tick
+        if self.elapsed == 0.0:
+            # Record start time
+            import asyncio
+            self.start_time = asyncio.get_event_loop().time()
+            self.elapsed = 0.001  # Small increment to mark as started
+            return Status.RUNNING
+
+        # Calculate elapsed time
+        import asyncio
+        current_time = asyncio.get_event_loop().time()
+        self.elapsed = current_time - self.start_time
+
         # Check if the wait is complete
         if self.elapsed >= wait_duration:
             self.elapsed = 0.0  # Reset timer
-            return Status.SUCCESS
-
-        # Add elapsed time
-        self.elapsed += 0.016  # Assume 60 FPS, approximately 16ms per frame
-
-        if self.elapsed >= wait_duration:
-            self.elapsed = 0.0
             return Status.SUCCESS
         else:
             return Status.RUNNING
@@ -141,6 +147,7 @@ class Wait(Action):
         """Reset node status"""
         super().reset()
         self.elapsed = 0.0
+        self.start_time = 0.0
 
     def set_duration(self, duration: float) -> None:
         """

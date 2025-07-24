@@ -21,12 +21,14 @@ class EventInfo:
         source: Event source
         timestamp: Event timestamp
         trigger_count: Number of times this event has been triggered
+        data: Event data (optional)
     """
     
     name: str
     source: Optional[str] = None
     timestamp: float = 0.0
     trigger_count: int = 0
+    data: Optional[Any] = None
 
 
 class EventSystem:
@@ -46,13 +48,14 @@ class EventSystem:
         self._lock = asyncio.Lock()
         self._loop = asyncio.get_event_loop()
 
-    async def emit(self, event_name: str, source: Optional[str] = None) -> None:
+    async def emit(self, event_name: str, source: Optional[str] = None, data: Optional[Any] = None) -> None:
         """
         Emit an event - trigger all listeners
         
         Args:
             event_name: Event name to emit
             source: Event source (optional)
+            data: Event data (optional)
         """
         async with self._lock:
             # Create event if it doesn't exist
@@ -62,7 +65,8 @@ class EventSystem:
                     name=event_name,
                     source=source,
                     timestamp=self._loop.time(),
-                    trigger_count=0
+                    trigger_count=0,
+                    data=data
                 )
             
             # Update event info
@@ -70,6 +74,7 @@ class EventSystem:
             event_info.source = source
             event_info.timestamp = self._loop.time()
             event_info.trigger_count += 1
+            event_info.data = data
             
             # Set the event to trigger all listeners
             self._events[event_name].set()

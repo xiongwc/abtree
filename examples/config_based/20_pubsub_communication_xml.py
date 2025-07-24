@@ -15,30 +15,58 @@ from abtree import (
     BehaviorForest, register_node
 )
 from abtree.parser.xml_parser import XMLParser
+from abtree.engine.event_system import EventSystem
 
 
 class PublisherAction(Action):
-    """Simple publisher action"""
+    """Simple publisher action that emits events"""
     
     def __init__(self, name: str, topic: str, message: str):
-        self.name = name
+        super().__init__(name)
         self.topic = topic
         self.message = message
     
     async def execute(self, blackboard):
-        print(f"📤 Publishing to {self.topic}: {self.message}")
+        # Get event system from blackboard
+        event_system = blackboard.get("__event_system")
+        if event_system:
+            # Emit event with topic and message data
+            await event_system.emit(f"topic_{self.topic}", source=self.name, data=self.message)
+            print(f"📤 Publishing to {self.topic}: {self.message}")
+            print(f"   Event emitted: topic_{self.topic}")
+        else:
+            print(f"⚠️  No event system found in blackboard")
         return Status.SUCCESS
 
 
 class SubscriberAction(Action):
-    """Simple subscriber action"""
+    """Simple subscriber action that waits for events"""
     
     def __init__(self, name: str, topic: str):
-        self.name = name
+        super().__init__(name)
         self.topic = topic
     
     async def execute(self, blackboard):
-        print(f"📥 Subscribing to {self.topic}")
+        # Get event system from blackboard
+        event_system = blackboard.get("__event_system")
+        if event_system:
+            print(f"📥 Subscribing to {self.topic}")
+            print(f"   Waiting for event: topic_{self.topic}")
+            
+            # Wait for the event with timeout
+            event_triggered = await event_system.wait_for(f"topic_{self.topic}", timeout=2.0)
+            if event_triggered:
+                # Get event info from the event system
+                event_info = event_system.get_event_info(f"topic_{self.topic}")
+                source = event_info.source if event_info else "unknown"
+                message = event_info.data if event_info and event_info.data else "No message data"
+                
+                print(f"✅ Event received: topic_{self.topic} from {source}")
+                print(f"   📨 Message: {message}")
+            else:
+                print(f"⏰ Timeout waiting for event: topic_{self.topic}")
+        else:
+            print(f"⚠️  No event system found in blackboard")
         return Status.SUCCESS
 
 
@@ -47,19 +75,20 @@ def create_pubsub_xml() -> str:
     return '''
 <BehaviorForest name="PubSubForest" description="PubSub Communication Example">
     
-    <BehaviorTree name="Publisher" description="Publisher Service">
-        <Sequence name="Publisher Behavior">
-            <Log message="Publisher starting" />
-            <PublisherAction name="Publish Event" topic="news" message="Hello World" />
-            <Wait name="Publisher Wait" duration="1.0" />
-        </Sequence>
-    </BehaviorTree>
-    
     <BehaviorTree name="Subscriber" description="Subscriber Service">
         <Sequence name="Subscriber Behavior">
             <Log message="Subscriber starting" />
             <SubscriberAction name="Subscribe Event" topic="news" />
-            <Wait name="Subscriber Wait" duration="1.0" />
+            <Wait name="Subscriber Wait" duration="0.1" />
+        </Sequence>
+    </BehaviorTree>
+    
+    <BehaviorTree name="Publisher" description="Publisher Service">
+        <Sequence name="Publisher Behavior">
+            <Log message="Publisher starting" />
+            <Wait name="Publisher Delay" duration="0.1" />
+            <PublisherAction name="Publish Event" topic="news" message="Hello World" />
+            <Wait name="Publisher Wait" duration="0.1" />
         </Sequence>
     </BehaviorTree>
     
@@ -89,8 +118,13 @@ async def main():
     forest = BehaviorForest()
     forest.load_from_string(xml_config)
     
+    print("🚀 Starting PubSub communication...")
     await forest.start()
-    await asyncio.sleep(0.05)
+    
+    # Wait longer to see the event communication
+    await asyncio.sleep(2.0)
+    
+    print("\n🛑 Stopping PubSub communication...")
     await forest.stop()
 
     from loguru import logger

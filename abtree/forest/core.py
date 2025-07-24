@@ -156,7 +156,16 @@ class BehaviorForest:
         # Track execution states to prevent race conditions
         self._node_execution_states: Dict[str, bool] = {}
         # Track last execution time to prevent rapid re-execution
-        self._node_last_execution: Dict[str, float] = {} 
+        self._node_last_execution: Dict[str, float] = {}
+        
+        # Automatically setup default middleware for shared EventSystem
+        self._setup_default_middleware()
+    
+    def _setup_default_middleware(self) -> None:
+        """Setup default middleware for shared EventSystem"""
+        from .communication import CommunicationMiddleware
+        comm_middleware = CommunicationMiddleware("DefaultCommunicationMiddleware")
+        self.add_middleware(comm_middleware) 
 
     def add_node(self, node: ForestNode) -> None:
         """
@@ -176,6 +185,9 @@ class BehaviorForest:
         # Initialize last execution time for the new node
         self._node_last_execution[node.name] = 0.0
         
+        # Setup shared EventSystem for the new node through middleware
+        self._setup_shared_event_system_for_node(node)
+        
         # Emit node added event
         try:
             asyncio.create_task(
@@ -186,7 +198,15 @@ class BehaviorForest:
             )
         except RuntimeError:
             # No running event loop, skip async event emission
-            pass 
+            pass
+    
+    def _setup_shared_event_system_for_node(self, node: ForestNode) -> None:
+        """Setup shared EventSystem for a specific node through middleware"""
+        # Find CommunicationMiddleware and setup shared EventSystem
+        for middleware in self.middleware:
+            if hasattr(middleware, 'add_tree_to_shared_event_system'):
+                middleware.add_tree_to_shared_event_system(node.name, node.tree)
+                break 
 
     def remove_node(self, node_name: str) -> bool:
         """
