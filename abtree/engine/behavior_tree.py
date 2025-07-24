@@ -185,7 +185,7 @@ class BehaviorTree:
         if self.event_system:
             await self.event_system.emit(
                 "tree_tick_start",
-                {"tree_name": self.name, "timestamp": asyncio.get_event_loop().time()},
+                source=self.name
             )
 
         # Execute tick
@@ -195,11 +195,7 @@ class BehaviorTree:
         if self.event_system:
             await self.event_system.emit(
                 "tree_tick_end",
-                {
-                    "tree_name": self.name,
-                    "status": status.name,
-                    "timestamp": asyncio.get_event_loop().time(),
-                },
+                source=self.name
             )
 
         return status
@@ -227,7 +223,7 @@ class BehaviorTree:
         if self.event_system:
             await self.event_system.emit(
                 "tree_started",
-                {"tree_name": self.name, "tick_rate": self.tick_manager.tick_rate},
+                source=self.name
             )
 
     async def stop(self) -> None:
@@ -239,7 +235,7 @@ class BehaviorTree:
 
         # Emit stop event
         if self.event_system:
-            await self.event_system.emit("tree_stopped", {"tree_name": self.name})
+            await self.event_system.emit("tree_stopped", source=self.name)
 
     def reset(self) -> None:
         """Reset behavior tree status"""
@@ -257,7 +253,7 @@ class BehaviorTree:
             try:
                 loop = asyncio.get_running_loop()
                 asyncio.create_task(
-                    self.event_system.emit("tree_reset", {"tree_name": self.name})
+                    self.event_system.emit("tree_reset", source=self.name)
                 )
             except RuntimeError:
                 # No running event loop, skip event emission
@@ -281,7 +277,7 @@ class BehaviorTree:
                 loop = asyncio.get_running_loop()
                 asyncio.create_task(
                     self.event_system.emit(
-                        "tree_root_changed", {"tree_name": self.name, "new_root": root.name}
+                        "tree_root_changed", source=self.name
                     )
                 )
             except RuntimeError:
@@ -390,12 +386,7 @@ class BehaviorTree:
                 asyncio.create_task(
                     self.event_system.emit(
                         "tree_status_changed",
-                        {
-                            "tree_name": self.name,
-                            "old_status": old_status.name,
-                            "new_status": new_status.name,
-                            "timestamp": loop.time(),
-                        },
+                        source=self.name
                     )
                 )
             except RuntimeError:
@@ -430,25 +421,27 @@ class BehaviorTree:
 
     def subscribe_event(self, event_name: str, callback: Any) -> None:
         """
-        Subscribe to event
+        Subscribe to event (deprecated - use wait_for instead)
 
         Args:
             event_name: Event name
             callback: Callback function
         """
-        if self.event_system:
-            self.event_system.on(event_name, callback)
+        # Note: This method is deprecated in the new event system
+        # Use event_system.wait_for() instead
+        pass
 
     def unsubscribe_event(self, event_name: str, callback: Any) -> None:
         """
-        Unsubscribe from event
+        Unsubscribe from event (deprecated - use clear_event instead)
 
         Args:
             event_name: Event name
             callback: Callback function
         """
-        if self.event_system:
-            self.event_system.off(event_name, callback)
+        # Note: This method is deprecated in the new event system
+        # Use event_system.clear_event() instead
+        pass
 
     async def __aenter__(self) -> "BehaviorTree":
         """Async context manager entry"""

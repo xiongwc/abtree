@@ -181,7 +181,7 @@ class BehaviorForest:
             asyncio.create_task(
                 self.forest_event_system.emit(
                     "node_added",
-                    {"node_name": node.name, "node_type": node.node_type.name}
+                    source=node.name
                 )
             )
         except RuntimeError:
@@ -222,7 +222,7 @@ class BehaviorForest:
             asyncio.create_task(
                 self.forest_event_system.emit(
                     "node_removed",
-                    {"node_name": node_name, "node_type": node.node_type.name}
+                    source=node_name
                 )
             )
         except RuntimeError:
@@ -385,7 +385,7 @@ class BehaviorForest:
         # Emit forest start event
         await self.forest_event_system.emit(
             "forest_started",
-            {"forest_name": self.name}
+            source=self.name
         )
         
         # Start forest execution task for coordination and monitoring
@@ -432,7 +432,7 @@ class BehaviorForest:
         # Emit forest stop event
         await self.forest_event_system.emit(
             "forest_stopped",
-            {"forest_name": self.name}
+            source=self.name
         )
     
     async def _run(self) -> None:
@@ -477,7 +477,7 @@ class BehaviorForest:
         asyncio.create_task(
             self.forest_event_system.emit(
                 "forest_reset",
-                {"forest_name": self.name}
+                source=self.name
             )
         )
     

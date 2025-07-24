@@ -2,312 +2,296 @@
 Event system - Event listening and context awareness
 
 The event system provides an event-driven communication mechanism for behavior trees,
-supporting event publication and subscription between nodes with zero-copy optimization.
+supporting event publication and subscription between nodes with asyncio.Event().
+Focused on triggering mechanism between behavior trees without data transfer.
 """
 
 import asyncio
-from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
-
-class EventPriority(Enum):
-    """Event priority enumeration"""
-
-    LOW = auto()
-    NORMAL = auto()
-    HIGH = auto()
-    CRITICAL = auto()
+from typing import Dict, List, Optional, Set, Any
+from dataclasses import dataclass
 
 
 @dataclass
-class Event:
+class EventInfo:
     """
-    Event object - optimized for zero-copy data transfer
+    Event information for tracking and management
     
     Attributes:
         name: Event name
-        data: Event data (stored by reference, no copying)
         source: Event source
         timestamp: Event timestamp
-        priority: Event priority
+        trigger_count: Number of times this event has been triggered
     """
-
-    name: str
-    data: Any = None  # Direct reference, no copying
-    source: Optional[str] = None
-    timestamp: float = field(default_factory=lambda: asyncio.get_event_loop().time() if asyncio.get_event_loop().is_running() else 0.0)
-    priority: EventPriority = EventPriority.NORMAL
-
-    def __repr__(self) -> str:
-        return f"Event(name='{self.name}', data={self.data}, source='{self.source}')"
-
-
-@dataclass
-class EventListener:
-    """
-    Event listener - optimized for zero-copy data transfer
     
-    Attributes:
-        callback: Callback function
-        priority: Priority
-        event_filter: Event filter
-    """
-
-    callback: Callable[[Event], Any]
-    priority: EventPriority = EventPriority.NORMAL
-    event_filter: Optional[Callable[[Event], bool]] = None
-
-    async def execute(self, event: Event) -> Any:
-        """
-        Execute event callback - zero-copy optimized
-        
-        Args:
-            event: Event object (passed by reference)
-
-        Returns:
-            Return value of the callback function
-        """
-        if self.event_filter and not self.event_filter(event):
-            return None
-
-        if asyncio.iscoroutinefunction(self.callback):
-            return await self.callback(event)  # Direct event reference
-        else:
-            return self.callback(event)  # Direct event reference
+    name: str
+    source: Optional[str] = None
+    timestamp: float = 0.0
+    trigger_count: int = 0
 
 
 class EventSystem:
     """
-    Event system - optimized for zero-copy data transfer
-
+    Event system - based on asyncio.Event() for behavior tree communication
+    
     Provides event publication, subscription, and management functionality,
-    supporting asynchronous event handling and priority sorting with minimal memory overhead.
+    supporting asynchronous event handling with asyncio.Event() for triggering
+    between behavior trees without data transfer.
     """
 
     def __init__(self) -> None:
-        """Initialize event system - zero-copy optimized"""
-        self._listeners: Dict[str, List[EventListener]] = {}
-        self._global_listeners: List[EventListener] = []
-        self._event_history: List[Event] = []
-        self._max_history_size = 1000
+        """Initialize event system with asyncio.Event()"""
+        self._events: Dict[str, asyncio.Event] = {}
+        self._event_info: Dict[str, EventInfo] = {}
+        self._global_listeners: List[asyncio.Event] = []
         self._lock = asyncio.Lock()
+        self._loop = asyncio.get_event_loop()
 
-    async def emit(
-        self,
-        event: Union[Event, str],
-        data: Any = None,
-        source: Optional[str] = None,
-        priority: EventPriority = EventPriority.NORMAL,
-    ) -> None:
+    async def emit(self, event_name: str, source: Optional[str] = None) -> None:
         """
-        Emit an event - zero-copy optimized
+        Emit an event - trigger all listeners
         
         Args:
-            event: Event object or event name
-            data: Event data (passed by reference, no copying)
-            source: Event source
-            priority: Event priority
+            event_name: Event name to emit
+            source: Event source (optional)
         """
-        if isinstance(event, str):
-            event = Event(name=event, data=data, source=source, priority=priority)
-        
-        # Store event in history with direct reference
-        self._event_history.append(event)
-        
-        # Trim history if needed
-        if len(self._event_history) > self._max_history_size:
-            self._event_history.pop(0)
-        
-        # Notify listeners with direct event reference
-        await self._notify_listeners(event)
-    
-    async def _notify_listeners(self, event: Event) -> None:
-        """Notify listeners with direct event reference - zero-copy optimized"""
         async with self._lock:
-            # Get specific listeners for this event
-            listeners = self._listeners.get(event.name, [])
+            # Create event if it doesn't exist
+            if event_name not in self._events:
+                self._events[event_name] = asyncio.Event()
+                self._event_info[event_name] = EventInfo(
+                    name=event_name,
+                    source=source,
+                    timestamp=self._loop.time(),
+                    trigger_count=0
+                )
             
-            # Add global listeners
-            all_listeners = listeners + self._global_listeners
+            # Update event info
+            event_info = self._event_info[event_name]
+            event_info.source = source
+            event_info.timestamp = self._loop.time()
+            event_info.trigger_count += 1
             
-            # Sort by priority
-            all_listeners.sort(key=lambda l: l.priority.value, reverse=True)
+            # Set the event to trigger all listeners
+            self._events[event_name].set()
             
-            # Execute listeners with direct event reference
-            tasks = []
-            for listener in all_listeners:
-                task = asyncio.create_task(listener.execute(event))
-                tasks.append(task)
-            
-            if tasks:
-                await asyncio.gather(*tasks, return_exceptions=True)
+            # Also trigger global listeners
+            for global_event in self._global_listeners:
+                global_event.set()
 
-    def on(
-        self,
-        event_name: str,
-        callback: Callable[[Event], Any],
-        priority: EventPriority = EventPriority.NORMAL,
-        event_filter: Optional[Callable[[Event], bool]] = None,
-    ) -> None:
+    async def wait_for(self, event_name: str, timeout: Optional[float] = None) -> bool:
         """
-        Subscribe to an event - zero-copy optimized
+        Wait for an event to be triggered
         
         Args:
-            event_name: Event name to subscribe to
-            callback: Callback function
-            priority: Priority level
-            event_filter: Optional event filter
-        """
-        listener = EventListener(callback=callback, priority=priority, event_filter=event_filter)
-        
-        if event_name not in self._listeners:
-            self._listeners[event_name] = []
-        
-        self._listeners[event_name].append(listener)
-
-    def on_any(
-        self,
-        callback: Callable[[Event], Any],
-        priority: EventPriority = EventPriority.NORMAL,
-        event_filter: Optional[Callable[[Event], bool]] = None,
-    ) -> None:
-        """
-        Subscribe to all events - zero-copy optimized
-        
-        Args:
-            callback: Callback function
-            priority: Priority level
-            event_filter: Optional event filter
-        """
-        listener = EventListener(callback=callback, priority=priority, event_filter=event_filter)
-        self._global_listeners.append(listener)
-
-    def off(self, event_name: str, callback: Callable[[Event], Any]) -> bool:
-        """
-        Unsubscribe from an event - zero-copy optimized
-        
-        Args:
-            event_name: Event name to unsubscribe from
-            callback: Callback function to remove
+            event_name: Event name to wait for
+            timeout: Timeout in seconds (None for no timeout)
             
         Returns:
-            True if callback was found and removed
+            True if event was triggered, False if timeout occurred
         """
-        if event_name in self._listeners:
-            listeners = self._listeners[event_name]
-            for listener in listeners:
-                if listener.callback == callback:
-                    listeners.remove(listener)
-                    return True
+        if event_name not in self._events:
+            self._events[event_name] = asyncio.Event()
+            self._event_info[event_name] = EventInfo(
+                name=event_name,
+                trigger_count=0
+            )
+        
+        try:
+            await asyncio.wait_for(self._events[event_name].wait(), timeout=timeout)
+            return True
+        except asyncio.TimeoutError:
+            return False
+
+    async def wait_for_any(self, event_names: List[str], timeout: Optional[float] = None) -> Optional[str]:
+        """
+        Wait for any of the specified events to be triggered
+        
+        Args:
+            event_names: List of event names to wait for
+            timeout: Timeout in seconds (None for no timeout)
+            
+        Returns:
+            Name of the triggered event, or None if timeout occurred
+        """
+        # Ensure all events exist
+        for event_name in event_names:
+            if event_name not in self._events:
+                self._events[event_name] = asyncio.Event()
+                self._event_info[event_name] = EventInfo(
+                    name=event_name,
+                    trigger_count=0
+                )
+        
+        # Create tasks for all events
+        tasks = [asyncio.create_task(self._events[event_name].wait()) for event_name in event_names]
+        
+        try:
+            # Wait for the first event to complete
+            done, pending = await asyncio.wait(
+                tasks, 
+                timeout=timeout, 
+                return_when=asyncio.FIRST_COMPLETED
+            )
+            
+            # Cancel remaining tasks
+            for task in pending:
+                task.cancel()
+            
+            # Find which event was triggered
+            for event_name, task in zip(event_names, tasks):
+                if task in done:
+                    return event_name
+            
+            return None
+        except asyncio.TimeoutError:
+            return None
+
+    async def wait_for_all(self, event_names: List[str], timeout: Optional[float] = None) -> bool:
+        """
+        Wait for all specified events to be triggered
+        
+        Args:
+            event_names: List of event names to wait for
+            timeout: Timeout in seconds (None for no timeout)
+            
+        Returns:
+            True if all events were triggered, False if timeout occurred
+        """
+        # Ensure all events exist
+        for event_name in event_names:
+            if event_name not in self._events:
+                self._events[event_name] = asyncio.Event()
+                self._event_info[event_name] = EventInfo(
+                    name=event_name,
+                    trigger_count=0
+                )
+        
+        # Create tasks for all events
+        tasks = [asyncio.create_task(self._events[event_name].wait()) for event_name in event_names]
+        
+        try:
+            await asyncio.wait_for(asyncio.gather(*tasks), timeout=timeout)
+            return True
+        except asyncio.TimeoutError:
+            return False
+
+    def create_global_listener(self) -> asyncio.Event:
+        """
+        Create a global listener that triggers on any event
+        
+        Returns:
+            asyncio.Event that will be set when any event is emitted
+        """
+        global_event = asyncio.Event()
+        self._global_listeners.append(global_event)
+        return global_event
+
+    def remove_global_listener(self, global_event: asyncio.Event) -> bool:
+        """
+        Remove a global listener
+        
+        Args:
+            global_event: The global event to remove
+            
+        Returns:
+            True if the event was found and removed
+        """
+        if global_event in self._global_listeners:
+            self._global_listeners.remove(global_event)
+            return True
         return False
 
-    def off_any(self, callback: Callable[[Event], Any]) -> bool:
+    def clear_event(self, event_name: str) -> bool:
         """
-        Unsubscribe from all events - zero-copy optimized
+        Clear an event (reset its state)
         
         Args:
-            callback: Callback function to remove
+            event_name: Event name to clear
             
         Returns:
-            True if callback was found and removed
+            True if event was found and cleared
         """
-        for listener in self._global_listeners:
-            if listener.callback == callback:
-                self._global_listeners.remove(listener)
-                return True
+        if event_name in self._events:
+            self._events[event_name].clear()
+            return True
         return False
 
-    def clear(self, event_name: Optional[str] = None) -> None:
-        """
-        Clear event listeners - zero-copy optimized
+    def clear_all_events(self) -> None:
+        """Clear all events (reset their states)"""
+        for event in self._events.values():
+            event.clear()
         
-        Args:
-            event_name: Event name to clear (None for all events)
-        """
-        if event_name is None:
-            self._listeners.clear()
-            self._global_listeners.clear()
-        elif event_name in self._listeners:
-            del self._listeners[event_name]
+        for global_event in self._global_listeners:
+            global_event.clear()
 
-    def get_listeners(self, event_name: Optional[str] = None) -> List[EventListener]:
+    def remove_event(self, event_name: str) -> bool:
         """
-        Get event listeners - zero-copy optimized
+        Remove an event completely
         
         Args:
-            event_name: Event name (None for all listeners)
+            event_name: Event name to remove
             
         Returns:
-            List of event listeners (direct references)
+            True if event was found and removed
         """
-        if event_name is None:
-            all_listeners = []
-            for listeners in self._listeners.values():
-                all_listeners.extend(listeners)
-            all_listeners.extend(self._global_listeners)
-            return all_listeners
-        else:
-            return self._listeners.get(event_name, [])  # Direct reference
+        if event_name in self._events:
+            del self._events[event_name]
+            if event_name in self._event_info:
+                del self._event_info[event_name]
+            return True
+        return False
 
-    def get_event_history(
-        self, event_name: Optional[str] = None, limit: Optional[int] = None
-    ) -> List[Event]:
+    def get_event_info(self, event_name: str) -> Optional[EventInfo]:
         """
-        Get event history - zero-copy optimized
+        Get information about an event
         
         Args:
-            event_name: Event name to filter by (None for all events)
-            limit: Maximum number of events to return
+            event_name: Event name
             
         Returns:
-            List of events (direct references)
+            EventInfo object or None if event doesn't exist
         """
-        if event_name is None:
-            events = self._event_history  # Direct reference
-        else:
-            events = [event for event in self._event_history if event.name == event_name]
-        
-        if limit is not None:
-            events = events[-limit:]  # Direct reference
-        
-        return events
+        return self._event_info.get(event_name)
 
-    def set_max_history_size(self, size: int) -> None:
+    def get_all_event_names(self) -> List[str]:
         """
-        Set maximum history size - zero-copy optimized
+        Get all registered event names
+        
+        Returns:
+            List of all event names
+        """
+        return list(self._events.keys())
+
+    def is_event_set(self, event_name: str) -> bool:
+        """
+        Check if an event is currently set (triggered)
         
         Args:
-            size: Maximum number of events to keep in history
+            event_name: Event name to check
+            
+        Returns:
+            True if event is set, False otherwise
         """
-        self._max_history_size = size
-        
-        # Trim history if needed
-        while len(self._event_history) > self._max_history_size:
-            self._event_history.pop(0)
-
-    def clear_history(self) -> None:
-        """Clear event history - zero-copy optimized"""
-        self._event_history.clear()
+        if event_name in self._events:
+            return self._events[event_name].is_set()
+        return False
 
     def get_stats(self) -> Dict[str, Any]:
         """
-        Get event system statistics - zero-copy optimized
+        Get event system statistics
         
         Returns:
             Dictionary with event system statistics
         """
-        total_listeners = sum(len(listeners) for listeners in self._listeners.values())
-        total_listeners += len(self._global_listeners)
+        total_triggers = sum(info.trigger_count for info in self._event_info.values())
         
         return {
-            "total_listeners": total_listeners,
-            "event_types": len(self._listeners),
+            "total_events": len(self._events),
             "global_listeners": len(self._global_listeners),
-            "history_size": len(self._event_history),
-            "max_history_size": self._max_history_size,
+            "total_triggers": total_triggers,
+            "event_names": list(self._events.keys()),
         }
 
     def __repr__(self) -> str:
-        """String representation - zero-copy optimized"""
-        return f"EventSystem(listeners={len(self._listeners)}, history={len(self._event_history)})"
+        """String representation"""
+        return f"EventSystem(events={len(self._events)}, global_listeners={len(self._global_listeners)})"

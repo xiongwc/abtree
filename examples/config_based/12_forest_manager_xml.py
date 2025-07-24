@@ -255,15 +255,15 @@ async def demonstrate_cross_forest_communication(manager: ForestManager):
         print(f"🌐 Global state change: {key} = {old_value} -> {new_value} (from {source})")
     
     # Watch global state changes
-    manager.global_state_watching.watch_state("global_emergency", global_state_handler, "Manager")
-    manager.global_state_watching.watch_state("system_status", global_state_handler, "Manager")
+    manager.global_communication.watch_state("global_emergency", global_state_handler, "Manager")
+    manager.global_communication.watch_state("system_status", global_state_handler, "Manager")
     
     # Set global state
-    await manager.global_state_watching.update_state("global_emergency", True, "Manager")
-    await manager.global_state_watching.update_state("system_status", "degraded", "Manager")
+    await manager.global_communication.update_state("global_emergency", True, "Manager")
+    await manager.global_communication.update_state("system_status", "degraded", "Manager")
     
     # Demonstrate cross-forest requests
-    await manager.global_pubsub.publish("get_system_status", {}, "Manager")
+    await manager.global_communication.publish("get_system_status", {}, "Manager")
     print("🌐 Cross-forest request sent")
 
 

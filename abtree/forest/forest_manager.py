@@ -102,16 +102,14 @@ class ForestManager:
         for middleware in self.cross_forest_middleware:
             forest.add_middleware(middleware)
         
-        # Subscribe to forest events
-        forest.forest_event_system.on("forest_started", self._on_forest_started)
-        forest.forest_event_system.on("forest_stopped", self._on_forest_stopped)
-        forest.forest_event_system.on("forest_reset", self._on_forest_reset)
+        # Note: Event subscription is handled differently in the new event system
+        # Forest events will be handled through the global event system
         
         # Emit forest added event
         asyncio.create_task(
             self.global_event_system.emit(
                 "forest_added",
-                {"forest_name": forest.name, "manager_name": self.name}
+                source=f"{self.name}:{forest.name}"
             )
         )
     
@@ -138,7 +136,7 @@ class ForestManager:
         asyncio.create_task(
             self.global_event_system.emit(
                 "forest_removed",
-                {"forest_name": forest_name, "manager_name": self.name}
+                source=f"{self.name}:{forest_name}"
             )
         )
         
@@ -220,7 +218,7 @@ class ForestManager:
         # Emit manager start event
         await self.global_event_system.emit(
             "manager_started",
-            {"manager_name": self.name, "forest_count": len(self.forests)}
+            source=self.name
         )
     
     async def stop(self) -> None:
@@ -245,7 +243,7 @@ class ForestManager:
         # Emit manager stop event
         await self.global_event_system.emit(
             "manager_stopped",
-            {"manager_name": self.name}
+            source=self.name
         )
     
     async def _monitor_forests(self) -> None:
@@ -261,11 +259,7 @@ class ForestManager:
                         # Emit monitoring event
                         await self.global_event_system.emit(
                             "forest_monitoring",
-                            {
-                                "forest_name": forest_name,
-                                "stats": stats,
-                                "timestamp": asyncio.get_event_loop().time()
-                            }
+                            source=forest_name
                         )
                 
                 await asyncio.sleep(5.0)  # Monitor every 5 seconds
@@ -276,31 +270,25 @@ class ForestManager:
                 print(f"Forest manager monitoring error: {e}")
                 await asyncio.sleep(1.0)
     
-    def _on_forest_started(self, event: Any) -> None:
+    async def _on_forest_started(self, forest_name: str) -> None:
         """Handle forest started event"""
-        asyncio.create_task(
-            self.global_event_system.emit(
-                "forest_started_global",
-                event.data
-            )
+        await self.global_event_system.emit(
+            "forest_started_global",
+            source=forest_name
         )
     
-    def _on_forest_stopped(self, event: Any) -> None:
+    async def _on_forest_stopped(self, forest_name: str) -> None:
         """Handle forest stopped event"""
-        asyncio.create_task(
-            self.global_event_system.emit(
-                "forest_stopped_global",
-                event.data
-            )
+        await self.global_event_system.emit(
+            "forest_stopped_global",
+            source=forest_name
         )
     
-    def _on_forest_reset(self, event: Any) -> None:
+    async def _on_forest_reset(self, forest_name: str) -> None:
         """Handle forest reset event"""
-        asyncio.create_task(
-            self.global_event_system.emit(
-                "forest_reset_global",
-                event.data
-            )
+        await self.global_event_system.emit(
+            "forest_reset_global",
+            source=forest_name
         )
     
     def get_forest_info(self, forest_name: str) -> Optional[ForestInfo]:

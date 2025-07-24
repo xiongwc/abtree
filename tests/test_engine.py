@@ -2,7 +2,7 @@ import pytest
 import asyncio
 from abtree.engine.behavior_tree import BehaviorTree
 from abtree.engine.blackboard import Blackboard
-from abtree.engine.event_system import EventSystem, Event, EventPriority
+from abtree.engine.event_system import EventSystem
 from abtree.engine.tick_manager import TickManager
 from abtree.core.status import Status
 from abtree.nodes.base import BaseNode
@@ -74,64 +74,65 @@ def test_blackboard_dict_operations():
     del bb['key1']
     assert 'key1' not in bb
 
-def test_event_system_basic():
+@pytest.mark.asyncio
+async def test_event_system_basic():
     es = EventSystem()
-    called = []
-    def cb(event):
-        called.append(event.name)
-    es.on('test', cb)
-    asyncio.get_event_loop().run_until_complete(es.emit('test', data=123))
-    assert 'test' in called
-    es.clear('test')
-    assert es.get_listeners('test') == []
+    
+    # Test emit and wait
+    await es.emit('test', source='test_source')
+    success = await es.wait_for('test', timeout=1.0)
+    assert success
+    
+    # Test event info
+    info = es.get_event_info('test')
+    assert info is not None
+    assert info.name == 'test'
+    assert info.source == 'test_source'
+    assert info.trigger_count == 1
 
 @pytest.mark.asyncio
 async def test_event_system_advanced():
     es = EventSystem()
-    events_received = []
     
-    def callback1(event):
-        events_received.append(f"cb1:{event.name}")
+    # Test multiple events
+    await es.emit('event1', source='source1')
+    await es.emit('event2', source='source2')
     
-    def callback2(event):
-        events_received.append(f"cb2:{event.name}")
+    # Test wait for any
+    triggered_event = await es.wait_for_any(['event1', 'event2'], timeout=1.0)
+    assert triggered_event in ['event1', 'event2']
     
-    # Test multiple listeners
-    es.on('test_event', callback1)
-    es.on('test_event', callback2)
+    # Test wait for all
+    success = await es.wait_for_all(['event1', 'event2'], timeout=1.0)
+    assert success
     
-    await es.emit('test_event', data={'test': 'data'})
-    assert len(events_received) == 2
-    assert 'cb1:test_event' in events_received
-    assert 'cb2:test_event' in events_received
-    
-    # Test event history
-    history = es.get_event_history('test_event')
-    assert len(history) == 1
-    assert history[0].name == 'test_event'
-    
-    # Test unsubscribe
-    es.off('test_event', callback1)
-    events_received.clear()
-    await es.emit('test_event')
-    assert len(events_received) == 1
-    assert 'cb2:test_event' in events_received
+    # Test event info
+    info1 = es.get_event_info('event1')
+    info2 = es.get_event_info('event2')
+    assert info1 is not None
+    assert info2 is not None
+    assert info1.source == 'source1'
+    assert info2.source == 'source2'
 
 @pytest.mark.asyncio
 async def test_event_system_global_listeners():
     es = EventSystem()
-    global_events = []
     
-    def global_callback(event):
-        global_events.append(event.name)
+    # Create global listener
+    global_listener = es.create_global_listener()
     
-    es.on_any(global_callback)
-    await es.emit('event1')
-    await es.emit('event2')
+    # Emit events
+    await es.emit('event1', source='source1')
+    await es.emit('event2', source='source2')
     
-    assert len(global_events) == 2
-    assert 'event1' in global_events
-    assert 'event2' in global_events
+    # Wait for global listener to be triggered
+    await global_listener.wait()
+    
+    # Check that global listener was triggered
+    assert global_listener.is_set()
+    
+    # Clean up
+    es.remove_global_listener(global_listener)
 
 @pytest.mark.asyncio
 async def test_behavior_tree_tick():
@@ -149,12 +150,18 @@ async def test_behavior_tree_event_emit():
     tree = BehaviorTree()
     node = DummyNode(name='root')
     tree.load_from_node(node)
-    events = []
-    def on_tick_start(event):
-        events.append(event.name)
-    tree.event_system.on('tree_tick_start', on_tick_start)
+    
+    # Start a task to wait for the event
+    event_task = asyncio.create_task(
+        tree.event_system.wait_for('tree_tick_start', timeout=1.0)
+    )
+    
+    # Execute tick which should trigger the event
     await tree.tick()
-    assert 'tree_tick_start' in events
+    
+    # Wait for the event
+    success = await event_task
+    assert success
 
 @pytest.mark.asyncio
 async def test_behavior_tree_with_failing_node():

@@ -21,7 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union, MutableMappi
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
-from ..engine.event_system import Event, EventSystem
+from ..engine.event_system import EventSystem
 from .core import BehaviorForest, ForestNode
 
 
@@ -97,7 +97,7 @@ class CommunicationMiddleware:
         
         # Pub/Sub components - using direct references
         self.subscribers: Dict[str, List[Callable]] = {}
-        self.event_history: List[Event] = []
+        self.event_history: List[Dict[str, Any]] = []
         self.max_history = 1000
         
         # Req/Resp components - using direct references
@@ -179,31 +179,36 @@ class CommunicationMiddleware:
         if not self.enabled:
             return
         
-        # Create event with direct reference to data (no copying)
-        event = Event(name=topic, data=data, source=source)
-        self.event_history.append(event)
+        # Create event info with direct reference to data (no copying)
+        event_info = {
+            "name": topic,
+            "data": data,
+            "source": source,
+            "timestamp": time.time()
+        }
+        self.event_history.append(event_info)
         
         # Trim history if needed
         if len(self.event_history) > self.max_history:
             self.event_history.pop(0)
         
-        # Execute callbacks with direct event reference
+        # Execute callbacks with direct event info reference
         if topic in self.subscribers:
             tasks = []
             for callback in self.subscribers[topic]:
                 if asyncio.iscoroutinefunction(callback):
-                    task = asyncio.create_task(callback(event))
+                    task = asyncio.create_task(callback(event_info))
                 else:
-                    task = asyncio.create_task(self._run_sync_callback(callback, event))
+                    task = asyncio.create_task(self._run_sync_callback(callback, event_info))
                 tasks.append(task)
             
             if tasks:
                 await asyncio.gather(*tasks, return_exceptions=True)
     
-    async def _run_sync_callback(self, callback: Callable, event: Event) -> None:
+    async def _run_sync_callback(self, callback: Callable, event_info: Dict[str, Any]) -> None:
         """Run synchronous callback in async context - zero-copy optimized"""
         try:
-            callback(event)  # Direct event reference
+            callback(event_info)  # Direct event info reference
         except Exception as e:
             print(f"PubSub callback error: {e}")
     
@@ -211,11 +216,11 @@ class CommunicationMiddleware:
         """Get subscribers for a topic - zero-copy optimized"""
         return self.subscribers.get(topic, [])
     
-    def get_event_history(self, topic: Optional[str] = None) -> List[Event]:
+    def get_event_history(self, topic: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get event history - zero-copy optimized"""
         if topic is None:
             return self.event_history  # Direct reference
-        return [event for event in self.event_history if event.name == topic]
+        return [event for event in self.event_history if event["name"] == topic]
     
     # ==================== Req/Resp Methods - Zero-Copy Optimized ====================
     
