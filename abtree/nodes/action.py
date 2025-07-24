@@ -5,9 +5,9 @@ Action nodes are leaf nodes in the behavior tree, used to execute specific actio
 such as movement, attack, collection, etc. Users need to inherit this class to implement specific actions.
 """
 
+import asyncio
 from abc import abstractmethod
-from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, List
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
@@ -15,7 +15,6 @@ from ..utils.logger import get_logger
 from .base import BaseNode
 
 
-@dataclass
 class Action(BaseNode):
     """
     Action node base class
@@ -24,9 +23,8 @@ class Action(BaseNode):
     Users need to inherit this class and implement the execute method to implement specific actions.
     """
 
-    def __post_init__(self) -> None:
-        """Ensure no children after initialization"""
-        super().__post_init__()
+    def __init__(self, name: str, children: Optional[List["BaseNode"]] = None):
+        super().__init__(name, children)
         # Action nodes should not have children
         if self.children:
             raise ValueError("Action nodes cannot have children")
@@ -99,7 +97,6 @@ class Action(BaseNode):
 # Predefined action node examples
 
 
-@dataclass
 class Wait(Action):
     """
     Wait node
@@ -107,8 +104,10 @@ class Wait(Action):
     Wait for a specified time and return success.
     """
 
-    duration: float = 1.0  # Wait time (seconds)
-    elapsed: float = 0.0  # Elapsed time
+    def __init__(self, name: str = "", duration: float = 1.0):
+        super().__init__(name)
+        self.duration = duration
+        self.elapsed = 0.0
 
     async def execute(self, blackboard: Blackboard) -> Status:
         """
@@ -159,7 +158,6 @@ class Wait(Action):
         self.duration = duration
 
 
-@dataclass
 class Log(Action):
     """
     Log node
@@ -167,14 +165,11 @@ class Log(Action):
     Output log information.
     """
 
-    message: str = ""
-    level: str = "INFO"
-
     def __init__(self, name: str = "", message: str = "", level: str = "INFO"):
         """Initialize Log node with level as name if not specified"""
         if not name or name == "Log":
             name = level.upper()
-        super().__init__(name=name)
+        super().__init__(name)
         self.message = message
         self.level = level
 
@@ -220,7 +215,6 @@ class Log(Action):
         self.level = level
 
 
-@dataclass
 class SetBlackboard(Action):
     """
     Set blackboard data node
@@ -228,8 +222,10 @@ class SetBlackboard(Action):
     Set data in the blackboard.
     """
 
-    key: str = ""
-    value: Any = None
+    def __init__(self, name: str = "", key: str = "", value: Any = None):
+        super().__init__(name)
+        self.key = key
+        self.value = value
 
     async def execute(self, blackboard: Blackboard) -> Status:
         """
@@ -259,3 +255,62 @@ class SetBlackboard(Action):
         """
         self.key = key
         self.value = value
+
+
+def blackboard_binding(execute_method):
+    """Decorator: Apply to the execute method to automatically handle blackboard synchronization"""
+    
+    async def wrapper(self, blackboard):
+        # Automatically inject blackboard when executing execute
+        self._current_blackboard = blackboard
+        
+        # Get mapping values from blackboard when execute starts
+        if hasattr(self, '_param_mappings'):
+            for node_attr, blackboard_key in self._param_mappings.items():
+                if hasattr(self, node_attr):
+                    # Get value from blackboard, if not set then keep original value
+                    current_value = getattr(self, node_attr)
+                    # If current value is mapping format (e.g. {exchange_value}), get value from blackboard
+                    if isinstance(current_value, str) and current_value.startswith('{') and current_value.endswith('}'):
+                        # This is mapping format, get actual value from blackboard
+                        value = blackboard.get(blackboard_key, current_value)
+                    else:
+                        # This is normal value, get value from blackboard, if not set then keep original value
+                        value = blackboard.get(blackboard_key, current_value)
+                    setattr(self, node_attr, value)
+        
+        # Create property descriptors for mapped attributes to implement automatic synchronization
+        if hasattr(self, '_param_mappings'):
+            for node_attr, blackboard_key in self._param_mappings.items():
+                if hasattr(self, node_attr):
+                    # Save original value
+                    original_value = getattr(self, node_attr)
+                    
+                    # Create property descriptor
+                    def make_property(attr_name, bb_key):
+                        def getter(obj):
+                            return getattr(obj, f'_{attr_name}_value', original_value)
+                        
+                        def setter(obj, value):
+                            setattr(obj, f'_{attr_name}_value', value)
+                            # Automatically synchronize to blackboard
+                            if hasattr(obj, '_current_blackboard') and obj._current_blackboard is not None:
+                                obj._current_blackboard.set(bb_key, value)
+                        
+                        return property(getter, setter)
+                    
+                    # Set property descriptor
+                    setattr(self.__class__, node_attr, make_property(node_attr, blackboard_key))
+        
+        try:
+            # Handle asynchronous functions correctly
+            if asyncio.iscoroutinefunction(execute_method):
+                result = await execute_method(self, blackboard)
+            else:
+                result = execute_method(self, blackboard)
+            return result
+        finally:
+            # Clean up after execution
+            self._current_blackboard = None
+    
+    return wrapper

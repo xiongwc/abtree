@@ -7,14 +7,12 @@ including node execution, child node management, status management, etc.
 
 import asyncio
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
 
 
-@dataclass
 class BaseNode(ABC):
     """
     Behavior tree node base class
@@ -27,18 +25,77 @@ class BaseNode(ABC):
         parent: Parent node
         status: Current execution status
         _last_tick_time: Last execution time
+        _param_mappings: Parameter mapping table, storing the mapping of node member variable names to blackboard key names
     """
 
-    name: str
-    children: List["BaseNode"] = field(default_factory=list)
-    parent: Optional["BaseNode"] = None
-    status: Status = Status.FAILURE
-    _last_tick_time: float = field(default=0.0, init=False)
-
-    def __post_init__(self) -> None:
-        """Set parent node reference for child nodes after initialization"""
+    def __init__(self, name: str, children: Optional[List["BaseNode"]] = None):
+        self.name = name
+        self.children = children or []
+        self.parent = None
+        self.status = Status.FAILURE
+        self._last_tick_time = 0.0
+        self._param_mappings = {}
+        
+        # Set parent node reference for child nodes after initialization
         for child in self.children:
             child.parent = self
+
+    def set_param_mapping(self, node_attr: str, blackboard_key: str) -> None:
+        """
+        Set parameter mapping relationship
+        
+        Args:
+            node_attr: Node member variable name
+            blackboard_key: Key name in blackboard
+        """
+        self._param_mappings[node_attr] = blackboard_key
+
+    def get_mapped_value(self, attr_name: str, blackboard: Blackboard, default: Any = None) -> Any:
+        """
+        Get mapped value, prioritize from blackboard, if not set then use default value
+        
+        Args:
+            attr_name: Node member variable name
+            blackboard: Blackboard system
+            default: Default value
+            
+        Returns:
+            Mapped value
+        """
+        if attr_name in self._param_mappings:
+            blackboard_key = self._param_mappings[attr_name]
+            # Get value from blackboard, if not set then use default value
+            value = blackboard.get(blackboard_key, default)
+            return value
+        return getattr(self, attr_name, default)
+
+    def set_mapped_value(self, attr_name: str, value: Any, blackboard: Blackboard) -> None:
+        """
+        Set mapped value, update blackboard and internal attributes
+        
+        Args:
+            attr_name: Node member variable name
+            value: Value to set
+            blackboard: Blackboard system
+        """
+        if attr_name in self._param_mappings:
+            blackboard_key = self._param_mappings[attr_name]
+            # Update blackboard
+            blackboard.set(blackboard_key, value)
+            # Update internal attributes
+            setattr(self, attr_name, value)
+        else:
+            # If there is no mapping, only update internal attributes
+            setattr(self, attr_name, value)
+
+    def get_param_mappings(self) -> Dict[str, str]:
+        """
+        Get parameter mapping table
+        
+        Returns:
+            Parameter mapping table
+        """
+        return self._param_mappings.copy()
 
     @abstractmethod
     async def tick(self, blackboard: Blackboard) -> Status:
@@ -55,53 +112,41 @@ class BaseNode(ABC):
         """
         pass
 
-    def reset(self) -> None:
-        """
-        Reset node status
-
-        Reset the node status to initial state and recursively reset all child nodes.
-        """
-        self.status = Status.FAILURE
-        self._last_tick_time = 0.0
-
-        for child in self.children:
-            child.reset()
-
     def add_child(self, child: "BaseNode") -> None:
         """
         Add child node
 
         Args:
-            child: Child node to add
+            child: child node
         """
-        child.parent = self
         self.children.append(child)
+        child.parent = self
 
     def remove_child(self, child: "BaseNode") -> bool:
         """
         Remove child node
 
         Args:
-            child: Child node to remove
+            child: child node to remove
 
         Returns:
-            True if child node is found and removed, False otherwise
+            True if the child node is found and removed, False otherwise
         """
         if child in self.children:
-            child.parent = None
             self.children.remove(child)
+            child.parent = None
             return True
         return False
 
     def get_child(self, index: int) -> Optional["BaseNode"]:
         """
-        Get child node at specified index
+        Get child node by index
 
         Args:
-            index: Child node index
+            index: child node index
 
         Returns:
-            Child node, or None if index is invalid
+            child node or None if index is out of range
         """
         if 0 <= index < len(self.children):
             return self.children[index]
@@ -118,72 +163,34 @@ class BaseNode(ABC):
 
     def has_children(self) -> bool:
         """
-        Check if node has children
+        Check if there are child nodes
 
         Returns:
-            True if node has children, False otherwise
+            True if there are child nodes, False otherwise
         """
         return len(self.children) > 0
-
-    def get_root(self) -> "BaseNode":
-        """
-        Get root node
-
-        Returns:
-            Root node of the behavior tree
-        """
-        current = self
-        while current.parent is not None:
-            current = current.parent
-        return current
 
     def get_depth(self) -> int:
         """
         Get node depth in the tree
 
         Returns:
-            Node depth, root node is 0
+            Node depth (0 for root node)
         """
-        depth = 0
-        current = self
-        while current.parent is not None:
-            depth += 1
-            current = current.parent
-        return depth
+        if self.parent is None:
+            return 0
+        return self.parent.get_depth() + 1
 
-    def get_path(self) -> List[str]:
+    def get_ancestors(self) -> List["BaseNode"]:
         """
-        Get path from root node to current node
+        Get all ancestor nodes
 
         Returns:
-            List of node names from root to current node
+            List of ancestor nodes (from root to parent)
         """
-        path = [self.name]
-        current = self
-        while current.parent is not None:
-            current = current.parent
-            path.insert(0, current.name)
-        return path
-
-    def find_node(self, name: str) -> Optional["BaseNode"]:
-        """
-        Find node with specified name in subtree
-
-        Args:
-            name: Name of node to find
-
-        Returns:
-            Found node, or None if not found
-        """
-        if self.name == name:
-            return self
-
-        for child in self.children:
-            result = child.find_node(name)
-            if result is not None:
-                return result
-
-        return None
+        if self.parent is None:
+            return []
+        return self.parent.get_ancestors() + [self.parent]
 
     def get_descendants(self) -> List["BaseNode"]:
         """
@@ -198,19 +205,34 @@ class BaseNode(ABC):
             descendants.extend(child.get_descendants())
         return descendants
 
-    def get_ancestors(self) -> List["BaseNode"]:
+    def find_node_by_name(self, name: str) -> Optional["BaseNode"]:
         """
-        Get all ancestor nodes
+        Find node by name in the subtree
+
+        Args:
+            name: Node name to find
 
         Returns:
-            List of ancestor nodes
+            Found node or None
         """
-        ancestors = []
-        current = self.parent
-        while current is not None:
-            ancestors.append(current)
-            current = current.parent
-        return ancestors
+        if self.name == name:
+            return self
+        
+        for child in self.children:
+            found = child.find_node_by_name(name)
+            if found:
+                return found
+        
+        return None
+
+    def reset(self) -> None:
+        """Reset node status"""
+        self.status = Status.FAILURE
+        self._last_tick_time = 0.0
+        
+        # Reset all child nodes
+        for child in self.children:
+            child.reset()
 
     def is_running(self) -> bool:
         """

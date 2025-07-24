@@ -1,22 +1,28 @@
 """
 Composite node - a node type that contains multiple child nodes
 
-Composite nodes are the core control nodes in the behavior tree, including:
-- Sequence: Sequential execution, all child nodes must succeed
-- Selector: Selective execution, any child node succeeds
-- Parallel: Concurrent execution, support multiple strategies
+Composite nodes are used to organize and control the execution of multiple child nodes,
+including sequence, selector, parallel, etc.
 """
 
 import asyncio
-from dataclasses import dataclass
+from enum import Enum
 from typing import List, Optional
 
-from ..core.status import Policy, Status
+from ..core.status import Status
 from ..engine.blackboard import Blackboard
 from .base import BaseNode
 
 
-@dataclass
+class Policy(Enum):
+    """Parallel execution policy"""
+
+    SUCCEED_ON_ALL = "succeed_on_all"  # Succeed only if all children succeed
+    SUCCEED_ON_ONE = "succeed_on_one"  # Succeed if any child succeeds
+    FAIL_ON_ALL = "fail_on_all"        # Fail only if all children fail
+    FAIL_ON_ONE = "fail_on_one"        # Fail if any child fails
+
+
 class CompositeNode(BaseNode):
     """
     Composite node base class
@@ -46,7 +52,6 @@ class CompositeNode(BaseNode):
         return super().has_children()
 
 
-@dataclass
 class Sequence(CompositeNode):
     """
     Sequence node
@@ -85,7 +90,6 @@ class Sequence(CompositeNode):
         return Status.SUCCESS
 
 
-@dataclass
 class Selector(CompositeNode):
     """
     Selector node
@@ -124,7 +128,6 @@ class Selector(CompositeNode):
         return Status.FAILURE
 
 
-@dataclass
 class Parallel(CompositeNode):
     """
     Parallel node
@@ -133,7 +136,9 @@ class Parallel(CompositeNode):
     Support multiple execution strategies.
     """
 
-    policy: Policy = Policy.SUCCEED_ON_ALL
+    def __init__(self, name: str, children: Optional[List[BaseNode]] = None, policy: Policy = Policy.SUCCEED_ON_ALL):
+        super().__init__(name, children)
+        self.policy = policy
 
     async def tick(self, blackboard: Blackboard) -> Status:
         """

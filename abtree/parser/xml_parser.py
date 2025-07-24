@@ -400,6 +400,9 @@ class XMLParser:
         # Get node attributes and handle type conversion
         attributes = self._parse_attributes(element)
 
+        # Extract parameter mappings if present
+        param_mappings = attributes.pop("_param_mappings", {})
+
         # Ensure name parameter is not duplicated
         if "name" in attributes:
             del attributes["name"]
@@ -424,6 +427,10 @@ class XMLParser:
         if not hasattr(node, '_last_tick_time'):
             node._last_tick_time = 0.0
 
+        # 设置参数映射关系
+        for node_attr, blackboard_key in param_mappings.items():
+            node.set_param_mapping(node_attr, blackboard_key)
+
         # Parse child nodes
         for child_element in element:
             if child_element.tag != "Root":  # Skip Root tags
@@ -443,28 +450,77 @@ class XMLParser:
             Attributes dictionary
         """
         attributes: Dict[str, Any] = {}
+        param_mappings: Dict[str, str] = {}
 
         for key, value in element.attrib.items():
             if key == "name":
                 continue  # name attribute handled separately
 
-            # Try to convert attribute value types
-            try:
-                # Try to convert to integer
-                if value.isdigit():
-                    attributes[key] = int(value)
-                # Try to convert to float
-                elif value.replace(".", "").replace("-", "").isdigit():
-                    attributes[key] = float(value)
-                # Try to convert to boolean
-                elif value.lower() in ["true", "false"]:
-                    attributes[key] = value.lower() == "true"
-                else:
+            # Process variable substitution in string values
+            if isinstance(value, str) and "{" in value and "}" in value:
+                # Check if it is parameter mapping format: attr_name="{blackboard_key}"
+                import re
+                # Modify regular expression to ensure it can correctly match {blackboard_key} format
+                mapping_match = re.match(r'^\{([^}]+)\}$', value)
+                if mapping_match:
+                    # This is parameter mapping format
+                    blackboard_key = mapping_match.group(1)
+                    param_mappings[key] = blackboard_key
+                    # Use original value as default value
                     attributes[key] = value
-            except (ValueError, TypeError):
-                attributes[key] = value
+                else:
+                    # This is variable substitution format
+                    value = self._substitute_variables(value)
+                    attributes[key] = value
+            else:
+                # Try to convert attribute value types
+                try:
+                    # Try to convert to integer
+                    if value.isdigit():
+                        attributes[key] = int(value)
+                    # Try to convert to float
+                    elif value.replace(".", "").replace("-", "").isdigit():
+                        attributes[key] = float(value)
+                    # Try to convert to boolean
+                    elif value.lower() in ["true", "false"]:
+                        attributes[key] = value.lower() == "true"
+                    else:
+                        attributes[key] = value
+                except (ValueError, TypeError):
+                    attributes[key] = value
+
+        # Add parameter mapping information to attributes for subsequent processing
+        if param_mappings:
+            attributes["_param_mappings"] = param_mappings
 
         return attributes
+
+    def _substitute_variables(self, value: str) -> str:
+        """
+        Substitute variables in string values
+        
+        Args:
+            value: String value that may contain {variable} placeholders
+            
+        Returns:
+            String with variables substituted
+        """
+        import re
+        
+        # Define available variables
+        variables = {
+            "message": "Hello World",  # Default message
+            "topic": "news",           # Default topic
+            "duration": "1.0",         # Default duration
+            "timeout": "2.0",          # Default timeout
+        }
+        
+        # Find all {variable} patterns and replace them
+        def replace_var(match):
+            var_name = match.group(1)
+            return variables.get(var_name, match.group(0))
+        
+        return re.sub(r'\{(\w+)\}', replace_var, value)
 
 
 # Example XML formats:
