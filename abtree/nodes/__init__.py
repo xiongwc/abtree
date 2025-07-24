@@ -1,50 +1,69 @@
 """
-节点模块 - 行为树节点实现
+Nodes module - Behavior tree node implementations
 
-包含各种类型的行为树节点实现：
-- 复合节点：Sequence、Selector、Parallel
-- 装饰器节点：Inverter、Repeater、UntilSuccess、UntilFailure
-- 基础节点：Action、Condition
+Contains implementations of various types of behavior tree nodes:
+- Composite nodes: Sequence, Selector, Parallel
+- Decorator nodes: Inverter, Repeater, UntilSuccess, UntilFailure
+- Basic nodes: Action, Condition
 """
 
-from .action import Action, Log, SetBlackboard, Wait
 from .base import BaseNode
-from .composite import Parallel, Selector, Sequence
+from .action import Action, Wait, Log, SetBlackboard
 from .condition import (
-    AlwaysFalse,
-    AlwaysTrue,
-    CheckBlackboard,
-    Compare,
     Condition,
-    IsFalse,
+    CheckBlackboard,
     IsTrue,
+    IsFalse,
+    Compare,
+    AlwaysTrue,
+    AlwaysFalse,
 )
-from .decorator import Decorator, Inverter, Repeater, UntilFailure, UntilSuccess
+from .composite import Sequence, Selector, Parallel, Policy
+from .decorator import (
+    DecoratorNode,
+    Inverter,
+    Repeater,
+    UntilSuccess,
+    UntilFailure,
+)
 
+# Basic nodes
 __all__ = [
-    # 基础节点
     "BaseNode",
-    # 复合节点
+    "Action",
+    "Condition",
+]
+
+# Composite nodes
+__all__.extend([
     "Sequence",
     "Selector",
     "Parallel",
-    # 装饰器节点
+    "Policy",
+])
+
+# Decorator nodes
+__all__.extend([
+    "DecoratorNode",
     "Inverter",
     "Repeater",
     "UntilSuccess",
     "UntilFailure",
-    "Decorator",
-    # 动作节点
-    "Action",
+])
+
+# Action nodes
+__all__.extend([
+    "Wait",
     "Log",
     "SetBlackboard",
-    "Wait",
-    # 条件节点
-    "Condition",
+])
+
+# Condition nodes
+__all__.extend([
     "CheckBlackboard",
     "IsTrue",
     "IsFalse",
     "Compare",
     "AlwaysTrue",
     "AlwaysFalse",
-]
+])

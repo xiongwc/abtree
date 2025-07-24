@@ -257,60 +257,87 @@ class SetBlackboard(Action):
         self.value = value
 
 
+def setup_blackboard_binding(node: "BaseNode", blackboard: Blackboard) -> None:
+    """
+    Setup blackboard binding for a node
+    
+    Args:
+        node: Node to setup binding for
+        blackboard: Blackboard system
+    """
+    # Get mapped values from blackboard
+    if hasattr(node, '_param_mappings'):
+        for node_attr, blackboard_key in node._param_mappings.items():
+            if hasattr(node, node_attr):
+                # Get current value
+                current_value = getattr(node, node_attr)
+                # If current value is mapping format (e.g. {exchange_value}), get actual value from blackboard
+                if isinstance(current_value, str) and current_value.startswith('{') and current_value.endswith('}'):
+                    # This is mapping format, get actual value from blackboard
+                    value = blackboard.get(blackboard_key, current_value)
+                else:
+                    # This is normal value, get value from blackboard, if not set then keep original value
+                    value = blackboard.get(blackboard_key, current_value)
+                setattr(node, node_attr, value)
+    
+    # Create property descriptors for mapped attributes to implement automatic synchronization
+    if hasattr(node, '_param_mappings'):
+        for node_attr, blackboard_key in node._param_mappings.items():
+            if hasattr(node, node_attr):
+                # Save original value
+                original_value = getattr(node, node_attr)
+                
+                # Create property descriptor
+                def make_property(attr_name, bb_key, bb_ref):
+                    def getter(obj):
+                        return getattr(obj, f'_{attr_name}_value', original_value)
+                    
+                    def setter(obj, value):
+                        setattr(obj, f'_{attr_name}_value', value)
+                        # Automatically synchronize to blackboard
+                        bb_ref.set(bb_key, value)
+                    
+                    return property(getter, setter)
+                
+                # Set property descriptor
+                setattr(node.__class__, node_attr, make_property(node_attr, blackboard_key, blackboard))
+
+def cleanup_blackboard_binding(node: "BaseNode") -> None:
+    """
+    Cleanup blackboard binding for a node
+    
+    Args:
+        node: Node to cleanup binding for
+    """
+    # Cleanup after execution - no action needed since we don't use _current_blackboard
+    pass
+
 def blackboard_binding(execute_method):
-    """Decorator: Apply to the execute method to automatically handle blackboard synchronization"""
+    """Decorator: Apply to execute method to automatically handle blackboard synchronization"""
     
     async def wrapper(self, blackboard):
-        # Automatically inject blackboard when executing execute
-        self._current_blackboard = blackboard
-        
-        # Get mapping values from blackboard when execute starts
-        if hasattr(self, '_param_mappings'):
-            for node_attr, blackboard_key in self._param_mappings.items():
-                if hasattr(self, node_attr):
-                    # Get value from blackboard, if not set then keep original value
-                    current_value = getattr(self, node_attr)
-                    # If current value is mapping format (e.g. {exchange_value}), get value from blackboard
-                    if isinstance(current_value, str) and current_value.startswith('{') and current_value.endswith('}'):
-                        # This is mapping format, get actual value from blackboard
-                        value = blackboard.get(blackboard_key, current_value)
-                    else:
-                        # This is normal value, get value from blackboard, if not set then keep original value
-                        value = blackboard.get(blackboard_key, current_value)
-                    setattr(self, node_attr, value)
-        
-        # Create property descriptors for mapped attributes to implement automatic synchronization
-        if hasattr(self, '_param_mappings'):
-            for node_attr, blackboard_key in self._param_mappings.items():
-                if hasattr(self, node_attr):
-                    # Save original value
-                    original_value = getattr(self, node_attr)
-                    
-                    # Create property descriptor
-                    def make_property(attr_name, bb_key):
-                        def getter(obj):
-                            return getattr(obj, f'_{attr_name}_value', original_value)
-                        
-                        def setter(obj, value):
-                            setattr(obj, f'_{attr_name}_value', value)
-                            # Automatically synchronize to blackboard
-                            if hasattr(obj, '_current_blackboard') and obj._current_blackboard is not None:
-                                obj._current_blackboard.set(bb_key, value)
-                        
-                        return property(getter, setter)
-                    
-                    # Set property descriptor
-                    setattr(self.__class__, node_attr, make_property(node_attr, blackboard_key))
+        # Setup blackboard binding
+        setup_blackboard_binding(self, blackboard)
         
         try:
-            # Handle asynchronous functions correctly
+            # Handle asynchronous functions
             if asyncio.iscoroutinefunction(execute_method):
                 result = await execute_method(self, blackboard)
             else:
                 result = execute_method(self, blackboard)
             return result
         finally:
-            # Clean up after execution
-            self._current_blackboard = None
+            # Cleanup after execution
+            cleanup_blackboard_binding(self)
+    
+    return wrapper
+
+def blackboard_binding_execute(execute_method):
+    """Decorator: Apply to execute method that doesn't need blackboard parameter"""
+    
+    async def wrapper(self):
+        # This decorator now needs external blackboard binding setup
+        # Get current blackboard - needs to be passed from external
+        raise NotImplementedError("blackboard_binding_execute decorator needs to be redesigned to support new binding mechanism")
     
     return wrapper

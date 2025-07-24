@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from ..core.status import Status
 from ..nodes.base import BaseNode
 from .blackboard import Blackboard
+from ..nodes.action import setup_blackboard_binding, cleanup_blackboard_binding
 
 
 @dataclass
@@ -106,8 +107,15 @@ class TickManager:
         if self.blackboard is None:
             raise ValueError("Blackboard system is not set")
 
-        # Execute the root node
-        status = await self.root_node.tick(self.blackboard)
+        # Setup blackboard binding for the root node
+        setup_blackboard_binding(self.root_node, self.blackboard)
+        
+        try:
+            # Execute the root node with blackboard parameter
+            status = await self.root_node.tick(self.blackboard)
+        finally:
+            # Cleanup blackboard binding
+            cleanup_blackboard_binding(self.root_node)
 
         # Update statistics
         self._tick_count += 1

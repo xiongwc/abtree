@@ -19,7 +19,6 @@ from abtree.engine.event_system import EventSystem
 from abtree.nodes.action import blackboard_binding
 
 
-@blackboard_binding
 class PublisherAction(Action):
     """Simple publisher action that emits events"""
     
@@ -28,8 +27,9 @@ class PublisherAction(Action):
         self.topic = topic
         self.message = message
     
+    @blackboard_binding
     async def execute(self, blackboard):
-        # 直接用self.topic和self.message即可自动同步blackboard
+        # Use self.topic and self.message directly to automatically sync with blackboard
         event_system = blackboard.get("__event_system")
         if event_system:
             await event_system.emit(f"topic_{self.topic}", source=self.name, data=self.message)
@@ -38,7 +38,6 @@ class PublisherAction(Action):
         return Status.SUCCESS
 
 
-@blackboard_binding
 class SubscriberAction(Action):
     """Simple subscriber action that waits for events"""
     
@@ -47,6 +46,7 @@ class SubscriberAction(Action):
         self.topic = topic
         self.message = message
     
+    @blackboard_binding
     async def execute(self, blackboard):
         event_system = blackboard.get("__event_system")
         if event_system:            
@@ -54,7 +54,7 @@ class SubscriberAction(Action):
             if event_triggered:
                 event_info = event_system.get_event_info(f"topic_{self.topic}")
                 received_message = event_info.data if event_info and event_info.data else "No message data"
-                self.message = received_message  # 自动同步到blackboard
+                self.message = received_message  # Automatically sync to blackboard
                 print(f"✅ Received message: {self.message}")
             else:
                 print(f"⏰ Timeout waiting for event: topic_{self.topic}")

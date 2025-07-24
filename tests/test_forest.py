@@ -17,7 +17,7 @@ from abtree.core.status import Status
 class DummyTree(BehaviorTree):
     def __init__(self, name: str = "DummyTree"):
         super().__init__(name=name)
-        # 创建一个简单的根节点
+        # Create a simple root node
         from abtree.nodes.action import Log
         self.root = Log(name="dummy_root", message="dummy execution")
     

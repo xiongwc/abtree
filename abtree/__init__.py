@@ -33,7 +33,7 @@ from .nodes import (
     CheckBlackboard,
     Compare,
     Condition,
-    Decorator,
+    DecoratorNode,
     Inverter,
     IsFalse,
     IsTrue,
@@ -87,7 +87,7 @@ def _register_builtin_nodes() -> None:
         IsTrue,
     )
     from .nodes.decorator import (
-        Decorator,
+        DecoratorNode,
         Inverter,
         Repeater,
         UntilFailure,
@@ -104,7 +104,7 @@ def _register_builtin_nodes() -> None:
     register_node("Repeater", Repeater, is_builtin=True)  
     register_node("UntilSuccess", UntilSuccess, is_builtin=True)  
     register_node("UntilFailure", UntilFailure, is_builtin=True)  
-    register_node("Decorator", Decorator, is_builtin=True) 
+    register_node("Decorator", DecoratorNode, is_builtin=True)
 
     # Register action nodes
     # register_node("Action", Action)  # Action is abstract, cannot be registered

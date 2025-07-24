@@ -1,7 +1,7 @@
 """
-解析器模块 - XML 解析和树构建
+Parser module - XML parsing and tree building
 
-提供从 XML 文件加载行为树和导出行为树到 XML 的功能。
+Provides functionality to load behavior trees from XML files and export behavior trees to XML.
 """
 
 from .tree_builder import TreeBuilder
