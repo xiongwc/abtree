@@ -170,7 +170,6 @@ asyncio.run(main())
 import asyncio
 from abtree import (
     BehaviorForest, ForestNode, ForestNodeType,
-    PubSubMiddleware, SharedBlackboardMiddleware,
     BehaviorTree, Sequence, Selector, Action, Condition
 )
 from abtree.core import Status
