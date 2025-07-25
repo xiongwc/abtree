@@ -105,13 +105,18 @@ class ForestManager:
         # Note: Event subscription is handled differently in the new event system
         # Forest events will be handled through the global event system
         
-        # Emit forest added event
-        asyncio.create_task(
-            self.global_event_system.emit(
-                "forest_added",
-                source=f"{self.name}:{forest.name}"
+        # Emit forest added event (only if event loop is running)
+        try:
+            loop = asyncio.get_running_loop()
+            asyncio.create_task(
+                self.global_event_system.emit(
+                    "forest_added",
+                    source=f"{self.name}:{forest.name}"
+                )
             )
-        )
+        except RuntimeError:
+            # No running event loop, skip event emission
+            pass
     
     def remove_forest(self, forest_name: str) -> bool:
         """
@@ -130,15 +135,25 @@ class ForestManager:
         
         # Stop forest if running
         if forest.running:
-            asyncio.create_task(forest.stop())
+            try:
+                loop = asyncio.get_running_loop()
+                asyncio.create_task(forest.stop())
+            except RuntimeError:
+                # No running event loop, skip async stop
+                pass
         
-        # Emit forest removed event
-        asyncio.create_task(
-            self.global_event_system.emit(
-                "forest_removed",
-                source=f"{self.name}:{forest_name}"
+        # Emit forest removed event (only if event loop is running)
+        try:
+            loop = asyncio.get_running_loop()
+            asyncio.create_task(
+                self.global_event_system.emit(
+                    "forest_removed",
+                    source=f"{self.name}:{forest_name}"
+                )
             )
-        )
+        except RuntimeError:
+            # No running event loop, skip event emission
+            pass
         
         return True
     
@@ -336,15 +351,25 @@ class ForestManager:
             Manager statistics dictionary
         """
         running_forests = len([f for f in self.forests.values() if f.running])
+        stopped_forests = len([f for f in self.forests.values() if not f.running])
         total_nodes = sum(len(f.nodes) for f in self.forests.values())
+        
+        # Calculate uptime safely
+        uptime = 0.0
+        if self.running and hasattr(self, '_start_time'):
+            try:
+                uptime = asyncio.get_event_loop().time() - self._start_time
+            except RuntimeError:
+                uptime = 0.0
         
         return {
             "name": self.name,
             "running": self.running,
             "total_forests": len(self.forests),
             "running_forests": running_forests,
+            "stopped_forests": stopped_forests,
             "total_nodes": total_nodes,
-            "uptime": asyncio.get_event_loop().time() - self._start_time if self.running else 0.0,
+            "uptime": uptime,
             "cross_forest_middleware": len(self.cross_forest_middleware)
         }
     
@@ -356,9 +381,14 @@ class ForestManager:
             topic: Event topic
             data: Event data
         """
-        asyncio.create_task(
-            self.global_communication.publish(topic, data, self.name)
-        )
+        try:
+            loop = asyncio.get_running_loop()
+            asyncio.create_task(
+                self.global_communication.publish(topic, data, self.name)
+            )
+        except RuntimeError:
+            # No running event loop, skip event publication
+            pass
     
     def set_global_data(self, key: str, value: Any) -> None:
         """

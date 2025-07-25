@@ -5,11 +5,10 @@ Provides validation functions for behavior trees and nodes to ensure the correct
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 from .nodes.base import BaseNode
 from .engine.behavior_tree import BehaviorTree
-from .core.status import Status
 
 
 @dataclass

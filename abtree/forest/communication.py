@@ -210,7 +210,7 @@ class CommunicationMiddleware:
         
         # Create event info with direct reference to data (no copying)
         event_info = {
-            "name": topic,
+            "topic": topic,
             "data": data,
             "source": source,
             "timestamp": time.time()
@@ -771,7 +771,7 @@ class CommunicationMiddleware:
             return
         
         # Store shared EventSystem in tree's blackboard
-        if tree.blackboard:
+        if tree.blackboard and hasattr(tree.blackboard, 'set'):
             tree.blackboard.set("__event_system", self.shared_event_system)
         
         # Set tree's event_system to shared one

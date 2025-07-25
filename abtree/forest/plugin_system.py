@@ -94,7 +94,7 @@ class MiddlewarePlugin(BasePlugin):
         super().initialize(forest)
         self.middleware = self.create_middleware()
         if self.middleware:
-            forest.add_middleware(self.name, self.middleware)
+            forest.add_middleware(self.middleware)
             
     @abstractmethod
     def create_middleware(self) -> Any:
@@ -318,6 +318,10 @@ class ExampleMiddlewarePlugin(MiddlewarePlugin):
         """Create example middleware."""
         from .communication import CommunicationMiddleware
         return CommunicationMiddleware("ExampleCommunication")
+    
+    def cleanup(self) -> None:
+        """Clean up plugin resources."""
+        super().cleanup()
 
 
 class ExampleNodePlugin(NodePlugin):
@@ -346,6 +350,10 @@ class ExampleNodePlugin(NodePlugin):
                 return Status.SUCCESS
         
         self.custom_nodes["ExampleAction"] = ExampleAction
+    
+    def cleanup(self) -> None:
+        """Clean up plugin resources."""
+        super().cleanup()
 
 
 def create_plugin_manager() -> PluginManager:

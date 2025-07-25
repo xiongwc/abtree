@@ -23,14 +23,11 @@ class PublisherAction(Action):
     
     def __init__(self, name: str):
         super().__init__(name)
-        self.topic = "news"
-        self.message = "hello world"
     
     async def execute(self,topic:str,message:str):
-        # Use self.topic and self.message directly to automatically sync with blackboard
         event_system = self.blackboard.get("__event_system")
         if event_system:
-            await event_system.emit(f"topic_{self.topic}", source=self.name, data=self.message)
+            await event_system.emit(f"topic_{topic}", source=self.name, data=message)
         else:
             print(f"⚠️  No event system found in blackboard")
         return Status.SUCCESS
@@ -67,14 +64,14 @@ def create_pubsub_xml() -> str:
     
     <BehaviorTree name="Subscriber" description="Subscriber Service">
         <Sequence name="Subscriber Behavior">            
-            <SubscriberAction name="Subscribe Event" topic="{topic_info}" message="{message_info}"/>
+            <SubscriberAction name="Subscribe Event" topic="news" message="{message_info}"/>
             <Log message="Subscriber received message: {message_info}" />
         </Sequence>
     </BehaviorTree>
     
     <BehaviorTree name="Publisher" description="Publisher Service">
         <Sequence name="Publisher Behavior">
-            <PublisherAction name="Publish Event" topic="{topic_info}" message="hello world" />            
+            <PublisherAction name="Publish Event" topic="news" message="hello world" />            
         </Sequence>
     </BehaviorTree>
     
@@ -92,15 +89,6 @@ def register_custom_nodes():
     """Register custom node types"""
     register_node("PublisherAction", PublisherAction)
     register_node("SubscriberAction", SubscriberAction)
-    
-    # Debug: Check if nodes are registered
-    from abtree.registry.node_registry import get_registered_nodes
-    registered = get_registered_nodes()
-    print(f"Registered nodes: {registered}")
-    print(f"PublisherAction registered: {'PublisherAction' in registered}")
-    print(f"SubscriberAction registered: {'SubscriberAction' in registered}")
-
-
 
 async def main():
     """Main function"""

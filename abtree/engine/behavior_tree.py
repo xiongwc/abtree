@@ -174,7 +174,7 @@ class BehaviorTree:
             self.event_system = EventSystem()
 
         # Store event_system in blackboard
-        if self.event_system is not None:
+        if self.event_system is not None and hasattr(self.blackboard, 'set'):
             self.blackboard.set("__event_system", self.event_system)
 
         if self.tick_manager is None:
