@@ -21,9 +21,9 @@ from abtree.core import Status
 class CheckNetworkCondition(Condition):
     """Check if network is available"""
     
-    async def evaluate(self, blackboard):
+    async def evaluate(self):
         # Simulate network check
-        network_available = blackboard.get("network_available", False)
+        network_available = self.blackboard.get("network_available", False)
         print(f"Checking network availability: {network_available}")
         return network_available
 
@@ -31,9 +31,9 @@ class CheckNetworkCondition(Condition):
 class CheckLocalStorageCondition(Condition):
     """Check if local storage is available"""
     
-    async def evaluate(self, blackboard):
+    async def evaluate(self):
         # Simulate storage check
-        storage_available = blackboard.get("storage_available", False)
+        storage_available = self.blackboard.get("storage_available", False)
         print(f"Checking local storage availability: {storage_available}")
         return storage_available
 
@@ -41,7 +41,7 @@ class CheckLocalStorageCondition(Condition):
 class NetworkAction(Action):
     """Action to retrieve data from network"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Executing network operation...")
         await asyncio.sleep(0.01)
         print("Network operation completed")
@@ -51,7 +51,7 @@ class NetworkAction(Action):
 class LocalAction(Action):
     """Action to retrieve data from local storage"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Executing local storage operation...")
         await asyncio.sleep(0.01)
         print("Local storage operation completed")
@@ -61,7 +61,7 @@ class LocalAction(Action):
 class FallbackAction(Action):
     """Fallback operation"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Executing fallback operation...")
         await asyncio.sleep(0.01)
         print("Fallback operation completed")

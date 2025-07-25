@@ -425,6 +425,51 @@ class XMLParser:
         except Exception as e:
             print(f"Warning: Could not validate parameters for node '{node.name}': {e}")
 
+    def _validate_parameter_usage(self, node: BaseNode) -> None:
+        """
+        Validate that parameters specified in XML are properly used in execute method
+        
+        Args:
+            node: Node instance to validate
+        """
+        # Get parameter mappings
+        param_mappings = getattr(node, '_param_mappings', {})
+        if not param_mappings:
+            return
+            
+        # Check if node has execute or evaluate method
+        method_name = None
+        if hasattr(node, 'execute'):
+            method_name = 'execute'
+        elif hasattr(node, 'evaluate'):
+            method_name = 'evaluate'
+        else:
+            return
+            
+        # Get method signature
+        import inspect
+        try:
+            method = getattr(node, method_name)
+            sig = inspect.signature(method)
+            param_names = list(sig.parameters.keys())
+            # Skip 'self' parameter
+            if param_names and param_names[0] == 'self':
+                param_names = param_names[1:]
+            
+            # Check each mapped parameter
+            for param_name in param_mappings.keys():
+                # Check if parameter exists in method signature
+                if param_name not in param_names:
+                    raise ValueError(
+                        f"Parameter '{param_name}' is mapped in XML but not found in {method_name} method signature "
+                        f"of node '{node.name}'. {method_name} method must have parameter '{param_name}'."
+                    )
+                    
+        except Exception as e:
+            if isinstance(e, ValueError):
+                raise
+            print(f"Warning: Could not validate parameter usage for node '{node.name}': {e}")
+
     def _parse_node(self, element: ET.Element) -> BaseNode:
         """
         Parse node element
@@ -527,6 +572,9 @@ class XMLParser:
         # 设置参数映射关系
         for node_attr, blackboard_key in param_mappings.items():
             node.set_param_mapping(node_attr, blackboard_key)
+            
+        # Validate parameter usage in execute method (after parameter mappings are set)
+        self._validate_parameter_usage(node)
 
         # Parse child nodes
         for child_element in element:
