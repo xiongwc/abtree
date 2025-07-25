@@ -63,9 +63,9 @@ def create_state_watching_xml() -> str:
     </BehaviorTree>
     
     <Communication>
-        <ComState name="status">
-            <ComWatcher service="Watcher" />
-        </ComState>
+        <CommState name="status">
+            <CommWatcher service="Watcher" />
+        </CommState>
     </Communication>
     
 </BehaviorForest>'''

@@ -216,31 +216,39 @@ class Log(Action):
     Output log information.
     """
 
-    def __init__(self, name: str = "", message: str = "", level: str = "INFO"):
+    def __init__(self, name: str = ""):
         """Initialize Log node with level as name if not specified"""
-        if not name or name == "Log":
-            name = level.upper()
         super().__init__(name)
-        self.message = message
-        self.level = level
 
-    async def execute(self, *args, **kwargs) -> Status:
+
+    async def execute(self, message: Any, level: str = "INFO") -> Status:
         """
         Execute log output
 
         Returns:
             Execution status
         """
-        # Get message from blackboard, if not set then use default message
-        log_message = self.get_mapped_value("message", self.message)
-        log_level = self.get_mapped_value("level", self.level)
 
-        # Create a logger with the level as name
-        logger = get_logger(log_level.upper())
+        # Try to get message from blackboard mapping first, then from parameter
+        try:
+            print(self._param_mappings)
+            message = self.getPort("message")
+        except ValueError:
+            # If not mapped to blackboard, use the parameter value
+            pass
+        
+        # Try to get level from blackboard mapping first, then from parameter
+        try:
+            level = self.getPort("level")
+        except ValueError:
+            # If not mapped to blackboard, use the parameter value
+            pass
+
+        logger = get_logger(level.upper())
         
         # Use getattr to dynamically call the appropriate logging method
-        log_method = getattr(logger, log_level.lower(), logger.info)
-        log_method(log_message)
+        log_method = getattr(logger, level.lower(), logger.info)
+        log_method(message)
 
         return Status.SUCCESS
 

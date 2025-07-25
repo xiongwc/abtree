@@ -251,17 +251,17 @@ class XMLParser:
         config = CommunicationConfig()
         
         for child in element:
-            if child.tag == "ComTopic":
+            if child.tag == "CommTopic":
                 self._parse_topic(child, config)
-            elif child.tag == "ComService":
+            elif child.tag == "CommService":
                 self._parse_service(child, config)
-            elif child.tag == "ComShared":
+            elif child.tag == "CommShared":
                 self._parse_shared(child, config)
-            elif child.tag == "ComState":
+            elif child.tag == "CommState":
                 self._parse_state(child, config)
-            elif child.tag == "ComCall":
+            elif child.tag == "CommCall":
                 self._parse_call(child, config)
-            elif child.tag == "ComTask":
+            elif child.tag == "CommTask":
                 self._parse_task(child, config)
         
         return config
@@ -273,11 +273,11 @@ class XMLParser:
         subscribers: List[str] = []
         
         for child in element:
-            if child.tag == "ComPublisher":
+            if child.tag == "CommPublisher":
                 service = child.get("service", "")
                 if service:
                     publishers.append(service)
-            elif child.tag == "ComSubscriber":
+            elif child.tag == "CommSubscriber":
                 service = child.get("service", "")
                 if service:
                     subscribers.append(service)
@@ -322,7 +322,7 @@ class XMLParser:
         watchers: List[str] = []
         
         for child in element:
-            if child.tag == "ComWatcher":
+            if child.tag == "CommWatcher":
                 service = child.get("service", "")
                 if service:
                     watchers.append(service)
@@ -337,11 +337,11 @@ class XMLParser:
         callers: List[str] = []
         
         for child in element:
-            if child.tag == "ComProvider":
+            if child.tag == "CommProvider":
                 service = child.get("service", "")
                 if service:
                     providers.append(service)
-            elif child.tag == "ComCaller":
+            elif child.tag == "CommCaller":
                 service = child.get("service", "")
                 if service:
                     callers.append(service)
@@ -359,7 +359,7 @@ class XMLParser:
         claimants: List[str] = []
         
         for child in element:
-            if child.tag == "ComPublisher":
+            if child.tag == "CommPublisher":
                 publisher = child.get("service", "")
             elif child.tag == "ComClaimant":
                 service = child.get("service", "")
@@ -614,9 +614,15 @@ class XMLParser:
                     # Don't add to attributes since this is a parameter mapping
                     # The value will be resolved at execution time
                 else:
-                    # This is variable substitution format
-                    value = self._substitute_variables(value)
-                    attributes[key] = value
+                    # Invalid parameter mapping format - contains {variable} but not in correct format
+                    # This should be an error as it's neither valid parameter mapping nor proper variable substitution
+                    raise ValueError(
+                        f"Invalid parameter mapping format in node '{element.get('name', element.tag)}' "
+                        f"attribute '{key}': '{value}'. "
+                        f"Parameter mapping must use exact format '{{blackboard_key}}' (e.g., '{{message}}'). "
+                        f"Mixed text with variables like 'Message: {{message}}' is not supported. "
+                        f"Use either: 1) Pure parameter mapping: '{{message}}' or 2) Plain text: 'Message'"
+                    )
             else:
                 # Try to convert attribute value types
                 try:
@@ -648,24 +654,11 @@ class XMLParser:
             value: String value that may contain {variable} placeholders
             
         Returns:
-            String with variables substituted
+            String with variables substituted (keeps placeholders for runtime resolution)
         """
-        import re
-        
-        # Define available variables
-        variables = {
-            "message": "Hello World",  # Default message
-            "topic": "news",           # Default topic
-            "duration": "1.0",         # Default duration
-            "timeout": "2.0",          # Default timeout
-        }
-        
-        # Find all {variable} patterns and replace them
-        def replace_var(match):
-            var_name = match.group(1)
-            return variables.get(var_name, match.group(0))
-        
-        return re.sub(r'\{(\w+)\}', replace_var, value)
+        # For now, we'll keep the placeholders as-is and let them be resolved at runtime
+        # This is a better approach than hardcoding variables
+        return value
 
 
 # Example XML formats:
@@ -692,14 +685,14 @@ Behavior Forest:
     </BehaviorTree>
     
     <Communication>
-        <ComTopic name="service_events">
-            <ComPublisher service="TriggerService" />
-            <ComSubscriber service="MonitorService" />
-        </ComTopic>
-        <ComShared>
+        <CommTopic name="service_events">
+            <CommPublisher service="TriggerService" />
+            <CommSubscriber service="MonitorService" />
+        </CommTopic>
+        <CommShared>
             <ComKey name="robots_enabled" />
             <ComKey name="timer_enabled" />
-        </ComShared>
+        </CommShared>
     </Communication>
 </BehaviorForest>
 """ 

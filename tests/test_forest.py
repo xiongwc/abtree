@@ -19,7 +19,7 @@ class DummyTree(BehaviorTree):
         super().__init__(name=name)
         # Create a simple root node
         from abtree.nodes.action import Log
-        self.root = Log(name="dummy_root", message="dummy execution")
+        self.root = Log(name="dummy_root")
     
     async def tick(self):
         return Status.SUCCESS

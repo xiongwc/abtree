@@ -63,10 +63,10 @@ def create_behavior_call_xml() -> str:
     </BehaviorTree>
     
     <Communication>
-        <ComCall name="process">
-            <ComProvider service="Provider" />
-            <ComCaller service="Caller" />
-        </ComCall>
+        <CommCall name="process">
+            <CommProvider service="Provider" />
+            <CommCaller service="Caller" />
+        </CommCall>
     </Communication>
     
 </BehaviorForest>'''

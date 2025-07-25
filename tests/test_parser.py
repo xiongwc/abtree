@@ -57,10 +57,10 @@ FOREST_WITH_COMMUNICATION_XML = '''
         </Sequence>
     </BehaviorTree>
     <Communication>
-        <ComTopic name="test_topic">
-            <ComPublisher service="PublisherTree"/>
-            <ComSubscriber service="SubscriberTree"/>
-        </ComTopic>
+        <CommTopic name="test_topic">
+            <CommPublisher service="PublisherTree"/>
+            <CommSubscriber service="SubscriberTree"/>
+        </CommTopic>
     </Communication>
 </BehaviorForest>
 '''

@@ -63,10 +63,10 @@ def create_task_board_xml() -> str:
     </BehaviorTree>
     
     <Communication>
-        <ComTask name="work">
-            <ComPublisher service="Publisher" />
+        <CommTask name="work">
+            <CommPublisher service="Publisher" />
             <ComClaimant service="Claimant" />
-        </ComTask>
+        </CommTask>
     </Communication>
     
 </BehaviorForest>'''

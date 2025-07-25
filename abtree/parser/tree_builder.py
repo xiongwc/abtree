@@ -240,13 +240,13 @@ class TreeBuilder:
         # Create first branch
         sequence1 = Sequence(name="Sequence1")
         sequence1.add_child(CheckBlackboard(name="CheckCondition1", key="condition1"))
-        sequence1.add_child(Log(name="Log1", message="Condition1 met"))
+        sequence1.add_child(Log(name="Log1"))
         sequence1.add_child(Wait(name="Wait1", duration=1.0))
 
         # Create second branch
         sequence2 = Sequence(name="Sequence2")
         sequence2.add_child(AlwaysTrue(name="AlwaysTrue"))
-        sequence2.add_child(Log(name="Log2", message="Execute default branch"))
+        sequence2.add_child(Log(name="Log2"))
 
         # Add to root node
         root.add_child(sequence1)
@@ -281,7 +281,7 @@ class TreeBuilder:
         attack_sequence.add_child(
             CheckBlackboard(name="CheckEnemy", key="enemy_visible", expected_value=True)
         )
-        attack_sequence.add_child(Log(name="AttackLog", message="Start attack"))
+        attack_sequence.add_child(Log(name="AttackLog"))
         attack_sequence.add_child(Wait(name="AttackWait", duration=0.5))
         attack_sequence.add_child(
             SetBlackboard(name="SetAttackStatus", key="attacking", value=True)
@@ -297,7 +297,7 @@ class TreeBuilder:
                 ),
             )
         )
-        patrol_sequence.add_child(Log(name="PatrolLog", message="Start patrol"))
+        patrol_sequence.add_child(Log(name="PatrolLog"))
 
         # Create parallel tasks
         from ..nodes.composite import Policy as CompositePolicy
@@ -311,7 +311,7 @@ class TreeBuilder:
                 ),
             )
         )
-        parallel_tasks.add_child(Log(name="StatusLog", message="Check status"))
+        parallel_tasks.add_child(Log(name="StatusLog"))
 
         # Add to root node
         root.add_child(attack_sequence)

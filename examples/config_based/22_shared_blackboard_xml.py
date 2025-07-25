@@ -64,10 +64,10 @@ def create_shared_blackboard_xml() -> str:
     </BehaviorTree>
     
     <Communication>
-        <ComShared>
+        <CommShared>
             <ComKey name="status" />
             <ComKey name="data" />
-        </ComShared>
+        </CommShared>
     </Communication>
     
 </BehaviorForest>'''

@@ -143,23 +143,23 @@ def create_production_forest_xml() -> str:
     <!-- Communication Configuration -->
     <Communication>
         <!-- Pub/Sub Communication -->
-        <ComTopic name="production_events">
-            <ComPublisher service="Production_System" />
-            <ComSubscriber service="Monitoring_System" />
-        </ComTopic>
+        <CommTopic name="production_events">
+            <CommPublisher service="Production_System" />
+            <CommSubscriber service="Monitoring_System" />
+        </CommTopic>
         
         <!-- Shared Blackboard -->
-        <ComShared>
+        <CommShared>
             <ComKey name="system_health" />
             <ComKey name="has_alerts" />
             <ComKey name="needs_maintenance" />
-        </ComShared>
+        </CommShared>
         
         <!-- State Watching -->
-        <ComState name="production_state">
-            <ComWatcher service="Monitoring_System" />
-            <ComWatcher service="Coordination_System" />
-        </ComState>
+        <CommState name="production_state">
+            <CommWatcher service="Monitoring_System" />
+            <CommWatcher service="Coordination_System" />
+        </CommState>
     </Communication>
     
 </BehaviorForest>'''
@@ -181,21 +181,21 @@ def create_monitoring_forest_xml() -> str:
     <!-- Communication Configuration -->
     <Communication>
         <!-- Pub/Sub Communication -->
-        <ComTopic name="monitoring_events">
-            <ComPublisher service="Monitoring_System" />
-            <ComSubscriber service="Coordination_System" />
-        </ComTopic>
+        <CommTopic name="monitoring_events">
+            <CommPublisher service="Monitoring_System" />
+            <CommSubscriber service="Coordination_System" />
+        </CommTopic>
         
         <!-- Shared Blackboard -->
-        <ComShared>
+        <CommShared>
             <ComKey name="monitoring_status" />
             <ComKey name="alert_level" />
-        </ComShared>
+        </CommShared>
         
         <!-- State Watching -->
-        <ComState name="monitoring_state">
-            <ComWatcher service="Coordination_System" />
-        </ComState>
+        <CommState name="monitoring_state">
+            <CommWatcher service="Coordination_System" />
+        </CommState>
     </Communication>
     
 </BehaviorForest>'''
@@ -217,30 +217,30 @@ def create_coordination_forest_xml() -> str:
     <!-- Communication Configuration -->
     <Communication>
         <!-- Pub/Sub Communication -->
-        <ComTopic name="coordination_events">
-            <ComPublisher service="Coordination_System" />
-            <ComSubscriber service="Production_System" />
-            <ComSubscriber service="Monitoring_System" />
-        </ComTopic>
+        <CommTopic name="coordination_events">
+            <CommPublisher service="Coordination_System" />
+            <CommSubscriber service="Production_System" />
+            <CommSubscriber service="Monitoring_System" />
+        </CommTopic>
         
         <!-- Request/Response Communication -->
-        <ComService name="system_status">
+        <CommService name="system_status">
             <ComServer service="Coordination_System" />
             <ComClient service="Production_System" />
             <ComClient service="Monitoring_System" />
-        </ComService>
+        </CommService>
         
         <!-- Shared Blackboard -->
-        <ComShared>
+        <CommShared>
             <ComKey name="coordination_status" />
             <ComKey name="system_status" />
-        </ComShared>
+        </CommShared>
         
         <!-- Task Board -->
-        <ComTask name="maintenance_task">
-            <ComPublisher service="Coordination_System" />
+        <CommTask name="maintenance_task">
+            <CommPublisher service="Coordination_System" />
             <ComClaimant service="Production_System" />
-        </ComTask>
+        </CommTask>
     </Communication>
     
 </BehaviorForest>'''

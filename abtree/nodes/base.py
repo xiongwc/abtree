@@ -136,11 +136,6 @@ class BaseNode(ABC):
             blackboard_key = self._param_mappings[attr_name]
             # Update blackboard
             self.blackboard.set(blackboard_key, value)
-            # Update internal attributes
-            setattr(self, attr_name, value)
-        else:
-            # If there is no mapping, only update internal attributes
-            setattr(self, attr_name, value)
 
     def get_param_mappings(self) -> Dict[str, str]:
         """

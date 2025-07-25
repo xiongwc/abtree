@@ -63,10 +63,10 @@ def create_reqresp_xml() -> str:
     </BehaviorTree>
     
     <Communication>
-        <ComService name="data">
+        <CommService name="data">
             <ComServer service="Server" />
             <ComClient service="Client" />
-        </ComService>
+        </CommService>
     </Communication>
     
 </BehaviorForest>'''

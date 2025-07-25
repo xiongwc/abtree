@@ -18,13 +18,13 @@ from abtree.parser.xml_parser import XMLParser
 from abtree.engine.event import EventDispatcher
 
 
-class PublisherAction(Action):
-    """Simple publisher action that emits events"""
+class CommPublisher(Action):
+    """publisher action that emits events"""
     
     def __init__(self, name: str):
         super().__init__(name)
     
-    async def execute(self,topic:str,message:str):
+    async def execute(self,topic:str,message: any):
         event_dispatcher = self.get_event_dispatcher()
         if event_dispatcher:
             await event_dispatcher.emit(f"topic_{topic}", source=self.name, data=message)
@@ -34,24 +34,22 @@ class PublisherAction(Action):
 
 
 class SubscriberAction(Action):
-    """Simple subscriber action that waits for events"""
+    """subscriber action that waits for events"""
     
     def __init__(self, name: str):
-        super().__init__(name)
-        self.topic = "news"
-        self.message = "hello world"
-    
-    async def execute(self,topic:str,message:str):
+        super().__init__(name)    
+    async def execute(self,topic:str,message: any):
         event_dispatcher = self.get_event_dispatcher()
         if event_dispatcher:            
-            event_triggered = await event_dispatcher.wait_for(f"topic_{self.topic}", timeout=2.0)
+            event_triggered = await event_dispatcher.wait_for(f"topic_{topic}", timeout=2.0)
             if event_triggered:
-                event_info = event_dispatcher.get_event_info(f"topic_{self.topic}")
+                event_info = event_dispatcher.get_event_info(f"topic_{topic}")
                 received_message = event_info.data if event_info and event_info.data else "No message data"
-                self.message = received_message  # Automatically sync to blackboard
-                print(f"✅ Received message: {self.message}")
+                message = received_message  # Automatically sync to blackboard
+                self.setPort("message", message)
+                print(f"✅ Received message: {message}")
             else:
-                print(f"⏰ Timeout waiting for event: topic_{self.topic}")
+                print(f"⏰ Timeout waiting for event: topic_{topic}")
         else:
             print(f"⚠️  No event dispatcher found in blackboard")
         return Status.SUCCESS
@@ -64,22 +62,22 @@ def create_pubsub_xml() -> str:
     
     <BehaviorTree name="Subscriber" description="Subscriber Service">
         <Sequence name="Subscriber Behavior">            
-            <SubscriberAction name="Subscribe Event" topic="news" message="{message_info}"/>
-            <Log message="Subscriber received message: {message_info}" />
+            <SubscriberAction name="Subscribe Event" topic="news" message="{message}"/>
+            <Log message="{message}" />
         </Sequence>
     </BehaviorTree>
     
     <BehaviorTree name="Publisher" description="Publisher Service">
         <Sequence name="Publisher Behavior">
-            <PublisherAction name="Publish Event" topic="news" message="hello world" />            
+            <CommPublisher name="Publish Event" topic="news" message="hello world" />            
         </Sequence>
     </BehaviorTree>
     
     <Communication>
-        <ComTopic name="news">
-            <ComPublisher service="Publisher" />
-            <ComSubscriber service="Subscriber" />
-        </ComTopic>
+        <CommTopic name="news">
+            <CommPublisher service="Publisher" />
+            <CommSubscriber service="Subscriber" />
+        </CommTopic>
     </Communication>
     
 </BehaviorForest>'''
@@ -87,7 +85,7 @@ def create_pubsub_xml() -> str:
 
 def register_custom_nodes():
     """Register custom node types"""
-    register_node("PublisherAction", PublisherAction)
+    register_node("CommPublisher", CommPublisher)
     register_node("SubscriberAction", SubscriberAction)
 
 async def main():

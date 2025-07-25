@@ -59,7 +59,7 @@
 
 ### 💾 Smart Data Management
 - **Blackboard System** - Cross-node data sharing and state persistence
-- **event dispatcher** - Asynchronous event listening, publishing and subscription mechanism
+- **Event Dispatcher** - Asynchronous event listening, publishing and subscription mechanism
 - **State Management** - Complete tracking of behavior tree execution state
 - **Data Validation** - Type-safe data access and modification
 

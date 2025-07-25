@@ -7,6 +7,7 @@ Provides unified logging functionality with support for different log levels and
 import logging
 import os
 import sys
+import inspect
 from dataclasses import dataclass
 from typing import Optional
 
@@ -44,7 +45,7 @@ class LevelColor:
 class LoggerConfig:
     """Logger configuration"""
     level: str = "INFO"
-    format: str = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    format: str = "%(asctime)s | %(levelname)s | %(classname)s | %(message)s"
     enable_colors: bool = True
 
 
@@ -68,6 +69,12 @@ class ColoredFormatter(logging.Formatter):
     
     def format(self, record: logging.LogRecord) -> str:
         """Format log record"""
+        # Add classname to record if not present
+        if not hasattr(record, 'classname'):
+            # Try to extract class name from the logger name or module
+            classname = record.name.split('.')[-1] if record.name else "Unknown"
+            record.classname = classname
+        
         # Check if colors are supported
         if not self.config.enable_colors or not self._supports_color():
             return super().format(record)
@@ -80,7 +87,7 @@ class ColoredFormatter(logging.Formatter):
         if len(parts) == 4:
             time_part = parts[0]
             level_part = parts[1]
-            name_part = parts[2]
+            classname_part = parts[2]
             message_part = parts[3]
             
             # Add colors to different parts
@@ -90,14 +97,14 @@ class ColoredFormatter(logging.Formatter):
             level_color = self.level_colors.get(record.levelno, ColorCode.WHITE)
             colored_level = f"{level_color}{level_part}{ColorCode.RESET}"
             
-            # Orange color for name (tree position) - using YELLOW as orange
-            colored_name = f"{ColorCode.YELLOW}{name_part}{ColorCode.RESET}"
+            # Blue color for classname
+            colored_classname = f"{ColorCode.BLUE}{classname_part}{ColorCode.RESET}"
             
             # White color for message
             colored_message = f"{ColorCode.WHITE}{message_part}{ColorCode.RESET}"
             
             # Reconstruct the formatted string
-            formatted = f"{colored_time} | {colored_level} | {colored_name} | {colored_message}"
+            formatted = f"{colored_time} | {colored_level} | {colored_classname} | {colored_message}"
         else:
             # Fallback: just color the level name
             if record.levelno in self.level_colors:
@@ -119,7 +126,7 @@ class ABTreeLogger:
     ABTree Logger Class
     
     A unified logger class that provides colored logging functionality
-    with support for different log levels.
+    with support for different log levels and automatic classname detection.
     """
     
     def __init__(self, name: str = "abtree", config: Optional[LoggerConfig] = None):
@@ -154,6 +161,34 @@ class ABTreeLogger:
         console_handler.setFormatter(formatter)
         self._logger.addHandler(console_handler)
     
+    def _get_calling_classname(self) -> str:
+        """Automatically detect the calling class name"""
+        try:
+            # Get the call stack
+            frame = inspect.currentframe()
+            # Go up 2 frames: 1 for the logging method, 1 for the caller
+            caller_frame = frame.f_back.f_back if frame and frame.f_back else None
+            
+            if caller_frame:
+                # Get the 'self' parameter from the calling frame
+                if 'self' in caller_frame.f_locals:
+                    calling_class = caller_frame.f_locals['self'].__class__.__name__
+                    return str(calling_class)
+                
+                # If no 'self', try to get from the function name or module
+                func_name = caller_frame.f_code.co_name
+                if func_name != '<module>':
+                    return str(func_name)
+                
+                # Fallback to module name
+                module_name = caller_frame.f_globals.get('__name__', 'Unknown')
+                return str(module_name.split('.')[-1])
+            
+        except Exception:
+            pass
+        
+        return "Unknown"
+    
     def get_logger(self) -> logging.Logger:
         """Get underlying logger"""
         return self._logger
@@ -163,46 +198,59 @@ class ABTreeLogger:
         self._logger.setLevel(getattr(logging, level.upper()))
     
     def debug(self, message: str) -> None:
-        """Log debug message"""
-        self._logger.debug(message)
+        """Log debug message with automatic classname detection"""
+        classname = self._get_calling_classname()
+        extra = {'classname': classname}
+        self._logger.debug(message, extra=extra)
     
     def info(self, message: str) -> None:
-        """Log info message"""
-        self._logger.info(message)
+        """Log info message with automatic classname detection"""
+        classname = self._get_calling_classname()
+        extra = {'classname': classname}
+        self._logger.info(message, extra=extra)
     
     def warning(self, message: str) -> None:
-        """Log warning message"""
-        self._logger.warning(message)
+        """Log warning message with automatic classname detection"""
+        classname = self._get_calling_classname()
+        extra = {'classname': classname}
+        self._logger.warning(message, extra=extra)
     
     def error(self, message: str) -> None:
-        """Log error message"""
-        self._logger.error(message)
+        """Log error message with automatic classname detection"""
+        classname = self._get_calling_classname()
+        extra = {'classname': classname}
+        self._logger.error(message, extra=extra)
     
     def critical(self, message: str) -> None:
-        """Log critical message"""
-        self._logger.critical(message)
+        """Log critical message with automatic classname detection"""
+        classname = self._get_calling_classname()
+        extra = {'classname': classname}
+        self._logger.critical(message, extra=extra)
     
     def log_with_color(self, message: str, color: str = ColorCode.GREEN, level: str = "INFO") -> None:
         """
-        Log with custom color
+        Log with custom color and automatic classname detection
         
         Args:
             message: Log message
             color: Color code
             level: Log level
         """
+        classname = self._get_calling_classname()
+        extra = {'classname': classname}
+        
         if level.upper() == "DEBUG":
-            self._logger.debug(message)
+            self._logger.debug(message, extra=extra)
         elif level.upper() == "INFO":
-            self._logger.info(message)
+            self._logger.info(message, extra=extra)
         elif level.upper() == "WARNING":
-            self._logger.warning(message)
+            self._logger.warning(message, extra=extra)
         elif level.upper() == "ERROR":
-            self._logger.error(message)
+            self._logger.error(message, extra=extra)
         elif level.upper() == "CRITICAL":
-            self._logger.critical(message)
+            self._logger.critical(message, extra=extra)
         else:
-            self._logger.info(message)
+            self._logger.info(message, extra=extra)
 
 
 # Global logger instances

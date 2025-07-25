@@ -216,12 +216,12 @@ async def test_action_node():
 async def test_log_node():
     """Test log node functionality"""
     # Create log node
-    log = Log("test_log", "Test message")
+    log = Log("test_log")
     blackboard = Blackboard()
     log.set_blackboard(blackboard)
     
     # Test log
-    result = await log.tick()
+    result = await log.tick(message="Test message")
     assert result == Status.SUCCESS
 
 @pytest.mark.asyncio
