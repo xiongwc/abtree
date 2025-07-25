@@ -27,7 +27,7 @@ from abtree.parser.xml_parser import XMLParser
 class HelloWorldAction(Action):
     """The simplest action node - print Hello World"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Hello World! This is the first example of ABTree")
         return Status.SUCCESS
 

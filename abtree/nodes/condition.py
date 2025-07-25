@@ -30,14 +30,11 @@ class Condition(BaseNode):
         if self.children:
             raise ValueError("Condition nodes cannot have child nodes")
 
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute condition node
 
         Call the evaluate method to check the condition.
-
-        Args:
-            blackboard: blackboard system
 
         Returns:
             execution status
@@ -47,7 +44,7 @@ class Condition(BaseNode):
             self.update_tick_time()
 
             # Check condition
-            result = await self.evaluate(blackboard)
+            result = await self.evaluate()
 
             # Set status
             self.status = Status.SUCCESS if result else Status.FAILURE
@@ -60,14 +57,11 @@ class Condition(BaseNode):
             return Status.FAILURE
 
     @abstractmethod
-    async def evaluate(self, blackboard: Blackboard) -> bool:
+    async def evaluate(self) -> bool:
         """
         Check condition
 
         Subclasses must implement this method to check specific conditions.
-
-        Args:
-            blackboard: blackboard system, for data sharing
 
         Returns:
             Whether the condition is met: True means met, False means not met
@@ -110,7 +104,7 @@ class CheckBlackboard(Condition):
     expected_value: Any = None
     check_exists: bool = False  # Whether to only check if the key exists
 
-    async def evaluate(self, blackboard: Blackboard) -> bool:
+    async def evaluate(self) -> bool:
         """
         Check blackboard data
 
@@ -125,10 +119,10 @@ class CheckBlackboard(Condition):
 
         if self.check_exists:
             # Only check if the key exists
-            return blackboard.has(self.key)
+            return self.blackboard.has(self.key)
         else:
             # Check key-value pair
-            actual_value = blackboard.get(self.key)
+            actual_value = self.blackboard.get(self.key)
             return bool(actual_value == self.expected_value)
 
     def set_key(self, key: str) -> None:
@@ -169,7 +163,7 @@ class IsTrue(Condition):
 
     key: str = ""
 
-    async def evaluate(self, blackboard: Blackboard) -> bool:
+    async def evaluate(self) -> bool:
         """
         Check boolean value
 
@@ -182,7 +176,7 @@ class IsTrue(Condition):
         if not self.key:
             return False
 
-        value = blackboard.get(self.key, False)
+        value = self.blackboard.get(self.key, False)
         return bool(value)
 
     def set_key(self, key: str) -> None:
@@ -205,7 +199,7 @@ class IsFalse(Condition):
 
     key: str = ""
 
-    async def evaluate(self, blackboard: Blackboard) -> bool:
+    async def evaluate(self) -> bool:
         """
         Check boolean value
 
@@ -218,7 +212,7 @@ class IsFalse(Condition):
         if not self.key:
             return True  # If the key does not exist, treat as false
 
-        value = blackboard.get(self.key, False)
+        value = self.blackboard.get(self.key, False)
         return not bool(value)
 
     def set_key(self, key: str) -> None:
@@ -243,7 +237,7 @@ class Compare(Condition):
     operator: str = "=="  # ==, !=, >, <, >=, <=
     value: Any = None
 
-    async def evaluate(self, blackboard: Blackboard) -> bool:
+    async def evaluate(self) -> bool:
         """
         Execute comparison
 
@@ -256,7 +250,7 @@ class Compare(Condition):
         if not self.key:
             return False
 
-        actual_value = blackboard.get(self.key)
+        actual_value = self.blackboard.get(self.key)
 
         try:
             if self.operator == "==":
@@ -299,7 +293,7 @@ class AlwaysTrue(Condition):
     Always returns True, used for testing or debugging.
     """
 
-    async def evaluate(self, blackboard: Blackboard) -> bool:
+    async def evaluate(self) -> bool:
         """
         Always return True
 
@@ -320,7 +314,7 @@ class AlwaysFalse(Condition):
     Always returns False, used for testing or debugging.
     """
 
-    async def evaluate(self, blackboard: Blackboard) -> bool:
+    async def evaluate(self) -> bool:
         """
         Always return False
 

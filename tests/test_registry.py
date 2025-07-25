@@ -1,14 +1,15 @@
 import pytest
 from abtree.registry.node_registry import NodeRegistry, get_global_registry, register_node, create_node, get_registered_nodes, is_node_registered
 from abtree.nodes.base import BaseNode
+from abtree.core.status import Status
 
-class DummyNode(BaseNode):
-    async def tick(self, blackboard):
-        return None
+class TestNode(BaseNode):
+    async def tick(self):
+        return Status.SUCCESS
 
-class AnotherDummyNode(BaseNode):
-    async def tick(self, blackboard):
-        return None
+class TestNode2(BaseNode):
+    async def tick(self):
+        return Status.FAILURE
 
 def test_register_and_create_node():
     reg = NodeRegistry()

@@ -28,7 +28,7 @@ from abtree.parser.xml_parser import XMLParser
 class Step1Action(Action):
     """First step action"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Step 1: Check system status")
         await asyncio.sleep(0.01)  # Simulate processing time
         return Status.SUCCESS
@@ -37,7 +37,7 @@ class Step1Action(Action):
 class Step2Action(Action):
     """Second step action"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Step 2: Initialize components")
         await asyncio.sleep(0.01)
         return Status.SUCCESS
@@ -46,7 +46,7 @@ class Step2Action(Action):
 class Step3Action(Action):
     """Third step action"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Step 3: Start services")
         await asyncio.sleep(0.01)
         return Status.SUCCESS
@@ -55,7 +55,7 @@ class Step3Action(Action):
 class SuccessAction(Action):
     """Action that always succeeds"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Success action executed")
         return Status.SUCCESS
 
@@ -63,7 +63,7 @@ class SuccessAction(Action):
 class FailAction(Action):
     """Action that always fails"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Fail action executed")
         return Status.FAILURE
 

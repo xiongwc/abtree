@@ -24,13 +24,11 @@ class GetValueAction(Action):
     async def execute(self, blackboard):
         print(f"GetValueAction - Mapping relationships: {self.get_param_mappings()}")
         print(f"GetValueAction - value_a before setting: {self.value_a}")
-        print(f"GetValueAction - blackboard.exchange_value before setting: {blackboard.get('exchange_value')}")
         
         # Set property, decorator will automatically sync to blackboard
         self.value_a = "1234567"
         
         print(f"GetValueAction - value_a after setting: {self.value_a}")
-        print(f"GetValueAction - blackboard.exchange_value after setting: {blackboard.get('exchange_value')}")
         
         return Status.SUCCESS
 

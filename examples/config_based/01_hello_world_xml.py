@@ -21,7 +21,7 @@ from abtree.core import Status
 class HelloWorldAction(Action):
     """The simplest action node - print Hello World"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Hello World! This is the XML configuration version of ABTree")
         return Status.SUCCESS
 

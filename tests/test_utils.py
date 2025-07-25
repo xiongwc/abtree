@@ -10,10 +10,10 @@ from abtree.nodes.base import BaseNode
 from abtree.core.status import Status
 
 class DummyNode(BaseNode):
-    async def tick(self, blackboard):
+    async def tick(self):
         return Status.SUCCESS
     
-    def execute(self, blackboard):
+    def execute(self):
         return Status.SUCCESS
     
     def __init__(self, name: str):

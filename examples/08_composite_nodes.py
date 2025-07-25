@@ -1,339 +1,261 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Example 08: Composite Nodes in Depth – Using Various Composite Nodes
+Composite Nodes Example
 
-Demonstrates how to create and use different types of composite nodes.
-Composite nodes combine multiple child nodes to implement complex control logic.
-
-Key Learning Points:
-
-    Basic structure of composite nodes
-
-    Parallel execution mechanisms
-
-    Priority handling
-
-    Child node management
-
-    Complex combination logic
-
-    How to configure composite nodes using XML strings
+This example demonstrates the usage of various composite nodes in the behavior tree.
+Composite nodes contain multiple child nodes and control their execution flow.
 """
 
 import asyncio
-import random
-from abtree import BehaviorTree, Sequence, Selector, Action, Condition, register_node
-from abtree.core import Status
-from abtree.parser.xml_parser import XMLParser
+from abtree.engine.behavior_tree import BehaviorTree
+from abtree.engine.blackboard import Blackboard
+from abtree.core.status import Status
+from abtree.nodes.base import BaseNode
+from abtree.nodes.composite import Sequence, Selector, Parallel
 
 
-# Register custom node types
-def register_custom_nodes():
-    """Register custom node types"""
-    register_node("TestAction", TestAction)
-    register_node("TestCondition", TestCondition)
+# Custom action node for demonstration
+class SimpleAction(BaseNode):
+    def __init__(self, name: str, should_succeed: bool = True, delay: float = 0.1):
+        super().__init__(name)
+        self.should_succeed = should_succeed
+        self.delay = delay
+        self.execution_count = 0
 
-
-class ParallelNode:
-    """Parallel node - execute multiple child nodes simultaneously"""
-    
-    def __init__(self, name, children=None, success_policy="ALL", failure_policy="ANY"):
-        self.name = name
-        self.children = children or []
-        self.success_policy = success_policy  # "ALL", "ANY", "MAJORITY"
-        self.failure_policy = failure_policy  # "ALL", "ANY", "MAJORITY"
-    
-    def add_child(self, child):
-        self.children.append(child)
-    
-    async def tick(self, blackboard):
-        print(f"Parallel node {self.name}: executing {len(self.children)} child nodes")
+    async def tick(self):
+        self.execution_count += 1
+        print(f"  {self.name} executed (count: {self.execution_count})")
         
-        # Execute all child nodes simultaneously
-        tasks = [child.tick(blackboard) for child in self.children]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        if self.delay > 0:
+            await asyncio.sleep(self.delay)
         
-        # Count results
-        success_count = sum(1 for r in results if r == Status.SUCCESS)
-        failure_count = sum(1 for r in results if r == Status.FAILURE)
-        running_count = sum(1 for r in results if r == Status.RUNNING)
-        
-        print(f"Parallel node {self.name}: success={success_count}, failure={failure_count}, running={running_count}")
-        
-        # Determine final result based on policy
-        if self.success_policy == "ALL":
-            success = success_count == len(self.children)
-        elif self.success_policy == "ANY":
-            success = success_count > 0
-        elif self.success_policy == "MAJORITY":
-            success = success_count > len(self.children) // 2
-        else:
-            success = False
-        
-        if self.failure_policy == "ALL":
-            failure = failure_count == len(self.children)
-        elif self.failure_policy == "ANY":
-            failure = failure_count > 0
-        elif self.failure_policy == "MAJORITY":
-            failure = failure_count > len(self.children) // 2
-        else:
-            failure = False
-        
-        if failure:
-            return Status.FAILURE
-        elif success:
+        if self.should_succeed:
             return Status.SUCCESS
         else:
-            return Status.RUNNING
+            return Status.FAILURE
 
 
-class PriorityNode:
-    """Priority node - execute child nodes in priority order"""
-    
-    def __init__(self, name, children=None):
-        self.name = name
-        self.children = children or []
-        self.current_index = 0
-    
-    def add_child(self, child):
-        self.children.append(child)
-    
-    async def tick(self, blackboard):
-        print(f"Priority node {self.name}: current index {self.current_index}")
+# Custom composite node that executes children in random order
+class RandomSelector(BaseNode):
+    def __init__(self, name: str, children: list = None):
+        super().__init__(name, children)
+        self.executed_children = set()
+
+    async def tick(self):
+        if not self.children:
+            return Status.FAILURE
         
-        # Try executing child nodes starting from current index
-        for i in range(self.current_index, len(self.children)):
-            child = self.children[i]
-            print(f"Priority node {self.name}: trying to execute child node {i}: {child.name}")
-            
-            result = await child.tick(blackboard)
-            
+        # Get unexecuted children
+        available_children = [child for child in self.children 
+                            if child not in self.executed_children]
+        
+        if not available_children:
+            # All children executed, reset and return success
+            self.executed_children.clear()
+            return Status.SUCCESS
+        
+        # Select random child
+        import random
+        selected_child = random.choice(available_children)
+        self.executed_children.add(selected_child)
+        
+        result = await selected_child.tick()
+        return result
+
+
+# Custom composite node that executes children in priority order
+class PrioritySelector(BaseNode):
+    def __init__(self, name: str, children: list = None):
+        super().__init__(name, children)
+
+    async def tick(self):
+        if not self.children:
+            return Status.FAILURE
+        
+        # Execute children in order until one succeeds
+        for child in self.children:
+            result = await child.tick()
             if result == Status.SUCCESS:
-                print(f"Priority node {self.name}: child node {i} succeeded, reset index")
-                self.current_index = 0
                 return Status.SUCCESS
             elif result == Status.RUNNING:
-                print(f"Priority node {self.name}: child node {i} is running, keep index")
-                self.current_index = i
                 return Status.RUNNING
-            else:  # FAILURE
-                print(f"Priority node {self.name}: child node {i} failed, try next")
-                continue
         
-        # All child nodes failed
-        print(f"Priority node {self.name}: all child nodes failed")
-        self.current_index = 0
         return Status.FAILURE
 
 
-class RandomSelector:
-    """Random selector - randomly select a child node to execute"""
-    
-    def __init__(self, name, children=None):
-        self.name = name
-        self.children = children or []
-    
-    def add_child(self, child):
-        self.children.append(child)
-    
-    async def tick(self, blackboard):
+# Custom composite node that executes children with timeout
+class TimeoutSequence(BaseNode):
+    def __init__(self, name: str, timeout: float = 2.0, children: list = None):
+        super().__init__(name, children)
+        self.timeout = timeout
+        self.start_time = None
+
+    async def tick(self):
         if not self.children:
+            return Status.SUCCESS
+        
+        if self.start_time is None:
+            self.start_time = asyncio.get_event_loop().time()
+        
+        # Check timeout
+        current_time = asyncio.get_event_loop().time()
+        if current_time - self.start_time > self.timeout:
+            print(f"  {self.name} timeout reached")
+            self.start_time = None
             return Status.FAILURE
         
-        # Randomly select a child node
-        selected_child = random.choice(self.children)
-        print(f"Random selector {self.name}: selected child node {selected_child.name}")
-        
-        result = await selected_child.tick(blackboard)
-        print(f"Random selector {self.name}: child node returned {result}")
-        
-        return result
-
-
-class MemorySequence:
-    """Memory sequence - remember the last executed position"""
-    
-    def __init__(self, name, children=None):
-        self.name = name
-        self.children = children or []
-        self.current_index = 0
-    
-    def add_child(self, child):
-        self.children.append(child)
-    
-    async def tick(self, blackboard):
-        print(f"Memory sequence {self.name}: starting from position {self.current_index}")
-        
-        # Execute child nodes from remembered position
-        for i in range(self.current_index, len(self.children)):
-            child = self.children[i]
-            print(f"Memory sequence {self.name}: executing child node {i}: {child.name}")
-            
-            result = await child.tick(blackboard)
-            
-            if result == Status.SUCCESS:
-                print(f"Memory sequence {self.name}: child node {i} succeeded, continue next")
-                continue
-            elif result == Status.RUNNING:
-                print(f"Memory sequence {self.name}: child node {i} is running, remember position")
-                self.current_index = i
-                return Status.RUNNING
-            else:  # FAILURE
-                print(f"Memory sequence {self.name}: child node {i} failed, reset position")
-                self.current_index = 0
+        # Execute children in sequence
+        for child in self.children:
+            result = await child.tick()
+            if result == Status.FAILURE:
+                self.start_time = None
                 return Status.FAILURE
+            elif result == Status.RUNNING:
+                return Status.RUNNING
         
-        # All child nodes succeeded
-        print(f"Memory sequence {self.name}: all child nodes succeeded, reset position")
-        self.current_index = 0
+        self.start_time = None
         return Status.SUCCESS
 
 
-class WeightedSelector:
-    """Weighted selector - select child nodes based on weights"""
-    
-    def __init__(self, name, children=None, weights=None):
-        self.name = name
-        self.children = children or []
-        self.weights = weights or [1] * len(self.children)
-    
-    def add_child(self, child, weight=1):
-        self.children.append(child)
-        self.weights.append(weight)
-    
-    async def tick(self, blackboard):
-        if not self.children:
-            return Status.FAILURE
-        
-        # Randomly select based on weights
-        total_weight = sum(self.weights)
-        rand_val = random.uniform(0, total_weight)
-        
-        cumulative_weight = 0
-        selected_index = 0
-        
-        for i, weight in enumerate(self.weights):
-            cumulative_weight += weight
-            if rand_val <= cumulative_weight:
-                selected_index = i
-                break
-        
-        selected_child = self.children[selected_index]
-        print(f"Weighted selector {self.name}: selected child node {selected_child.name} (weight: {self.weights[selected_index]})")
-        
-        result = await selected_child.tick(blackboard)
-        print(f"Weighted selector {self.name}: child node returned {result}")
-        
-        return result
-
-
-# Test action and condition nodes
-class TestAction(Action):
-    """Test action node"""
-    
-    def __init__(self, name, success_rate=0.8, duration=0.5):
-        super().__init__(name)
-        self.success_rate = success_rate
-        self.duration = duration
-    
-    async def execute(self, blackboard):
-        print(f"Executing test action: {self.name}")
-        await asyncio.sleep(self.duration)
-        
-        success = random.random() < self.success_rate
-        result = Status.SUCCESS if success else Status.FAILURE
-        print(f"Test action {self.name}: {'success' if success else 'failure'}")
-        
-        return result
-
-
-class TestCondition(Condition):
-    """Test condition node"""
-    
-    def __init__(self, name, success_rate=0.7):
-        super().__init__(name)
-        self.success_rate = success_rate
-    
-    async def evaluate(self, blackboard):
-        print(f"Checking test condition: {self.name}")
-        
-        success = random.random() < self.success_rate
-        print(f"Test condition {self.name}: {'satisfied' if success else 'unsatisfied'}")
-        
-        return success
-
-
 async def main():
-    """Main function - demonstrate various composite node usage"""
+    print("=== Composite Nodes Example ===\n")
+
+    # Create blackboard
+    blackboard = Blackboard()
+
+    # 1. Sequence Node
+    print("1. Sequence Node")
+    print("   Executes children in order, fails if any child fails")
     
-    # Register custom node types
-    register_custom_nodes()
+    seq = Sequence("TestSequence", [
+        SimpleAction("Action1", should_succeed=True),
+        SimpleAction("Action2", should_succeed=True),
+        SimpleAction("Action3", should_succeed=True)
+    ])
+    seq.set_blackboard(blackboard)
     
-    print("=== ABTree Composite Nodes Detailed Example ===\n")
+    result = await seq.tick()
+    print(f"   Sequence result: {result}\n")
     
-    # 1. Test parallel node
-    print("=== Parallel Node Test ===")
-    parallel = ParallelNode("Parallel Test", success_policy="ANY", failure_policy="ANY")
-    parallel.add_child(TestAction("Parallel Action 1", 0.8, 0.3))
-    parallel.add_child(TestAction("Parallel Action 2", 0.6, 0.4))
-    parallel.add_child(TestAction("Parallel Action 3", 0.9, 0.2))
+    # Sequence with failure
+    seq_fail = Sequence("TestSequenceFail", [
+        SimpleAction("Action1", should_succeed=True),
+        SimpleAction("Action2", should_succeed=False),
+        SimpleAction("Action3", should_succeed=True)
+    ])
+    seq_fail.set_blackboard(blackboard)
     
-    tree1 = BehaviorTree()
-    tree1.load_from_node(parallel)
-    result1 = await tree1.tick()
-    print(f"Parallel node result: {result1}\n")
+    result = await seq_fail.tick()
+    print(f"   Sequence with failure result: {result}\n")
+
+    # 2. Selector Node
+    print("2. Selector Node")
+    print("   Executes children in order, succeeds if any child succeeds")
     
-    # 2. Test priority node
-    print("=== Priority Node Test ===")
-    priority = PriorityNode("Priority Test")
-    priority.add_child(TestAction("High Priority Action", 0.3, 0.2))  # Low success rate
-    priority.add_child(TestAction("Medium Priority Action", 0.7, 0.2))
-    priority.add_child(TestAction("Low Priority Action", 0.9, 0.2))
+    sel = Selector("TestSelector", [
+        SimpleAction("Action1", should_succeed=False),
+        SimpleAction("Action2", should_succeed=True),
+        SimpleAction("Action3", should_succeed=False)
+    ])
+    sel.set_blackboard(blackboard)
     
-    tree2 = BehaviorTree()
-    tree2.load_from_node(priority)
-    result2 = await tree2.tick()
-    print(f"Priority node result: {result2}\n")
+    result = await sel.tick()
+    print(f"   Selector result: {result}\n")
     
-    # 3. Test random selector
-    print("=== Random Selector Test ===")
-    random_selector = RandomSelector("Random Test")
-    random_selector.add_child(TestAction("Random Action 1", 0.8, 0.2))
-    random_selector.add_child(TestAction("Random Action 2", 0.8, 0.2))
-    random_selector.add_child(TestAction("Random Action 3", 0.8, 0.2))
+    # Selector with all failures
+    sel_fail = Selector("TestSelectorFail", [
+        SimpleAction("Action1", should_succeed=False),
+        SimpleAction("Action2", should_succeed=False),
+        SimpleAction("Action3", should_succeed=False)
+    ])
+    sel_fail.set_blackboard(blackboard)
     
-    tree3 = BehaviorTree()
-    tree3.load_from_node(random_selector)
-    result3 = await tree3.tick()
-    print(f"Random selector result: {result3}\n")
+    result = await sel_fail.tick()
+    print(f"   Selector with all failures result: {result}\n")
+
+    # 3. Parallel Node
+    print("3. Parallel Node")
+    print("   Executes all children concurrently")
     
-    # 4. Test memory sequence
-    print("=== Memory Sequence Test ===")
-    memory_sequence = MemorySequence("Memory Test")
-    memory_sequence.add_child(TestAction("Memory Action 1", 0.9, 0.2))
-    memory_sequence.add_child(TestAction("Memory Action 2", 0.9, 0.2))
-    memory_sequence.add_child(TestAction("Memory Action 3", 0.9, 0.2))
+    par = Parallel("TestParallel", [
+        SimpleAction("Action1", should_succeed=True, delay=0.2),
+        SimpleAction("Action2", should_succeed=True, delay=0.1),
+        SimpleAction("Action3", should_succeed=True, delay=0.3)
+    ])
+    par.set_blackboard(blackboard)
     
-    tree4 = BehaviorTree()
-    tree4.load_from_node(memory_sequence)
-    result4 = await tree4.tick()
-    print(f"Memory sequence result: {result4}\n")
+    result = await par.tick()
+    print(f"   Parallel result: {result}\n")
     
-    # 5. Test weighted selector
-    print("=== Weighted Selector Test ===")
-    weighted_selector = WeightedSelector("Weighted Test")
-    weighted_selector.add_child(TestAction("High Weight Action", 0.8, 0.2), 3)
-    weighted_selector.add_child(TestAction("Medium Weight Action", 0.8, 0.2), 2)
-    weighted_selector.add_child(TestAction("Low Weight Action", 0.8, 0.2), 1)
+    # Parallel with mixed results
+    par_mixed = Parallel("TestParallelMixed", [
+        SimpleAction("Action1", should_succeed=True, delay=0.1),
+        SimpleAction("Action2", should_succeed=False, delay=0.1),
+        SimpleAction("Action3", should_succeed=True, delay=0.1)
+    ])
+    par_mixed.set_blackboard(blackboard)
     
-    tree5 = BehaviorTree()
-    tree5.load_from_node(weighted_selector)
-    result5 = await tree5.tick()
-    print(f"Weighted selector result: {result5}\n")
+    result = await par_mixed.tick()
+    print(f"   Parallel with mixed results: {result}\n")
+
+    # 4. Custom Composite Nodes
+    print("4. Custom Composite Nodes")
     
-    print("All composite nodes test completed!") 
-  
+    # Random Selector
+    random_sel = RandomSelector("TestRandomSelector", [
+        SimpleAction("Action1", should_succeed=True),
+        SimpleAction("Action2", should_succeed=True),
+        SimpleAction("Action3", should_succeed=True)
+    ])
+    random_sel.set_blackboard(blackboard)
+    
+    print("   Random Selector (executes children in random order):")
+    for i in range(3):
+        result = await random_sel.tick()
+        print(f"   Execution {i+1}: {result}")
+    print()
+    
+    # Priority Selector
+    priority_sel = PrioritySelector("TestPrioritySelector", [
+        SimpleAction("Action1", should_succeed=False),
+        SimpleAction("Action2", should_succeed=True),
+        SimpleAction("Action3", should_succeed=True)
+    ])
+    priority_sel.set_blackboard(blackboard)
+    
+    result = await priority_sel.tick()
+    print(f"   Priority Selector result: {result}\n")
+    
+    # Timeout Sequence
+    timeout_seq = TimeoutSequence("TestTimeoutSequence", timeout=0.5, children=[
+        SimpleAction("Action1", should_succeed=True, delay=0.2),
+        SimpleAction("Action2", should_succeed=True, delay=0.2),
+        SimpleAction("Action3", should_succeed=True, delay=0.2)
+    ])
+    timeout_seq.set_blackboard(blackboard)
+    
+    result = await timeout_seq.tick()
+    print(f"   Timeout Sequence result: {result}\n")
+
+    # 5. Nested Composite Nodes
+    print("5. Nested Composite Nodes")
+    print("   Combining different composite node types")
+    
+    nested = Sequence("NestedTest", [
+        Selector("InnerSelector", [
+            SimpleAction("Action1", should_succeed=False),
+            SimpleAction("Action2", should_succeed=True)
+        ]),
+        Parallel("InnerParallel", [
+            SimpleAction("Action3", should_succeed=True),
+            SimpleAction("Action4", should_succeed=True)
+        ])
+    ])
+    nested.set_blackboard(blackboard)
+    
+    result = await nested.tick()
+    print(f"   Nested composite result: {result}")
+
+    print("\n=== Example completed ===")
 
 
 if __name__ == "__main__":

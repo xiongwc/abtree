@@ -26,6 +26,7 @@ class BaseNode(ABC):
         status: Current execution status
         _last_tick_time: Last execution time
         _param_mappings: Parameter mapping table, storing the mapping of node member variable names to blackboard key names
+        blackboard: Reference to the behavior tree's blackboard system
     """
 
     def __init__(self, name: str, children: Optional[List["BaseNode"]] = None):
@@ -35,10 +36,32 @@ class BaseNode(ABC):
         self.status = Status.FAILURE
         self._last_tick_time = 0.0
         self._param_mappings = {}
+        self.blackboard: Optional[Blackboard] = None
         
         # Set parent node reference for child nodes after initialization
         for child in self.children:
             child.parent = self
+
+    def set_blackboard(self, blackboard: Blackboard) -> None:
+        """
+        Set the blackboard reference for this node and all its descendants
+        
+        Args:
+            blackboard: Blackboard system to set
+        """
+        self.blackboard = blackboard
+        # Recursively set blackboard for all child nodes
+        for child in self.children:
+            child.set_blackboard(blackboard)
+
+    def get_blackboard(self) -> Optional[Blackboard]:
+        """
+        Get the blackboard reference
+        
+        Returns:
+            Blackboard system or None if not set
+        """
+        return self.blackboard
 
     def set_param_mapping(self, node_attr: str, blackboard_key: str) -> None:
         """
@@ -50,38 +73,36 @@ class BaseNode(ABC):
         """
         self._param_mappings[node_attr] = blackboard_key
 
-    def get_mapped_value(self, attr_name: str, blackboard: Blackboard, default: Any = None) -> Any:
+    def get_mapped_value(self, attr_name: str, default: Any = None) -> Any:
         """
         Get mapped value, prioritize from blackboard, if not set then use default value
         
         Args:
             attr_name: Node member variable name
-            blackboard: Blackboard system
             default: Default value
             
         Returns:
             Mapped value
         """
-        if attr_name in self._param_mappings:
+        if attr_name in self._param_mappings and self.blackboard is not None:
             blackboard_key = self._param_mappings[attr_name]
             # Get value from blackboard, if not set then use default value
-            value = blackboard.get(blackboard_key, default)
+            value = self.blackboard.get(blackboard_key, default)
             return value
         return getattr(self, attr_name, default)
 
-    def set_mapped_value(self, attr_name: str, value: Any, blackboard: Blackboard) -> None:
+    def set_mapped_value(self, attr_name: str, value: Any) -> None:
         """
         Set mapped value, update blackboard and internal attributes
         
         Args:
             attr_name: Node member variable name
             value: Value to set
-            blackboard: Blackboard system
         """
-        if attr_name in self._param_mappings:
+        if attr_name in self._param_mappings and self.blackboard is not None:
             blackboard_key = self._param_mappings[attr_name]
             # Update blackboard
-            blackboard.set(blackboard_key, value)
+            self.blackboard.set(blackboard_key, value)
             # Update internal attributes
             setattr(self, attr_name, value)
         else:
@@ -98,14 +119,11 @@ class BaseNode(ABC):
         return self._param_mappings.copy()
 
     @abstractmethod
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute node logic
 
         This is the core method of the node, which every node must implement.
-
-        Args:
-            blackboard: Blackboard system for data sharing
 
         Returns:
             Execution status: SUCCESS, FAILURE or RUNNING
@@ -121,6 +139,9 @@ class BaseNode(ABC):
         """
         self.children.append(child)
         child.parent = self
+        # Propagate blackboard to new child
+        if self.blackboard is not None:
+            child.set_blackboard(self.blackboard)
 
     def remove_child(self, child: "BaseNode") -> bool:
         """
@@ -207,13 +228,13 @@ class BaseNode(ABC):
 
     def find_node_by_name(self, name: str) -> Optional["BaseNode"]:
         """
-        Find node by name in the subtree
+        Find node with specified name in the subtree
 
         Args:
             name: Node name to find
 
         Returns:
-            Found node or None
+            Found node or None if not found
         """
         if self.name == name:
             return self
@@ -224,6 +245,18 @@ class BaseNode(ABC):
                 return found
         
         return None
+
+    def find_node(self, name: str) -> Optional["BaseNode"]:
+        """
+        Find node with specified name in the subtree (alias for find_node_by_name)
+
+        Args:
+            name: Node name to find
+
+        Returns:
+            Found node or None if not found
+        """
+        return self.find_node_by_name(name)
 
     def reset(self) -> None:
         """Reset node status"""

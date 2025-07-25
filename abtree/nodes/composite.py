@@ -60,15 +60,12 @@ class Sequence(CompositeNode):
     If any child node fails, the sequence fails.
     """
 
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute sequence node
 
         Execute all child nodes in sequence, return failure immediately if any child node fails,
         return success only if all child nodes succeed.
-
-        Args:
-            blackboard: blackboard system
 
         Returns:
             execution status
@@ -77,7 +74,7 @@ class Sequence(CompositeNode):
             return Status.SUCCESS
 
         for child in self.children:
-            child_status = await child.tick(blackboard)
+            child_status = await child.tick()
 
             if child_status == Status.FAILURE:
                 self.status = Status.FAILURE
@@ -98,15 +95,12 @@ class Selector(CompositeNode):
     If all child nodes fail, the selector fails.
     """
 
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute selector node
 
         Execute child nodes in sequence, return success immediately if any child node succeeds.
         If all child nodes fail, the selector fails.
-
-        Args:
-            blackboard: blackboard system
 
         Returns:
             execution status
@@ -115,7 +109,7 @@ class Selector(CompositeNode):
             return Status.FAILURE
 
         for child in self.children:
-            child_status = await child.tick(blackboard)
+            child_status = await child.tick()
 
             if child_status == Status.SUCCESS:
                 self.status = Status.SUCCESS
@@ -140,14 +134,11 @@ class Parallel(CompositeNode):
         super().__init__(name, children)
         self.policy = policy
 
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute parallel node
 
         Execute all child nodes concurrently, determine the final result based on the policy.
-
-        Args:
-            blackboard: blackboard system
 
         Returns:
             execution status
@@ -156,7 +147,7 @@ class Parallel(CompositeNode):
             return Status.SUCCESS
 
         # Execute all child nodes concurrently
-        tasks = [child.tick(blackboard) for child in self.children]
+        tasks = [child.tick() for child in self.children]
         results = await asyncio.gather(*tasks)
 
         # Count results

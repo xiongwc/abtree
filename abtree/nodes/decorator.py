@@ -48,7 +48,8 @@ class DecoratorNode(BaseNode):
 
     def __post_init__(self) -> None:
         """Set child node after initialization"""
-        super().__post_init__()
+        if hasattr(super(), '__post_init__'):
+            super().__post_init__()
         if self.children and len(self.children) == 1:
             self.child = self.children[0]
 
@@ -90,14 +91,11 @@ class DecoratorNode(BaseNode):
         """
         return self.child is not None
 
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute decorator node
 
         Default implementation that delegates to the child node.
-
-        Args:
-            blackboard: Blackboard system
 
         Returns:
             Execution status
@@ -105,10 +103,9 @@ class DecoratorNode(BaseNode):
         if not self.child:
             return Status.FAILURE
         
-        return await self.child.tick(blackboard)
+        return await self.child.tick()
 
 
-@dataclass
 class Inverter(DecoratorNode):
     """
     Inverter node
@@ -119,14 +116,11 @@ class Inverter(DecoratorNode):
     - RUNNING -> RUNNING
     """
 
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute inverter node
 
         Execute the child node and invert its result.
-
-        Args:
-            blackboard: blackboard system
 
         Returns:
             Inverted execution status
@@ -134,7 +128,7 @@ class Inverter(DecoratorNode):
         if not self.child:
             return Status.FAILURE
 
-        child_status = await self.child.tick(blackboard)
+        child_status = await self.child.tick()
 
         if child_status == Status.SUCCESS:
             self.status = Status.FAILURE
@@ -147,7 +141,6 @@ class Inverter(DecoratorNode):
             return Status.RUNNING
 
 
-@dataclass
 class Repeater(DecoratorNode):
     """
     Repeater node
@@ -155,17 +148,16 @@ class Repeater(DecoratorNode):
     Repeat the execution of the child node a specified number of times, or repeat indefinitely.
     """
 
-    repeat_count: int = -1  # -1 means infinite repeat
-    current_count: int = 0
+    def __init__(self, name: str, child: Optional[BaseNode] = None, repeat_count: int = -1):
+        super().__init__(name, child)
+        self.repeat_count = repeat_count
+        self.current_count = 0
 
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute repeater node
 
         Repeat the execution of the child node a specified number of times.
-
-        Args:
-            blackboard: Blackboard system
 
         Returns:
             Execution status
@@ -179,7 +171,7 @@ class Repeater(DecoratorNode):
             return Status.SUCCESS
 
         # Execute child node
-        child_status = await self.child.tick(blackboard)
+        child_status = await self.child.tick()
 
         if child_status == Status.SUCCESS:
             self.current_count += 1
@@ -220,7 +212,6 @@ class Repeater(DecoratorNode):
         self.repeat_count = count
 
 
-@dataclass
 class UntilSuccess(DecoratorNode):
     """
     Until success node
@@ -228,14 +219,11 @@ class UntilSuccess(DecoratorNode):
     Repeat the execution of the child node until it succeeds.
     """
 
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute until success node
 
         Repeat the execution of the child node until it succeeds.
-
-        Args:
-            blackboard: Blackboard system
 
         Returns:
             Execution status
@@ -243,7 +231,7 @@ class UntilSuccess(DecoratorNode):
         if not self.child:
             return Status.FAILURE
 
-        child_status = await self.child.tick(blackboard)
+        child_status = await self.child.tick()
 
         if child_status == Status.SUCCESS:
             self.status = Status.SUCCESS
@@ -258,7 +246,6 @@ class UntilSuccess(DecoratorNode):
             return Status.RUNNING
 
 
-@dataclass
 class UntilFailure(DecoratorNode):
     """
     Until failure node
@@ -266,14 +253,11 @@ class UntilFailure(DecoratorNode):
     Repeat the execution of the child node until it fails.
     """
 
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute until failure node
 
         Repeat the execution of the child node until it fails.
-
-        Args:
-            blackboard: Blackboard system
 
         Returns:
             Execution status
@@ -281,7 +265,7 @@ class UntilFailure(DecoratorNode):
         if not self.child:
             return Status.FAILURE
 
-        child_status = await self.child.tick(blackboard)
+        child_status = await self.child.tick()
 
         if child_status == Status.FAILURE:
             self.status = Status.SUCCESS

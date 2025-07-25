@@ -97,6 +97,9 @@ class BehaviorTree:
             root: Root node
         """
         self.root = root
+        # Set blackboard on the root node and all its descendants
+        if self.blackboard is not None:
+            self.root.set_blackboard(self.blackboard)
         if self.tick_manager:
             self.tick_manager.set_root_node(root)
 
@@ -279,6 +282,9 @@ class BehaviorTree:
             root: New root node
         """
         self.root = root
+        # Set blackboard on the root node and all its descendants
+        if self.blackboard is not None:
+            self.root.set_blackboard(self.blackboard)
 
         if self.tick_manager:
             self.tick_manager.set_root_node(root)

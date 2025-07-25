@@ -29,14 +29,11 @@ class Action(BaseNode):
         if self.children:
             raise ValueError("Action nodes cannot have children")
 
-    async def tick(self, blackboard: Blackboard) -> Status:
+    async def tick(self) -> Status:
         """
         Execute action node
 
         Call the execute method to execute specific actions.
-
-        Args:
-            blackboard: Blackboard system
 
         Returns:
             Execution status
@@ -46,7 +43,7 @@ class Action(BaseNode):
             self.update_tick_time()
 
             # Execute specific actions
-            result = await self.execute(blackboard)
+            result = await self.execute()
 
             # Set status
             self.status = result
@@ -59,14 +56,11 @@ class Action(BaseNode):
             return Status.FAILURE
 
     @abstractmethod
-    async def execute(self, blackboard: Blackboard) -> Status:
+    async def execute(self) -> Status:
         """
         Execute specific actions
 
         Subclasses must implement this method to execute specific actions.
-
-        Args:
-            blackboard: Blackboard system, used for data sharing
 
         Returns:
             Execution status: SUCCESS, FAILURE or RUNNING
@@ -109,18 +103,15 @@ class Wait(Action):
         self.duration = duration
         self.elapsed = 0.0
 
-    async def execute(self, blackboard: Blackboard) -> Status:
+    async def execute(self) -> Status:
         """
         Execute wait
-
-        Args:
-            blackboard: Blackboard system
 
         Returns:
             Execution status
         """
         # Get wait time from blackboard, if not set then use default value
-        wait_duration = blackboard.get("wait_duration", self.duration)
+        wait_duration = self.get_mapped_value("duration", self.duration)
 
         # Check if this is the first tick
         if self.elapsed == 0.0:
@@ -173,19 +164,16 @@ class Log(Action):
         self.message = message
         self.level = level
 
-    async def execute(self, blackboard: Blackboard) -> Status:
+    async def execute(self) -> Status:
         """
         Execute log output
-
-        Args:
-            blackboard: Blackboard system
 
         Returns:
             Execution status
         """
         # Get message from blackboard, if not set then use default message
-        log_message = blackboard.get("log_message", self.message)
-        log_level = blackboard.get("log_level", self.level)
+        log_message = self.get_mapped_value("message", self.message)
+        log_level = self.get_mapped_value("level", self.level)
 
         # Create a logger with the level as name
         logger = get_logger(log_level.upper())
@@ -227,21 +215,18 @@ class SetBlackboard(Action):
         self.key = key
         self.value = value
 
-    async def execute(self, blackboard: Blackboard) -> Status:
+    async def execute(self) -> Status:
         """
         Execute set blackboard data
-
-        Args:
-            blackboard: Blackboard system
 
         Returns:
             Execution status
         """
-        if not self.key:
+        if not self.key or self.blackboard is None:
             return Status.FAILURE
 
         # Set blackboard data
-        blackboard.set(self.key, self.value)
+        self.blackboard.set(self.key, self.value)
 
         return Status.SUCCESS
 
@@ -255,89 +240,3 @@ class SetBlackboard(Action):
         """
         self.key = key
         self.value = value
-
-
-def setup_blackboard_binding(node: "BaseNode", blackboard: Blackboard) -> None:
-    """
-    Setup blackboard binding for a node
-    
-    Args:
-        node: Node to setup binding for
-        blackboard: Blackboard system
-    """
-    # Get mapped values from blackboard
-    if hasattr(node, '_param_mappings'):
-        for node_attr, blackboard_key in node._param_mappings.items():
-            if hasattr(node, node_attr):
-                # Get current value
-                current_value = getattr(node, node_attr)
-                # If current value is mapping format (e.g. {exchange_value}), get actual value from blackboard
-                if isinstance(current_value, str) and current_value.startswith('{') and current_value.endswith('}'):
-                    # This is mapping format, get actual value from blackboard
-                    value = blackboard.get(blackboard_key, current_value)
-                else:
-                    # This is normal value, get value from blackboard, if not set then keep original value
-                    value = blackboard.get(blackboard_key, current_value)
-                setattr(node, node_attr, value)
-    
-    # Create property descriptors for mapped attributes to implement automatic synchronization
-    if hasattr(node, '_param_mappings'):
-        for node_attr, blackboard_key in node._param_mappings.items():
-            if hasattr(node, node_attr):
-                # Save original value
-                original_value = getattr(node, node_attr)
-                
-                # Create property descriptor
-                def make_property(attr_name, bb_key, bb_ref):
-                    def getter(obj):
-                        return getattr(obj, f'_{attr_name}_value', original_value)
-                    
-                    def setter(obj, value):
-                        setattr(obj, f'_{attr_name}_value', value)
-                        # Automatically synchronize to blackboard
-                        bb_ref.set(bb_key, value)
-                    
-                    return property(getter, setter)
-                
-                # Set property descriptor
-                setattr(node.__class__, node_attr, make_property(node_attr, blackboard_key, blackboard))
-
-def cleanup_blackboard_binding(node: "BaseNode") -> None:
-    """
-    Cleanup blackboard binding for a node
-    
-    Args:
-        node: Node to cleanup binding for
-    """
-    # Cleanup after execution - no action needed since we don't use _current_blackboard
-    pass
-
-def blackboard_binding(execute_method):
-    """Decorator: Apply to execute method to automatically handle blackboard synchronization"""
-    
-    async def wrapper(self, blackboard):
-        # Setup blackboard binding
-        setup_blackboard_binding(self, blackboard)
-        
-        try:
-            # Handle asynchronous functions
-            if asyncio.iscoroutinefunction(execute_method):
-                result = await execute_method(self, blackboard)
-            else:
-                result = execute_method(self, blackboard)
-            return result
-        finally:
-            # Cleanup after execution
-            cleanup_blackboard_binding(self)
-    
-    return wrapper
-
-def blackboard_binding_execute(execute_method):
-    """Decorator: Apply to execute method that doesn't need blackboard parameter"""
-    
-    async def wrapper(self):
-        # This decorator now needs external blackboard binding setup
-        # Get current blackboard - needs to be passed from external
-        raise NotImplementedError("blackboard_binding_execute decorator needs to be redesigned to support new binding mechanism")
-    
-    return wrapper

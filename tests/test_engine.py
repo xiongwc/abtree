@@ -8,11 +8,11 @@ from abtree.core.status import Status
 from abtree.nodes.base import BaseNode
 
 class DummyNode(BaseNode):
-    async def tick(self, blackboard):
+    async def tick(self):
         return Status.SUCCESS
 
 class FailingNode(BaseNode):
-    async def tick(self, blackboard):
+    async def tick(self):
         return Status.FAILURE
 
 class RunningNode(BaseNode):
@@ -21,7 +21,7 @@ class RunningNode(BaseNode):
         self.max_ticks = max_ticks
         self.tick_count = 0
     
-    async def tick(self, blackboard):
+    async def tick(self):
         self.tick_count += 1
         if self.tick_count >= self.max_ticks:
             return Status.SUCCESS

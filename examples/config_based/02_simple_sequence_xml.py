@@ -21,7 +21,7 @@ from abtree.core import Status
 class Step1Action(Action):
     """First step in the sequence"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Step 1: Checking system status...")
         await asyncio.sleep(0.01)  
         print("System status check completed")
@@ -31,7 +31,7 @@ class Step1Action(Action):
 class Step2Action(Action):
     """Second step in the sequence"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Step 2: Initializing system...")
         await asyncio.sleep(0.01)  
         print("System initialization completed")
@@ -41,7 +41,7 @@ class Step2Action(Action):
 class Step3Action(Action):
     """Third step in the sequence"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Step 3: Starting services...")
         await asyncio.sleep(0.01)  
         print("Services started successfully")
