@@ -98,19 +98,19 @@ from abtree.core import Status
 
 # Define action nodes
 class OpenDoor(Action):
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Opening door")
         return Status.SUCCESS
 
 class CloseDoor(Action):
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Closing door")
         return Status.SUCCESS
 
 # Define condition nodes
 class IsDoorOpen(Condition):
-    async def evaluate(self, blackboard):
-        return blackboard.get("door_open", False)
+    async def evaluate(self):
+        return self.blackboard.get("door_open", False)
 
 # Build behavior tree
 root = Selector("Robot Decision")
@@ -180,10 +180,10 @@ class RobotAction(Action):
         super().__init__(name)
         self.action_type = action_type
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print(f"Robot {self.action_type}")
         if self.action_type == "cleaning":
-            blackboard.set("cleaning_needed", False)
+            self.blackboard.set("cleaning_needed", False)
         return Status.SUCCESS
 
 # Simple condition node
@@ -193,8 +193,8 @@ class SimpleCondition(Condition):
         self.key = key
         self.default = default
     
-    async def evaluate(self, blackboard):
-        return blackboard.get(self.key, self.default)
+    async def evaluate(self):
+        return self.blackboard.get(self.key, self.default)
 
 def create_robot_tree(robot_id: str) -> BehaviorTree:
     """Create a simple robot behavior tree"""
@@ -214,7 +214,7 @@ def create_robot_tree(robot_id: str) -> BehaviorTree:
 async def main():
     # Create behavior forest
     forest = BehaviorForest("Robot Forest")    
-    
+
     # Add robot nodes
     for robot_id in ["R1", "R2", "R3"]:
         tree = create_robot_tree(robot_id)
