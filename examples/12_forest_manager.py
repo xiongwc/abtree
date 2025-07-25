@@ -11,7 +11,7 @@ from typing import Any, Dict, Set
 
 from abtree import (
     # Core components
-    BehaviorTree, Blackboard, EventSystem, Status,
+    BehaviorTree, Blackboard, EventDispatcher, Status,
     # Node types
     Sequence, Selector, Action, Condition, Log, Wait, SetBlackboard, CheckBlackboard,
     # Forest components
@@ -153,7 +153,7 @@ def create_production_forest() -> BehaviorForest:
     forest = BehaviorForest(
         name="ProductionForest",
         forest_blackboard=Blackboard(),
-        forest_event_system=EventSystem()
+        forest_event_dispatcher=EventDispatcher()
     )
     
     # Add middleware
@@ -205,7 +205,7 @@ def create_monitoring_forest() -> BehaviorForest:
     forest = BehaviorForest(
         name="MonitoringForest",
         forest_blackboard=Blackboard(),
-        forest_event_system=EventSystem()
+        forest_event_dispatcher=EventDispatcher()
     )
     
     # Add middleware
@@ -257,7 +257,7 @@ def create_coordination_forest() -> BehaviorForest:
     forest = BehaviorForest(
         name="CoordinationForest",
         forest_blackboard=Blackboard(),
-        forest_event_system=EventSystem()
+        forest_event_dispatcher=EventDispatcher()
     )
     
     # Add middleware

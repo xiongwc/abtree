@@ -67,9 +67,9 @@ def validate_tree(tree: BehaviorTree) -> ValidationResult:
     if not tree.blackboard:
         warnings.append("Behavior tree has no blackboard system")
 
-    # Check event system
-    if not tree.event_system:
-        warnings.append("Behavior tree has no event system")
+    # Check event dispatcher
+    if not tree.event_dispatcher:
+        warnings.append("Behavior tree has no event dispatcher")
 
     # Check Tick manager
     if not tree.tick_manager:
@@ -233,7 +233,7 @@ def get_tree_statistics(tree: BehaviorTree) -> Dict[str, Any]:
         "tree_depth": tree_depth,
         "has_root": tree.root is not None,
         "has_blackboard": tree.blackboard is not None,
-        "has_event_system": tree.event_system is not None,
+        "has_event_dispatcher": tree.event_dispatcher is not None,
         "has_tick_manager": tree.tick_manager is not None,
     }
 

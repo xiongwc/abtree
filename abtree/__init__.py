@@ -8,7 +8,7 @@ designed for agent-based systems, game AI, robotics, and other scenarios.
 from typing import Any, Optional, Union
 
 from .core.status import Policy, Status
-from .engine import BehaviorTree, Blackboard, EventSystem, TickManager
+from .engine import BehaviorTree, Blackboard, EventDispatcher, TickManager
 from .forest import (
     BehaviorForest,
     ForestConfig,
@@ -241,7 +241,7 @@ __all__ = [
     "BaseNode",
     "Blackboard",
     "TickManager",
-    "EventSystem",
+    "EventDispatcher",
     # Status and policy
     "Status",
     "Policy",

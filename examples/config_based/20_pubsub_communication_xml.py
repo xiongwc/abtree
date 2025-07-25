@@ -15,7 +15,7 @@ from abtree import (
     BehaviorForest, register_node
 )
 from abtree.parser.xml_parser import XMLParser
-from abtree.engine.event_system import EventSystem
+from abtree.engine.event import EventDispatcher
 
 
 class PublisherAction(Action):
@@ -25,11 +25,11 @@ class PublisherAction(Action):
         super().__init__(name)
     
     async def execute(self,topic:str,message:str):
-        event_system = self.blackboard.get("__event_system")
-        if event_system:
-            await event_system.emit(f"topic_{topic}", source=self.name, data=message)
+        event_dispatcher = self.get_event_dispatcher()
+        if event_dispatcher:
+            await event_dispatcher.emit(f"topic_{topic}", source=self.name, data=message)
         else:
-            print(f"⚠️  No event system found in blackboard")
+            print(f"⚠️  No event dispatcher found in blackboard")
         return Status.SUCCESS
 
 
@@ -42,18 +42,18 @@ class SubscriberAction(Action):
         self.message = "hello world"
     
     async def execute(self,topic:str,message:str):
-        event_system = self.blackboard.get("__event_system")
-        if event_system:            
-            event_triggered = await event_system.wait_for(f"topic_{self.topic}", timeout=2.0)
+        event_dispatcher = self.get_event_dispatcher()
+        if event_dispatcher:            
+            event_triggered = await event_dispatcher.wait_for(f"topic_{self.topic}", timeout=2.0)
             if event_triggered:
-                event_info = event_system.get_event_info(f"topic_{self.topic}")
+                event_info = event_dispatcher.get_event_info(f"topic_{self.topic}")
                 received_message = event_info.data if event_info and event_info.data else "No message data"
                 self.message = received_message  # Automatically sync to blackboard
                 print(f"✅ Received message: {self.message}")
             else:
                 print(f"⏰ Timeout waiting for event: topic_{self.topic}")
         else:
-            print(f"⚠️  No event system found in blackboard")
+            print(f"⚠️  No event dispatcher found in blackboard")
         return Status.SUCCESS
 
 

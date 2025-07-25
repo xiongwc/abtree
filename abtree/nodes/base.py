@@ -85,6 +85,17 @@ class BaseNode(ABC):
         """
         return self.blackboard
 
+    def get_event_dispatcher(self):
+        """
+        Get the event dispatcher from blackboard
+        
+        Returns:
+            EventDispatcher instance or None if not found
+        """
+        if self.blackboard is not None:
+            return self.blackboard.get("__event_dispatcher")
+        return None
+
     def set_param_mapping(self, node_attr: str, blackboard_key: str) -> None:
         """
         Set parameter mapping relationship

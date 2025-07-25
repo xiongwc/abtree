@@ -88,7 +88,7 @@ class TestForestManager:
         assert manager.name == "TestManager"
         assert manager.forests == {}
         assert manager.global_blackboard is not None
-        assert manager.global_event_system is not None
+        assert manager.global_event_dispatcher is not None
         assert len(manager.cross_forest_middleware) >= 0  # Allow middleware to be present
         assert manager.running is False
         assert manager._task is None
@@ -329,7 +329,7 @@ class TestForestManager:
         # Update state
         manager.set_global_data("test_key", "new_value")
         
-        # Verify callback is called (here we just test method call, actual callback needs event system support)
+        # Verify callback is called (here we just test method call, actual callback needs event dispatcher support)
         # mock_callback.assert_called_once()
     
     def test_global_task_publishing(self, manager):

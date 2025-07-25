@@ -1,7 +1,7 @@
 """
-Event system - Event listening and context awareness
+Event dispatcher - Event listening and context awareness
 
-The event system provides an event-driven communication mechanism for behavior trees,
+The event dispatcher provides an event-driven communication mechanism for behavior trees,
 supporting event publication and subscription between nodes with asyncio.Event().
 Focused on triggering mechanism between behavior trees without data transfer.
 """
@@ -31,9 +31,9 @@ class EventInfo:
     data: Optional[Any] = None
 
 
-class EventSystem:
+class EventDispatcher:
     """
-    Event system - based on asyncio.Event() for behavior tree communication
+    Event dispatcher - based on asyncio.Event() for behavior tree communication
     
     Provides event publication, subscription, and management functionality,
     supporting asynchronous event handling with asyncio.Event() for triggering
@@ -41,7 +41,7 @@ class EventSystem:
     """
 
     def __init__(self) -> None:
-        """Initialize event system with asyncio.Event()"""
+        """Initialize event dispatcher with asyncio.Event()"""
         self._events: Dict[str, asyncio.Event] = {}
         self._event_info: Dict[str, EventInfo] = {}
         self._global_listeners: List[asyncio.Event] = []
@@ -283,10 +283,10 @@ class EventSystem:
 
     def get_stats(self) -> Dict[str, Any]:
         """
-        Get event system statistics
+        Get event dispatcher statistics
         
         Returns:
-            Dictionary with event system statistics
+            Dictionary with event dispatcher statistics
         """
         total_triggers = sum(info.trigger_count for info in self._event_info.values())
         
@@ -299,4 +299,4 @@ class EventSystem:
 
     def __repr__(self) -> str:
         """String representation"""
-        return f"EventSystem(events={len(self._events)}, global_listeners={len(self._global_listeners)})"
+        return f"EventDispatcher(events={len(self._events)}, global_listeners={len(self._global_listeners)})"

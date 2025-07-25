@@ -323,7 +323,7 @@ def info(xml_file: str):
 
         print(f"\nSystem Components:")
         print(f"  Blackboard System: {'✓' if stats.get('has_blackboard', False) else '✗'}")
-        print(f"  Event System: {'✓' if stats.get('has_event_system', False) else '✗'}")
+        print(f"  event dispatcher: {'✓' if stats.get('has_event_dispatcher', False) else '✗'}")
         print(f"  Tick Manager: {'✓' if stats.get('has_tick_manager', False) else '✗'}")
 
         # Display node tree structure

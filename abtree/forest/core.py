@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Set, Union
 from ..core.status import Status
 from ..engine.behavior_tree import BehaviorTree
 from ..engine.blackboard import Blackboard
-from ..engine.event_system import EventSystem
+from ..engine.event import EventDispatcher
 
 
 class ForestNodeType(Enum):
@@ -97,12 +97,12 @@ class ForestNode:
             raise ValueError("Tree blackboard is not initialized")
         return blackboard
     
-    def get_event_system(self) -> EventSystem:
-        """Get node's event system"""
-        event_system = self.tree.event_system
-        if event_system is None:
-            raise ValueError("Tree event system is not initialized")
-        return event_system
+    def get_event_dispatcher(self) -> EventDispatcher:
+        """Get node's event dispatcher"""
+        event_dispatcher = self.tree.event_dispatcher
+        if event_dispatcher is None:
+            raise ValueError("Tree event dispatcher is not initialized")
+        return event_dispatcher
     
     def reset(self) -> None:
         """Reset node status"""
@@ -125,7 +125,7 @@ class BehaviorForest:
         nodes: Dictionary of forest nodes
         middleware: List of communication middleware
         forest_blackboard: Shared forest blackboard
-        forest_event_system: Forest-level event system
+        forest_event_dispatcher: Forest-level event dispatcher
         running: Whether the forest is running
         _task: Forest execution task
     """
@@ -134,7 +134,7 @@ class BehaviorForest:
         self,
         name: str = "BehaviorForest",
         forest_blackboard: Optional[Blackboard] = None,
-        forest_event_system: Optional[EventSystem] = None,
+        forest_event_dispatcher: Optional[EventDispatcher] = None,
     ):
         """
         Initialize behavior forest
@@ -142,13 +142,13 @@ class BehaviorForest:
         Args:
             name: Forest name
             forest_blackboard: Shared forest blackboard
-            forest_event_system: Forest-level event system
+            forest_event_dispatcher: Forest-level event dispatcher
         """
         self.name = name
         self.nodes: Dict[str, ForestNode] = {}
         self.middleware: List[Any] = []
         self.forest_blackboard = forest_blackboard or Blackboard()
-        self.forest_event_system = forest_event_system or EventSystem()
+        self.forest_event_dispatcher = forest_event_dispatcher or EventDispatcher()
         self.running = False
         self._task: Optional[asyncio.Task] = None
         # Track running tasks for each node to prevent duplicate task creation
@@ -186,12 +186,12 @@ class BehaviorForest:
         self._node_last_execution[node.name] = 0.0
         
         # Setup shared EventSystem for the new node through middleware
-        self._setup_shared_event_system_for_node(node)
+        self._setup_shared_event_dispatcher_for_node(node)
         
         # Emit node added event
         try:
             asyncio.create_task(
-                self.forest_event_system.emit(
+                self.forest_event_dispatcher.emit(
                     "node_added",
                     source=node.name
                 )
@@ -200,12 +200,12 @@ class BehaviorForest:
             # No running event loop, skip async event emission
             pass
     
-    def _setup_shared_event_system_for_node(self, node: ForestNode) -> None:
+    def _setup_shared_event_dispatcher_for_node(self, node: ForestNode) -> None:
         """Setup shared EventSystem for a specific node through middleware"""
         # Find CommunicationMiddleware and setup shared EventSystem
         for middleware in self.middleware:
-            if hasattr(middleware, 'add_tree_to_shared_event_system'):
-                middleware.add_tree_to_shared_event_system(node.name, node.tree)
+            if hasattr(middleware, 'add_tree_to_shared_event_dispatcher'):
+                middleware.add_tree_to_shared_event_dispatcher(node.name, node.tree)
                 break 
 
     def remove_node(self, node_name: str) -> bool:
@@ -240,7 +240,7 @@ class BehaviorForest:
         # Emit node removed event
         try:
             asyncio.create_task(
-                self.forest_event_system.emit(
+                self.forest_event_dispatcher.emit(
                     "node_removed",
                     source=node_name
                 )
@@ -403,7 +403,7 @@ class BehaviorForest:
                 print(f"❌ Failed to start behavior tree {node_name}: {e}")
         
         # Emit forest start event
-        await self.forest_event_system.emit(
+        await self.forest_event_dispatcher.emit(
             "forest_started",
             source=self.name
         )
@@ -450,7 +450,7 @@ class BehaviorForest:
             self._task = None
         
         # Emit forest stop event
-        await self.forest_event_system.emit(
+        await self.forest_event_dispatcher.emit(
             "forest_stopped",
             source=self.name
         )
@@ -495,7 +495,7 @@ class BehaviorForest:
         
         # Emit forest reset event
         asyncio.create_task(
-            self.forest_event_system.emit(
+            self.forest_event_dispatcher.emit(
                 "forest_reset",
                 source=self.name
             )
@@ -548,7 +548,7 @@ class BehaviorForest:
             self.nodes = loaded_forest.nodes
             self.middleware = loaded_forest.middleware
             self.forest_blackboard = loaded_forest.forest_blackboard
-            self.forest_event_system = loaded_forest.forest_event_system
+            self.forest_event_dispatcher = loaded_forest.forest_event_dispatcher
             
         except Exception as e:
             raise ValueError(f"Failed to load forest from XML string: {e}")
@@ -577,7 +577,7 @@ class BehaviorForest:
             self.nodes = loaded_forest.nodes
             self.middleware = loaded_forest.middleware
             self.forest_blackboard = loaded_forest.forest_blackboard
-            self.forest_event_system = loaded_forest.forest_event_system
+            self.forest_event_dispatcher = loaded_forest.forest_event_dispatcher
             
         except FileNotFoundError as e:
             raise FileNotFoundError(f"XML configuration file not found: {file_path}")

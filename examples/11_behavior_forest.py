@@ -11,7 +11,7 @@ from typing import Any, Dict, Set
 
 from abtree import (
     # Core components
-    BehaviorTree, Blackboard, EventSystem, Status,
+    BehaviorTree, Blackboard, EventDispatcher, Status,
     # Node types
     Sequence, Selector, Action, Condition, Log, Wait, SetBlackboard, CheckBlackboard,
     # Forest components
@@ -527,7 +527,7 @@ async def main():
     forest = BehaviorForest(
         name=config.name,
         forest_blackboard=Blackboard(),
-        forest_event_system=EventSystem()
+        forest_event_dispatcher=EventDispatcher()
     )
     
     # 3. Add middleware

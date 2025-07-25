@@ -47,7 +47,7 @@
 ### ⚡ Asynchronous Behavior Tree Engine
 - **High Performance Async Execution** - Concurrent node scheduling based on Python asyncio
 - **Smart Tick Management** - Automated execution cycle management and resource control
-- **Event Driven Architecture** - Asynchronous event system supporting real-time response
+- **Event Driven Architecture** - Asynchronous event dispatcher supporting real-time response
 - **Memory Optimization** - Efficient state management and garbage collection
 
 ### 🎯 Rich Node System
@@ -59,7 +59,7 @@
 
 ### 💾 Smart Data Management
 - **Blackboard System** - Cross-node data sharing and state persistence
-- **Event System** - Asynchronous event listening, publishing and subscription mechanism
+- **event dispatcher** - Asynchronous event listening, publishing and subscription mechanism
 - **State Management** - Complete tracking of behavior tree execution state
 - **Data Validation** - Type-safe data access and modification
 
@@ -298,7 +298,7 @@ abtree/
 
 - [x] ✅ **v0.1** - Core asynchronous behavior tree framework
 - [x] ✅ **v0.2** - XML configuration support
-- [x] ✅ **v0.3** - Event system and blackboard optimization
+- [x] ✅ **v0.3** - event dispatcher and blackboard optimization
 - [ ] 🎯 **v0.4** - Advanced node types
 
 ---

@@ -2,7 +2,7 @@ import pytest
 import asyncio
 from abtree.engine.behavior_tree import BehaviorTree
 from abtree.engine.blackboard import Blackboard
-from abtree.engine.event_system import EventSystem
+from abtree.engine.event import EventDispatcher
 from abtree.engine.tick_manager import TickManager
 from abtree.core.status import Status
 from abtree.nodes.base import BaseNode
@@ -75,8 +75,8 @@ def test_blackboard_dict_operations():
     assert 'key1' not in bb
 
 @pytest.mark.asyncio
-async def test_event_system_basic():
-    es = EventSystem()
+async def test_event_dispatcher_basic():
+    es = EventDispatcher()
     
     # Test emit and wait
     await es.emit('test', source='test_source')
@@ -91,8 +91,8 @@ async def test_event_system_basic():
     assert info.trigger_count == 1
 
 @pytest.mark.asyncio
-async def test_event_system_advanced():
-    es = EventSystem()
+async def test_event_dispatcher_advanced():
+    es = EventDispatcher()
     
     # Test multiple events
     await es.emit('event1', source='source1')
@@ -115,8 +115,8 @@ async def test_event_system_advanced():
     assert info2.source == 'source2'
 
 @pytest.mark.asyncio
-async def test_event_system_global_listeners():
-    es = EventSystem()
+async def test_event_dispatcher_global_listeners():
+    es = EventDispatcher()
     
     # Create global listener
     global_listener = es.create_global_listener()
@@ -153,7 +153,7 @@ async def test_behavior_tree_event_emit():
     
     # Start a task to wait for the event
     event_task = asyncio.create_task(
-        tree.event_system.wait_for('tree_tick_start', timeout=1.0)
+        tree.event_dispatcher.wait_for('tree_tick_start', timeout=1.0)
     )
     
     # Execute tick which should trigger the event

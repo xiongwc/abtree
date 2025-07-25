@@ -2,7 +2,7 @@
 Behavior tree main class - Integrates all core components
 
 Behavior tree is the core class of the framework, integrating node system, blackboard system,
-event system and Tick manager, providing complete behavior tree functionality.
+event dispatcher and Tick manager, providing complete behavior tree functionality.
 """
 
 import asyncio
@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from ..core.status import Status
 from ..nodes.base import BaseNode
 from .blackboard import Blackboard
-from .event_system import EventSystem
+from .event import EventDispatcher
 from .tick_manager import TickManager
 
 
@@ -21,13 +21,13 @@ class BehaviorTree:
     """
     Behavior tree main class
 
-    Integrates node system, blackboard system, event system and Tick manager,
+    Integrates node system, blackboard system, event dispatcher and Tick manager,
     providing complete behavior tree functionality.
 
     Attributes:
         root: Root node
         blackboard: Blackboard system
-        event_system: Event system
+        event_dispatcher: event dispatcher
         tick_manager: Tick manager
         name: Behavior tree name
         description: Behavior tree description
@@ -35,7 +35,7 @@ class BehaviorTree:
 
     root: Optional[BaseNode] = field(default=None, init=False)
     blackboard: Optional[Blackboard] = None
-    event_system: Optional[EventSystem] = None
+    event_dispatcher: Optional[EventDispatcher] = None
     tick_manager: Optional[TickManager] = None
     name: str = "BehaviorTree"
     description: str = ""
@@ -43,7 +43,7 @@ class BehaviorTree:
     def __init__(
         self,
         blackboard: Optional[Blackboard] = None,
-        event_system: Optional[EventSystem] = None,
+        event_dispatcher: Optional[EventDispatcher] = None,
         tick_manager: Optional[TickManager] = None,
         name: str = "BehaviorTree",
         description: str = "",
@@ -53,7 +53,7 @@ class BehaviorTree:
 
         Args:
             blackboard: Blackboard system
-            event_system: Event system
+            event_dispatcher: event dispatcher
             tick_manager: Tick manager
             name: Behavior tree name
             description: Behavior tree description
@@ -62,7 +62,7 @@ class BehaviorTree:
         self.name = name
         self.description = description
         self.blackboard = blackboard
-        self.event_system = event_system
+        self.event_dispatcher = event_dispatcher
         self.tick_manager = tick_manager
         self.root = None
 
@@ -125,14 +125,14 @@ class BehaviorTree:
                 self.description = xml_result.description
             if hasattr(xml_result, 'blackboard'):
                 self.blackboard = xml_result.blackboard
-            if hasattr(xml_result, 'event_system'):
-                self.event_system = xml_result.event_system
+            if hasattr(xml_result, 'event_dispatcher'):
+                self.event_dispatcher = xml_result.event_dispatcher
             if hasattr(xml_result, 'tick_manager'):
                 self.tick_manager = xml_result.tick_manager
             
-            # Store event_system in blackboard if available
-            if self.event_system is not None and self.blackboard is not None:
-                self.blackboard.set("__event_system", self.event_system)
+            # Store event_dispatcher in blackboard if available
+            if self.event_dispatcher is not None and self.blackboard is not None:
+                self.blackboard.set("__event_dispatcher", self.event_dispatcher)
 
     def _init_from_xml_file(self, xml_file: str) -> None:
         """
@@ -156,26 +156,26 @@ class BehaviorTree:
                 self.description = xml_result.description
             if hasattr(xml_result, 'blackboard'):
                 self.blackboard = xml_result.blackboard
-            if hasattr(xml_result, 'event_system'):
-                self.event_system = xml_result.event_system
+            if hasattr(xml_result, 'event_dispatcher'):
+                self.event_dispatcher = xml_result.event_dispatcher
             if hasattr(xml_result, 'tick_manager'):
                 self.tick_manager = xml_result.tick_manager
             
-            # Store event_system in blackboard if available
-            if self.event_system is not None and self.blackboard is not None:
-                self.blackboard.set("__event_system", self.event_system)
+            # Store event_dispatcher in blackboard if available
+            if self.event_dispatcher is not None and self.blackboard is not None:
+                self.blackboard.set("__event_dispatcher", self.event_dispatcher)
 
     def _init_default_components(self) -> None:
         """Initialize default components"""
         if self.blackboard is None:
             self.blackboard = Blackboard()
 
-        if self.event_system is None:
-            self.event_system = EventSystem()
+        if self.event_dispatcher is None:
+            self.event_dispatcher = EventDispatcher()
 
-        # Store event_system in blackboard
-        if self.event_system is not None and hasattr(self.blackboard, 'set'):
-            self.blackboard.set("__event_system", self.event_system)
+        # Store event_dispatcher in blackboard
+        if self.event_dispatcher is not None and hasattr(self.blackboard, 'set'):
+            self.blackboard.set("__event_dispatcher", self.event_dispatcher)
 
         if self.tick_manager is None:
             self.tick_manager = TickManager(
@@ -197,8 +197,8 @@ class BehaviorTree:
             raise ValueError("Tick manager not initialized")
 
         # Emit tick start event
-        if self.event_system:
-            await self.event_system.emit(
+        if self.event_dispatcher:
+            await self.event_dispatcher.emit(
                 "tree_tick_start",
                 source=self.name
             )
@@ -207,8 +207,8 @@ class BehaviorTree:
         status = await self.tick_manager.tick_once()
 
         # Emit tick end event
-        if self.event_system:
-            await self.event_system.emit(
+        if self.event_dispatcher:
+            await self.event_dispatcher.emit(
                 "tree_tick_end",
                 source=self.name
             )
@@ -235,8 +235,8 @@ class BehaviorTree:
         await self.tick_manager.start()
 
         # Emit start event
-        if self.event_system:
-            await self.event_system.emit(
+        if self.event_dispatcher:
+            await self.event_dispatcher.emit(
                 "tree_started",
                 source=self.name
             )
@@ -249,8 +249,8 @@ class BehaviorTree:
         await self.tick_manager.stop()
 
         # Emit stop event
-        if self.event_system:
-            await self.event_system.emit("tree_stopped", source=self.name)
+        if self.event_dispatcher:
+            await self.event_dispatcher.emit("tree_stopped", source=self.name)
 
     def reset(self) -> None:
         """Reset behavior tree status"""
@@ -264,11 +264,11 @@ class BehaviorTree:
             self.tick_manager.reset_stats()
 
         # Emit reset event
-        if self.event_system:
+        if self.event_dispatcher:
             try:
                 loop = asyncio.get_running_loop()
                 asyncio.create_task(
-                    self.event_system.emit("tree_reset", source=self.name)
+                    self.event_dispatcher.emit("tree_reset", source=self.name)
                 )
             except RuntimeError:
                 # No running event loop, skip event emission
@@ -290,11 +290,11 @@ class BehaviorTree:
             self.tick_manager.set_root_node(root)
 
         # Emit root node change event
-        if self.event_system:
+        if self.event_dispatcher:
             try:
                 loop = asyncio.get_running_loop()
                 asyncio.create_task(
-                    self.event_system.emit(
+                    self.event_dispatcher.emit(
                         "tree_root_changed", source=self.name
                     )
                 )
@@ -376,15 +376,15 @@ class BehaviorTree:
             "description": self.description,
             "has_root": self.root is not None,
             "has_blackboard": self.blackboard is not None,
-            "has_event_system": self.event_system is not None,
+            "has_event_dispatcher": self.event_dispatcher is not None,
             "has_tick_manager": self.tick_manager is not None,
         }
 
         if self.tick_manager:
             stats.update(self.tick_manager.get_stats())
 
-        if self.event_system:
-            stats.update(self.event_system.get_stats())
+        if self.event_dispatcher:
+            stats.update(self.event_dispatcher.get_stats())
 
         stats.update(self.get_node_stats())
 
@@ -398,11 +398,11 @@ class BehaviorTree:
             old_status: Old status
             new_status: New status
         """
-        if self.event_system:
+        if self.event_dispatcher:
             try:
                 loop = asyncio.get_running_loop()
                 asyncio.create_task(
-                    self.event_system.emit(
+                    self.event_dispatcher.emit(
                         "tree_status_changed",
                         source=self.name
                     )
@@ -437,28 +437,28 @@ class BehaviorTree:
             return self.blackboard.get(key, default)
         return default
 
-    def get_event_system_from_blackboard(self) -> Optional[EventSystem]:
+    def get_event_dispatcher_from_blackboard(self) -> Optional[EventDispatcher]:
         """
-        Get event system from blackboard
+        Get event dispatcher from blackboard
 
         Returns:
-            Event system instance or None if not found
+            event dispatcher instance or None if not found
         """
         if self.blackboard:
-            event_system = self.blackboard.get("__event_system")
-            if isinstance(event_system, EventSystem):
-                return event_system
+            event_dispatcher = self.blackboard.get("__event_dispatcher")
+            if isinstance(event_dispatcher, EventDispatcher):
+                return event_dispatcher
         return None
 
-    def set_event_system_to_blackboard(self, event_system: EventSystem) -> None:
+    def set_event_dispatcher_to_blackboard(self, event_dispatcher: EventDispatcher) -> None:
         """
-        Store event system to blackboard
+        Store event dispatcher to blackboard
 
         Args:
-            event_system: Event system to store
+            event_dispatcher: event dispatcher to store
         """
         if self.blackboard:
-            self.blackboard.set("__event_system", event_system)
+            self.blackboard.set("__event_dispatcher", event_dispatcher)
 
     def subscribe_event(self, event_name: str, callback: Any) -> None:
         """
@@ -468,8 +468,8 @@ class BehaviorTree:
             event_name: Event name
             callback: Callback function
         """
-        # Note: This method is deprecated in the new event system
-        # Use event_system.wait_for() instead
+        # Note: This method is deprecated in the new event dispatcher
+        # Use event_dispatcher.wait_for() instead
         pass
 
     def unsubscribe_event(self, event_name: str, callback: Any) -> None:
@@ -480,8 +480,8 @@ class BehaviorTree:
             event_name: Event name
             callback: Callback function
         """
-        # Note: This method is deprecated in the new event system
-        # Use event_system.clear_event() instead
+        # Note: This method is deprecated in the new event dispatcher
+        # Use event_dispatcher.clear_event() instead
         pass
 
     async def __aenter__(self) -> "BehaviorTree":

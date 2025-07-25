@@ -21,7 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union, MutableMappi
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
-from ..engine.event_system import EventSystem
+from ..engine.event import EventDispatcher
 from ..engine.behavior_tree import BehaviorTree
 from .core import BehaviorForest, ForestNode
 
@@ -97,8 +97,8 @@ class CommunicationMiddleware:
         self.enabled = True
         
         # Shared EventSystem for all behavior trees - zero-copy optimized
-        self.shared_event_system = EventSystem()
-        self.event_system_nodes: Dict[str, str] = {}  # node_name -> event_system_key
+        self.shared_event_dispatcher = EventDispatcher()
+        self.event_dispatcher_nodes: Dict[str, str] = {}  # node_name -> event_dispatcher_key
         
         # Pub/Sub components - using direct references
         self.subscribers: Dict[str, List[Callable]] = {}
@@ -135,26 +135,26 @@ class CommunicationMiddleware:
         self.forest = forest
         
         # Setup shared EventSystem for all behavior trees
-        self._setup_shared_event_system()
+        self._setup_shared_event_dispatcher()
     
-    def _setup_shared_event_system(self) -> None:
+    def _setup_shared_event_dispatcher(self) -> None:
         """Setup shared EventSystem for all behavior trees in the forest"""
         if not self.forest:
             return
         
         # Store shared EventSystem in forest's blackboard
-        self.forest.forest_blackboard.set("__event_system", self.shared_event_system)
+        self.forest.forest_blackboard.set("__event_dispatcher", self.shared_event_dispatcher)
         
         # Setup shared EventSystem and blackboard for each behavior tree
         for node_name, node in self.forest.nodes.items():
             # Store shared EventSystem in each tree's blackboard
             if node.tree.blackboard:
-                node.tree.blackboard.set("__event_system", self.shared_event_system)
-                # Also set the tree's event_system to the shared one
-                node.tree.event_system = self.shared_event_system
+                node.tree.blackboard.set("__event_dispatcher", self.shared_event_dispatcher)
+                # Also set the tree's event_dispatcher to the shared one
+                node.tree.event_dispatcher = self.shared_event_dispatcher
                 # Set tree's blackboard to forest's shared blackboard
                 node.tree.blackboard = self.forest.forest_blackboard
-                self.event_system_nodes[node_name] = "__event_system"
+                self.event_dispatcher_nodes[node_name] = "__event_dispatcher"
         
         print(f"🔗 Setup shared EventSystem and blackboard for {len(self.forest.nodes)} behavior trees")
     
@@ -755,11 +755,11 @@ class CommunicationMiddleware:
     
     # ==================== Shared EventSystem Methods - Zero-Copy Optimized ====================
     
-    def get_shared_event_system(self) -> EventSystem:
-        """Get the shared EventSystem - zero-copy optimized"""
-        return self.shared_event_system
+    def get_shared_event_dispatcher(self) -> EventDispatcher:
+        """Get shared event dispatcher"""
+        return self.shared_event_dispatcher
     
-    def add_tree_to_shared_event_system(self, node_name: str, tree: BehaviorTree) -> None:
+    def add_tree_to_shared_event_dispatcher(self, node_name: str, tree: BehaviorTree) -> None:
         """
         Add a behavior tree to the shared EventSystem - zero-copy optimized
         
@@ -772,15 +772,15 @@ class CommunicationMiddleware:
         
         # Store shared EventSystem in tree's blackboard
         if tree.blackboard and hasattr(tree.blackboard, 'set'):
-            tree.blackboard.set("__event_system", self.shared_event_system)
+            tree.blackboard.set("__event_dispatcher", self.shared_event_dispatcher)
         
-        # Set tree's event_system to shared one
-        tree.event_system = self.shared_event_system
-        self.event_system_nodes[node_name] = "__event_system"
+        # Set tree's event_dispatcher to shared one
+        tree.event_dispatcher = self.shared_event_dispatcher
+        self.event_dispatcher_nodes[node_name] = "__event_dispatcher"
         
         print(f"🔗 Added tree '{node_name}' to shared EventSystem")
     
-    def remove_tree_from_shared_event_system(self, node_name: str) -> bool:
+    def remove_tree_from_shared_event_dispatcher(self, node_name: str) -> bool:
         """
         Remove a behavior tree from the shared EventSystem - zero-copy optimized
         
@@ -790,15 +790,15 @@ class CommunicationMiddleware:
         Returns:
             True if tree was found and removed
         """
-        if node_name in self.event_system_nodes:
-            del self.event_system_nodes[node_name]
+        if node_name in self.event_dispatcher_nodes:
+            del self.event_dispatcher_nodes[node_name]
             print(f"🔗 Removed tree '{node_name}' from shared EventSystem")
             return True
         return False
     
-    def get_trees_with_shared_event_system(self) -> List[str]:
+    def get_trees_with_shared_event_dispatcher(self) -> List[str]:
         """Get list of trees using shared EventSystem - zero-copy optimized"""
-        return list(self.event_system_nodes.keys())
+        return list(self.event_dispatcher_nodes.keys())
     
     def emit_shared_event(self, event_name: str, source: str) -> None:
         """
@@ -812,13 +812,13 @@ class CommunicationMiddleware:
             return
         
         asyncio.create_task(
-            self.shared_event_system.emit(event_name, source=source)
+            self.shared_event_dispatcher.emit(event_name, source=source)
         )
     
-    def get_shared_event_system_stats(self) -> Dict[str, Any]:
+    def get_shared_event_dispatcher_stats(self) -> Dict[str, Any]:
         """Get shared EventSystem statistics - zero-copy optimized"""
         return {
-            "shared_trees": len(self.event_system_nodes),
-            "tree_names": list(self.event_system_nodes.keys()),
-            "event_system_stats": self.shared_event_system.get_stats()
+            "shared_trees": len(self.event_dispatcher_nodes),
+            "tree_names": list(self.event_dispatcher_nodes.keys()),
+            "event_dispatcher_stats": self.shared_event_dispatcher.get_stats()
         } 

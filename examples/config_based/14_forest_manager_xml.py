@@ -19,7 +19,7 @@ import tempfile
 import os
 from typing import Any, Dict, Set
 from abtree import (
-    BehaviorTree, Blackboard, EventSystem, Status,
+    BehaviorTree, Blackboard, EventDispatcher, Status,
     Sequence, Selector, Action, Condition, Log, Wait, SetBlackboard, CheckBlackboard,
     BehaviorForest, ForestNode, ForestNodeType, ForestManager,
     register_node,

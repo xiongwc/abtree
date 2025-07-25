@@ -246,10 +246,10 @@ def test_validate_tree_with_blackboard():
     # Tree should be valid even with warnings
     assert result.is_valid
 
-def test_validate_tree_with_event_system():
+def test_validate_tree_with_event_dispatcher():
     tree = BehaviorTree(name="TestTree")
-    from abtree.engine.event_system import EventSystem
-    tree.event_system = EventSystem()
+    from abtree.engine.event import EventDispatcher
+    tree.event_dispatcher = EventDispatcher()
     node = DummyNode(name="root")
     tree.load_from_node(node)
     

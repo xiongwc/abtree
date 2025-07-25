@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
-from ..engine.event_system import EventSystem
+from ..engine.event import EventDispatcher
 from .communication import (
     CommunicationMiddleware,
     CommunicationType,
@@ -55,7 +55,7 @@ class ForestManager:
     Attributes:
         forests: Dictionary of managed forests
         global_blackboard: Global shared blackboard
-        global_event_system: Global event system
+        global_event_dispatcher: Global event system
         cross_forest_middleware: Cross-forest communication middleware
         running: Whether the manager is running
         _task: Manager execution task
@@ -71,7 +71,7 @@ class ForestManager:
         self.name = name
         self.forests: Dict[str, BehaviorForest] = {}
         self.global_blackboard = Blackboard()
-        self.global_event_system = EventSystem()
+        self.global_event_dispatcher = EventDispatcher()
         self.cross_forest_middleware: List[Any] = []
         self.running = False
         self._task: Optional[asyncio.Task] = None
@@ -102,14 +102,14 @@ class ForestManager:
         for middleware in self.cross_forest_middleware:
             forest.add_middleware(middleware)
         
-        # Note: Event subscription is handled differently in the new event system
-        # Forest events will be handled through the global event system
+        # Note: Event subscription is handled differently in the new event dispatcher
+        # Forest events will be handled through the global event dispatcher
         
         # Emit forest added event (only if event loop is running)
         try:
             loop = asyncio.get_running_loop()
             asyncio.create_task(
-                self.global_event_system.emit(
+                self.global_event_dispatcher.emit(
                     "forest_added",
                     source=f"{self.name}:{forest.name}"
                 )
@@ -146,7 +146,7 @@ class ForestManager:
         try:
             loop = asyncio.get_running_loop()
             asyncio.create_task(
-                self.global_event_system.emit(
+                self.global_event_dispatcher.emit(
                     "forest_removed",
                     source=f"{self.name}:{forest_name}"
                 )
@@ -231,7 +231,7 @@ class ForestManager:
         self._task = asyncio.create_task(self._monitor_forests())
         
         # Emit manager start event
-        await self.global_event_system.emit(
+        await self.global_event_dispatcher.emit(
             "manager_started",
             source=self.name
         )
@@ -256,7 +256,7 @@ class ForestManager:
             self._task = None
         
         # Emit manager stop event
-        await self.global_event_system.emit(
+        await self.global_event_dispatcher.emit(
             "manager_stopped",
             source=self.name
         )
@@ -272,7 +272,7 @@ class ForestManager:
                         stats = forest.get_stats()
                         
                         # Emit monitoring event
-                        await self.global_event_system.emit(
+                        await self.global_event_dispatcher.emit(
                             "forest_monitoring",
                             source=forest_name
                         )
@@ -287,21 +287,21 @@ class ForestManager:
     
     async def _on_forest_started(self, forest_name: str) -> None:
         """Handle forest started event"""
-        await self.global_event_system.emit(
+        await self.global_event_dispatcher.emit(
             "forest_started_global",
             source=forest_name
         )
     
     async def _on_forest_stopped(self, forest_name: str) -> None:
         """Handle forest stopped event"""
-        await self.global_event_system.emit(
+        await self.global_event_dispatcher.emit(
             "forest_stopped_global",
             source=forest_name
         )
     
     async def _on_forest_reset(self, forest_name: str) -> None:
         """Handle forest reset event"""
-        await self.global_event_system.emit(
+        await self.global_event_dispatcher.emit(
             "forest_reset_global",
             source=forest_name
         )

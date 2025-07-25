@@ -33,13 +33,13 @@ class TestCommunicationMiddleware:
         assert middleware.name == "TestMiddleware"
         assert middleware.enabled is True
         assert middleware.forest is None
-        assert middleware.shared_event_system is not None
+        assert middleware.shared_event_dispatcher is not None
     
     def test_middleware_initialize_with_forest(self, middleware, forest):
         """Test middleware initialization with forest"""
         middleware.initialize(forest)
         assert middleware.forest == forest
-        assert middleware.shared_event_system is not None
+        assert middleware.shared_event_dispatcher is not None
     
     def test_pubsub_subscribe_unsubscribe(self, middleware, mock_callback):
         """Test publish-subscribe pattern"""
@@ -243,29 +243,27 @@ class TestCommunicationMiddleware:
         assert "completed_tasks" in stats
         assert "failed_tasks" in stats
     
-    def test_shared_event_system_integration(self, middleware, forest):
-        """Test shared event system integration"""
+    def test_shared_event_dispatcher_integration(self, middleware, forest):
+        """Test shared event dispatcher integration"""
         middleware.initialize(forest)
         
-        # Add tree to shared event system
-        tree = BehaviorTree("TestTree")
-        middleware.add_tree_to_shared_event_system("test_tree", tree)
+        # Add a tree to shared event dispatcher
+        tree = BehaviorTree(name="test_tree")
+        middleware.add_tree_to_shared_event_dispatcher("test_tree", tree)
         
-        # Check if tree is in shared event system
-        trees = middleware.get_trees_with_shared_event_system()
+        # Check that tree is in shared event dispatcher
+        trees = middleware.get_trees_with_shared_event_dispatcher()
         assert "test_tree" in trees
         
-        # Remove tree
-        result = middleware.remove_tree_from_shared_event_system("test_tree")
+        # Remove tree from shared event dispatcher
+        result = middleware.remove_tree_from_shared_event_dispatcher("test_tree")
         assert result is True
     
-    def test_shared_event_system_stats(self, middleware):
-        """Test shared event system statistics"""
-        stats = middleware.get_shared_event_system_stats()
-        assert "event_system_stats" in stats
-        assert "total_events" in stats["event_system_stats"]
-        assert "shared_trees" in stats
-        assert "tree_names" in stats
+    def test_shared_event_dispatcher_stats(self, middleware):
+        """Test shared event dispatcher statistics"""
+        stats = middleware.get_shared_event_dispatcher_stats()
+        assert "event_dispatcher_stats" in stats
+        assert "total_events" in stats["event_dispatcher_stats"]
     
     @pytest.mark.asyncio
     async def test_pre_post_tick(self, middleware, forest):

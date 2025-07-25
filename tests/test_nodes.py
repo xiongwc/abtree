@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 from abtree.nodes.base import BaseNode
 from abtree.nodes.composite import Sequence, Selector, Parallel
 from abtree.nodes.decorator import Inverter, Repeater, UntilSuccess, UntilFailure, Decorator
@@ -6,6 +7,7 @@ from abtree.nodes.action import Action, Log, SetBlackboard, Wait
 from abtree.nodes.condition import Condition, CheckBlackboard, IsTrue, IsFalse, Compare, AlwaysTrue, AlwaysFalse
 from abtree.core.status import Status
 from abtree.engine.blackboard import Blackboard
+from abtree.engine.event import EventDispatcher
 from dataclasses import dataclass
 
 class DummyNode(BaseNode):
@@ -28,6 +30,36 @@ class DummyCondition(Condition):
 class DummyDecorator(Decorator):
     async def tick(self):
         return await self.child.tick()
+
+class TestNode(BaseNode):
+    async def tick(self):
+        return Status.SUCCESS
+
+def test_base_node_get_event_dispatcher():
+    """Test the new get_event_dispatcher() method"""
+    # Create a node without blackboard
+    node = TestNode("test_node")
+    assert node.get_event_dispatcher() is None
+    
+    # Create a blackboard with event dispatcher
+    blackboard = Blackboard()
+    event_dispatcher = EventDispatcher()
+    blackboard.set("__event_dispatcher", event_dispatcher)
+    
+    # Set blackboard on node
+    node.set_blackboard(blackboard)
+    
+    # Test get_event_dispatcher
+    retrieved_event_dispatcher = node.get_event_dispatcher()
+    assert retrieved_event_dispatcher is not None
+    assert retrieved_event_dispatcher == event_dispatcher
+    assert isinstance(retrieved_event_dispatcher, EventDispatcher)
+    
+    # Test with blackboard without event dispatcher
+    blackboard2 = Blackboard()
+    node2 = TestNode("test_node2")
+    node2.set_blackboard(blackboard2)
+    assert node2.get_event_dispatcher() is None
 
 @pytest.mark.asyncio
 async def test_sequence_node():
@@ -205,7 +237,6 @@ async def test_wait_node():
     assert result == Status.RUNNING
     
     # Wait a bit and test again
-    import asyncio
     await asyncio.sleep(0.15)
     result = await wait.tick()
     assert result == Status.SUCCESS
