@@ -10,44 +10,47 @@ Shows how variables from blackboard are substituted into node parameters.
 import asyncio
 from abtree import BehaviorTree, Action, Condition, register_node
 from abtree.core import Status
-from abtree.nodes.action import blackboard_binding
 
 
 class GetValueAction(Action):
     """Update value in blackboard"""
     
-    def __init__(self, name: str = "", value_a: str = ""):
+    def __init__(self, name: str = ""):
         super().__init__(name)
-        self.value_a = value_a
+        # Don't store value_a as instance attribute, it will be passed to execute method
     
-    @blackboard_binding
-    async def execute(self, blackboard):
+    async def execute(self, value_a):
         print(f"GetValueAction - Mapping relationships: {self.get_param_mappings()}")
-        print(f"GetValueAction - value_a before setting: {self.value_a}")
-        
-        # Set property, decorator will automatically sync to blackboard
-        self.value_a = "1234567"
-        
-        print(f"GetValueAction - value_a after setting: {self.value_a}")
+        print(f"GetValueAction - value_a received: {value_a}")
+        print(f"GetValueAction - blackboard: {self.blackboard}")
+        if self.blackboard:
+            print(f"GetValueAction - blackboard content: {self.blackboard._data}")
+
+        # Set value using setPort method
+        value_a = 100
+        self.setPort(value_a)
+        print(f"Set value_a to 100 using setPort")
         
         return Status.SUCCESS
 
 class SetValueAction(Action):
     """Set configuration in blackboard"""
     
-    def __init__(self, name: str = "", value_b: str = ""):
+    def __init__(self, name: str = ""):
         super().__init__(name)
-        self.value_b = value_b
     
-    @blackboard_binding
-    async def execute(self, blackboard):     
+    async def execute(self, value_b):     
         print(f"SetValueAction - Mapping relationships: {self.get_param_mappings()}")
-        print(f"SetValueAction - value_b: {self.value_b}")
+        print(f"SetValueAction - value_b received: {value_b}")
+        print(f"SetValueAction - blackboard: {self.blackboard}")
+        if self.blackboard:
+            print(f"SetValueAction - blackboard content: {self.blackboard._data}")
         
-        value_b = blackboard.get("exchange_value")
-        print(f"value_b from blackboard: {value_b}")
-        value_b = self.value_b       
-        print(f"Set value: {value_b}")
+        # Get value using getPort method
+        received_value = self.getPort()
+        print(f"Get value_b using getPort: {received_value}")
+        
+        print(f"Set value: {received_value}")
         return Status.SUCCESS
 
 
@@ -62,6 +65,7 @@ async def main():
     
     print("=== {} Parameter Passing Demo ===\n")
     
+    # Register custom nodes BEFORE creating the tree
     register_custom_nodes()
     
     # XML with {} parameter substitution

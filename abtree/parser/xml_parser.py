@@ -140,6 +140,8 @@ class XMLParser:
         behavior_tree = BehaviorTree(
             name=tree_name, description=tree_description
         )
+        # Ensure blackboard is initialized before loading nodes
+        behavior_tree._init_default_components()
         behavior_tree.load_from_node(root_node)
 
         return behavior_tree
@@ -384,6 +386,45 @@ class XMLParser:
             communication = CommunicationMiddleware("ForestCommunication")
             forest.add_middleware(communication)
 
+    def _validate_node_parameters(self, node: BaseNode, attributes: Dict[str, Any]) -> None:
+        """
+        Validate node parameters against the execute method signature
+        
+        Args:
+            node: Node instance
+            attributes: Attributes to validate
+        """
+        # Check if node has execute method
+        if not hasattr(node, 'execute'):
+            return
+            
+        # Get execute method signature
+        import inspect
+        try:
+            sig = inspect.signature(node.execute)
+            param_names = list(sig.parameters.keys())
+            
+            # Skip 'self' parameter
+            if param_names and param_names[0] == 'self':
+                param_names = param_names[1:]
+            
+            # Check if all required parameters are provided in XML attributes
+            for param_name, param in sig.parameters.items():
+                if param_name == 'self':
+                    continue
+                # 跳过*args和**kwargs参数
+                if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                    continue
+                if param.default == inspect.Parameter.empty:
+                    if param_name not in attributes:
+                        print(f"Warning: Required parameter '{param_name}' not provided in XML for node '{node.name}'")
+                else:
+                    # Parameter has default value, so it's optional
+                    if param_name in attributes:
+                        print(f"Info: Optional parameter '{param_name}' provided in XML for node '{node.name}'")
+        except Exception as e:
+            print(f"Warning: Could not validate parameters for node '{node.name}': {e}")
+
     def _parse_node(self, element: ET.Element) -> BaseNode:
         """
         Parse node element
@@ -409,13 +450,57 @@ class XMLParser:
 
         # Create node from global registry
         registry = get_global_registry()
-        # Add name parameter to attributes
-        attributes["name"] = node_name
-        # Call create method, first parameter is node type name
-        node = registry.create(node_type, **attributes)
+        
+        # Separate __init__ parameters from execute parameters
+        init_attributes = {"name": node_name}
+        execute_attributes = {}
+        
+        # Get the node class to inspect its execute method
+        node_class = registry.get_node_class(node_type)
+        if node_class is None:
+            raise ValueError(f"Unknown node type: {node_type}")
+        
+        # Check if node has execute method to determine parameter separation
+        if hasattr(node_class, 'execute'):
+            import inspect
+            try:
+                sig = inspect.signature(node_class.execute)
+                execute_param_names = list(sig.parameters.keys())
+                # Skip 'self' parameter
+                if execute_param_names and execute_param_names[0] == 'self':
+                    execute_param_names = execute_param_names[1:]
+                
+                # Separate attributes
+                for key, value in attributes.items():
+                    if key in execute_param_names:
+                        execute_attributes[key] = value
+                    else:
+                        init_attributes[key] = value
+            except Exception:
+                # If we can't inspect, pass all to init
+                init_attributes.update(attributes)
+        else:
+            # No execute method, pass all to init
+            init_attributes.update(attributes)
+        
+        # Create the actual node with only init parameters
+        node = registry.create(node_type, **init_attributes)
 
         if node is None:
             raise ValueError(f"Unknown node type: {node_type}")
+
+        # Store execute parameters for later use
+        if execute_attributes:
+            node._execute_attributes = execute_attributes
+
+        # Add parameter mappings to execute attributes for validation
+        for param_name, blackboard_key in param_mappings.items():
+            if param_name not in execute_attributes:
+                execute_attributes[param_name] = None  # Placeholder for blackboard mapping
+                node._execute_attributes = execute_attributes
+
+        # Validate node parameters against execute method signature
+        self._validate_node_parameters(node, execute_attributes)
 
         # Ensure node has children attribute initialized
         if not hasattr(node, 'children'):
@@ -466,8 +551,8 @@ class XMLParser:
                     # This is parameter mapping format
                     blackboard_key = mapping_match.group(1)
                     param_mappings[key] = blackboard_key
-                    # Use original value as default value
-                    attributes[key] = value
+                    # Don't add to attributes since this is a parameter mapping
+                    # The value will be resolved at execution time
                 else:
                     # This is variable substitution format
                     value = self._substitute_variables(value)

@@ -6,6 +6,7 @@ including node execution, child node management, status management, etc.
 """
 
 import asyncio
+import inspect
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -29,18 +30,39 @@ class BaseNode(ABC):
         blackboard: Reference to the behavior tree's blackboard system
     """
 
-    def __init__(self, name: str, children: Optional[List["BaseNode"]] = None):
-        self.name = name
-        self.children = children or []
-        self.parent = None
-        self.status = Status.FAILURE
-        self._last_tick_time = 0.0
-        self._param_mappings = {}
-        self.blackboard: Optional[Blackboard] = None
+    def __init__(self, name: str = "", children: Optional[List["BaseNode"]] = None, **kwargs):
+        # Automatically call parent's __init__ if it exists and is not object.__init__
+        try:
+            super().__init__(**kwargs)
+        except TypeError:
+            # If parent doesn't have __init__ or doesn't accept arguments, ignore
+            pass
+            
+        # Only initialize base attributes if they haven't been set by dataclass
+        if not hasattr(self, 'name'):
+            self.name = name
+        if not hasattr(self, 'children'):
+            self.children = children or []
+        if not hasattr(self, 'parent'):
+            self.parent = None
+        if not hasattr(self, 'status'):
+            self.status = Status.FAILURE
+        if not hasattr(self, '_last_tick_time'):
+            self._last_tick_time = 0.0
+        if not hasattr(self, '_param_mappings'):
+            self._param_mappings = {}
+        if not hasattr(self, 'blackboard'):
+            self.blackboard: Optional[Blackboard] = None
         
         # Set parent node reference for child nodes after initialization
         for child in self.children:
             child.parent = self
+
+    def __post_init__(self) -> None:
+        """Post-initialization hook for dataclass inheritance"""
+        # This method is called by dataclass after __init__
+        # It can be overridden by subclasses for additional initialization
+        pass
 
     def set_blackboard(self, blackboard: Blackboard) -> None:
         """
@@ -117,6 +139,46 @@ class BaseNode(ABC):
             Parameter mapping table
         """
         return self._param_mappings.copy()
+
+    def getPort(self, default: Any = None) -> Any:
+        """
+        Get value from mapped port using variable name from caller
+        
+        Args:
+            default: Default value if not found
+            
+        Returns:
+            Value from blackboard or default
+        """
+        # Get the caller's frame
+        frame = inspect.currentframe().f_back
+        # Get the variable name from the caller's locals
+        for name, value in frame.f_locals.items():
+            if value is self.getPort.__defaults__[0] if self.getPort.__defaults__ else None:
+                continue
+            # Find the variable that matches the current call
+            if frame.f_code.co_name == 'execute' and name in self._param_mappings:
+                return self.get_mapped_value(name, default)
+        return default
+
+    def setPort(self, value: Any) -> None:
+        """
+        Set value to mapped port using variable name from caller
+        
+        Args:
+            value: Value to set
+        """
+        # Get the caller's frame
+        frame = inspect.currentframe().f_back
+        # Get the variable name from the caller's locals
+        for name, val in frame.f_locals.items():
+            if val is value:
+                # Found the variable name, use it to set the mapped value
+                if name in self._param_mappings:
+                    self.set_mapped_value(name, value)
+                    return
+        # If not found, raise an error
+        raise ValueError(f"Could not determine variable name for value {value}")
 
     @abstractmethod
     async def tick(self) -> Status:

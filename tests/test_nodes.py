@@ -6,6 +6,7 @@ from abtree.nodes.action import Action, Log, SetBlackboard, Wait
 from abtree.nodes.condition import Condition, CheckBlackboard, IsTrue, IsFalse, Compare, AlwaysTrue, AlwaysFalse
 from abtree.core.status import Status
 from abtree.engine.blackboard import Blackboard
+from dataclasses import dataclass
 
 class DummyNode(BaseNode):
     async def tick(self):
@@ -19,6 +20,7 @@ class DummyAction(Action):
     async def execute(self):
         return Status.SUCCESS
 
+@dataclass
 class DummyCondition(Condition):
     async def evaluate(self):
         return True
@@ -212,7 +214,7 @@ async def test_wait_node():
 async def test_condition_node():
     """Test condition node functionality"""
     # Create condition node
-    condition = DummyCondition("test_condition")
+    condition = DummyCondition(name="test_condition")
     blackboard = Blackboard()
     condition.set_blackboard(blackboard)
     

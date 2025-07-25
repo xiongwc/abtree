@@ -8,12 +8,12 @@ such as movement, attack, collection, etc. Users need to inherit this class to i
 import asyncio
 from abc import abstractmethod
 from typing import Any, Optional, List
+import functools
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
 from ..utils.logger import get_logger
 from .base import BaseNode
-
 
 class Action(BaseNode):
     """
@@ -29,11 +29,12 @@ class Action(BaseNode):
         if self.children:
             raise ValueError("Action nodes cannot have children")
 
-    async def tick(self) -> Status:
+    async def tick(self, *args, **kwargs) -> Status:
         """
         Execute action node
 
         Call the execute method to execute specific actions.
+        Automatically passes node attributes as arguments to execute method.
 
         Returns:
             Execution status
@@ -42,8 +43,60 @@ class Action(BaseNode):
             # Update execution time
             self.update_tick_time()
 
-            # Execute specific actions
-            result = await self.execute()
+            # Get node attributes that might be passed to execute
+            node_args = []
+            node_kwargs = {}
+            
+            # Check if execute method has specific parameter names
+            import inspect
+            sig = inspect.signature(self.execute)
+            param_names = list(sig.parameters.keys())
+            
+            # Skip 'self' parameter
+            if param_names and param_names[0] == 'self':
+                param_names = param_names[1:]
+            
+            # Use stored execute attributes from XML parser if available
+            if hasattr(self, '_execute_attributes'):
+                stored_attrs = self._execute_attributes
+                for param_name in param_names:
+                    if param_name in stored_attrs:
+                        stored_value = stored_attrs[param_name]
+                        if stored_value is None:
+                            # If stored value is None, it might be a blackboard mapping
+                            # Try to get mapped value from blackboard
+                            mapped_value = self.get_mapped_value(param_name, None)
+                            node_args.append(mapped_value)
+                        else:
+                            node_args.append(stored_value)
+                    elif hasattr(self, param_name):
+                        node_args.append(getattr(self, param_name))
+                    elif param_name in kwargs:
+                        node_args.append(kwargs[param_name])
+                    else:
+                        # Use default value if available
+                        param = sig.parameters.get(param_name)
+                        if param and param.default != inspect.Parameter.empty:
+                            node_args.append(param.default)
+                        else:
+                            node_args.append(None)
+            else:
+                # Original logic for backward compatibility
+                for param_name in param_names:
+                    if hasattr(self, param_name):
+                        node_args.append(getattr(self, param_name))
+                    elif param_name in kwargs:
+                        node_args.append(kwargs[param_name])
+                    else:
+                        # Use default value if available
+                        param = sig.parameters.get(param_name)
+                        if param and param.default != inspect.Parameter.empty:
+                            node_args.append(param.default)
+                        else:
+                            node_args.append(None)
+
+            # Execute specific actions with node attributes
+            result = await self.execute(*node_args, **kwargs)
 
             # Set status
             self.status = result
@@ -56,11 +109,12 @@ class Action(BaseNode):
             return Status.FAILURE
 
     @abstractmethod
-    async def execute(self) -> Status:
+    async def execute(self, *args, **kwargs) -> Status:
         """
         Execute specific actions
 
         Subclasses must implement this method to execute specific actions.
+        Parameters can be passed from node attributes or from tick() arguments.
 
         Returns:
             Execution status: SUCCESS, FAILURE or RUNNING
@@ -103,7 +157,7 @@ class Wait(Action):
         self.duration = duration
         self.elapsed = 0.0
 
-    async def execute(self) -> Status:
+    async def execute(self, *args, **kwargs) -> Status:
         """
         Execute wait
 
@@ -164,7 +218,7 @@ class Log(Action):
         self.message = message
         self.level = level
 
-    async def execute(self) -> Status:
+    async def execute(self, *args, **kwargs) -> Status:
         """
         Execute log output
 
@@ -215,7 +269,7 @@ class SetBlackboard(Action):
         self.key = key
         self.value = value
 
-    async def execute(self) -> Status:
+    async def execute(self, *args, **kwargs) -> Status:
         """
         Execute set blackboard data
 

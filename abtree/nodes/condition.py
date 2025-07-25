@@ -6,8 +6,8 @@ such as whether the enemy is visible, within range, etc.
 """
 
 from abc import abstractmethod
-from dataclasses import dataclass
-from typing import Any, Optional
+from dataclasses import dataclass, field
+from typing import Any, Optional, List
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
@@ -22,6 +22,9 @@ class Condition(BaseNode):
     Condition nodes are leaf nodes of the behavior tree, used to check specific conditions.
     Users need to inherit this class and implement the evaluate method to perform specific condition checks.
     """
+    
+    name: str = ""
+    children: List["BaseNode"] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         """Ensure no child nodes after initialization"""
