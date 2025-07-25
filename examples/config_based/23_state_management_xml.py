@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Example 14: State Management - XML Configuration Version
+Example 23: State Management - XML Configuration Version
 
 This is the XML configuration version of the State Management example.
 It demonstrates how to configure state management using XML.

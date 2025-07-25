@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Example 25: Task Board Communication - XML Configuration
+Example 27: Task Board Communication - XML Configuration
 
 Minimal example demonstrating Task Board communication pattern using XML.
 """

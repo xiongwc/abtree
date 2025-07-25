@@ -7,7 +7,7 @@ such as movement, attack, collection, etc. Users need to inherit this class to i
 
 import asyncio
 from abc import abstractmethod
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Dict
 import functools
 
 from ..core.status import Status
@@ -45,7 +45,7 @@ class Action(BaseNode):
 
             # Get node attributes that might be passed to execute
             node_args = []
-            node_kwargs = {}
+            node_kwargs: Dict[str, Any] = {}
             
             # Check if execute method has specific parameter names
             import inspect

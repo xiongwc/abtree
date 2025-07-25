@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Example 12: Forest Manager - XML Configuration Version
+Example 14: Forest Manager - XML Configuration Version
 
 This is the XML configuration version of the Forest Manager example.
 It demonstrates how to configure forest managers using XML.

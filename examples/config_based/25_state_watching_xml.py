@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Example 23: State Watching Communication - XML Configuration
+Example 25: State Watching Communication - XML Configuration
 
 Minimal example demonstrating State Watching communication pattern using XML.
 """

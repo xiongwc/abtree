@@ -4,6 +4,7 @@
 ABTree Examples Test Script
 
 Run all learning examples (both code-based and XML-based) to verify they all work properly.
+Examples are organized in a logical learning progression from basic to advanced concepts.
 """
 
 import asyncio
@@ -48,8 +49,14 @@ async def main():
     
     print("🚀 ABTree Examples Test Started")
     print("=" * 60)
+    print("📚 Learning Progression:")
+    print("  1-5:  Basic concepts (Hello World, Sequences, Selectors, Blackboard)")
+    print("  6-10: Core node types (Conditions, Decorators, Composites, Control Flow)")
+    print("  11-15: Advanced features (Forests, State Management, Communication)")
+    print("  16-20: Real-world applications (Testing, Robotics, Smart Home, Game AI)")
+    print("=" * 60)
     
-    # Define all code-based examples
+    # Define all code-based examples in logical order
     code_examples = [
         ("01_hello_world", "Basic Workflow"),
         ("02_simple_sequence", "Node Types Detailed"),
@@ -65,6 +72,7 @@ async def main():
         ("12_forest_manager", "Forest Manager"),
         ("13_advanced_forest_features", "Advanced Forest Features"),
         ("14_state_management", "State Management"),
+        ("15_communication_basic", "Communication Basic"),
         ("16_automation_testing", "Automation Testing"),
         ("17_robot_control", "Robot Control"),
         ("18_smart_home", "Smart Home System"),
@@ -72,22 +80,23 @@ async def main():
         ("20_list_registered_nodes", "List Registered Nodes")
     ]
     
-    # Define all XML-based examples
+    # Define all XML-based examples in logical order
     xml_examples = [
         ("01_hello_world_xml", "Basic Workflow (XML)"),
         ("02_simple_sequence_xml", "Node Types Detailed (XML)"),
         ("03_selector_basic_xml", "Control Flow Patterns (XML)"),
         ("04_blackboard_basic_xml", "Event System (XML)"),
-        ("05_action_nodes_xml", "Blackboard Usage (XML)"),
-        ("06_condition_nodes_xml", "Async Operations (XML)"),
-        ("07_decorator_nodes_xml", "Error Handling (XML)"),
+        ("05_blackboard_exchange_xml", "Blackboard Exchange (XML)"),
+        ("06_action_nodes_xml", "Blackboard Usage (XML)"),
+        ("07_condition_nodes_xml", "Async Operations (XML)"),
         ("08_composite_nodes_xml", "Priority System (XML)"),
         ("09_control_flow_basic_xml", "Dynamic Behavior (XML)"),
         ("10_control_flow_advanced_xml", "Multi-Agent System (XML)"),
         ("11_behavior_forest_xml", "Behavior Forest (XML)"),
-        ("12_forest_manager_xml", "Forest Manager (XML)"),
+        ("12_decorator_nodes_xml", "Decorator Nodes (XML)"),
         ("13_advanced_forest_features_xml", "Advanced Forest Features (XML)"),
-        ("14_state_management_xml", "State Management (XML)"),
+        ("14_forest_manager_xml", "Forest Manager (XML)"),
+        ("15_communication_basic_xml", "Communication Basic (XML)"),
         ("16_automation_testing_xml", "Automation Testing (XML)"),
         ("17_robot_control_xml", "Robot Control (XML)"),
         ("18_smart_home_xml", "Smart Home System (XML)"),
@@ -95,10 +104,11 @@ async def main():
         ("20_pubsub_communication_xml", "PubSub Communication (XML)"),
         ("21_reqresp_communication_xml", "Request-Response Communication (XML)"),
         ("22_shared_blackboard_xml", "Shared Blackboard Communication (XML)"),
-        ("23_state_watching_xml", "State Watching Communication (XML)"),
+        ("23_state_management_xml", "State Management (XML)"),
         ("24_behavior_call_xml", "Behavior Call Communication (XML)"),
-        ("25_task_board_xml", "Task Board Communication (XML)"),
-        ("26_list_registered_nodes_xml", "List Registered Nodes (XML)")
+        ("25_state_watching_xml", "State Watching Communication (XML)"),
+        ("26_list_registered_nodes_xml", "List Registered Nodes (XML)"),
+        ("27_task_board_xml", "Task Board Communication (XML)")
     ]
     
     # Run code-based examples
@@ -172,6 +182,7 @@ async def main():
     print(f"  - Check Python version compatibility (requires 3.8+)")
     print(f"  - See examples/README.md for learning path")
     print(f"  - XML examples demonstrate configuration-based approach")
+    print(f"  - Examples are organized in logical learning progression")
 
 
 if __name__ == "__main__":

@@ -230,7 +230,7 @@ async def test_check_blackboard_node():
     blackboard.set("test_key", "test_value")
     
     # Create check blackboard node
-    check = CheckBlackboard("test_check", "test_key", "test_value")
+    check = CheckBlackboard(name="test_check", key="test_key", expected_value="test_value")
     check.set_blackboard(blackboard)
     
     # Test check
@@ -245,7 +245,7 @@ async def test_is_true_node():
     blackboard.set("test_key", True)
     
     # Create is true node
-    is_true = IsTrue("test_is_true", "test_key")
+    is_true = IsTrue(name="test_is_true", key="test_key")
     is_true.set_blackboard(blackboard)
     
     # Test is true
@@ -260,7 +260,7 @@ async def test_is_false_node():
     blackboard.set("test_key", False)
     
     # Create is false node
-    is_false = IsFalse("test_is_false", "test_key")
+    is_false = IsFalse(name="test_is_false", key="test_key")
     is_false.set_blackboard(blackboard)
     
     # Test is false
@@ -275,7 +275,7 @@ async def test_compare_node():
     blackboard.set("test_key", 10)
     
     # Create compare node
-    compare = Compare("test_compare", "test_key", "==", 10)
+    compare = Compare(name="test_compare", key="test_key", operator="==", value=10)
     compare.set_blackboard(blackboard)
     
     # Test compare

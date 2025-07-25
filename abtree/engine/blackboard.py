@@ -42,6 +42,55 @@ class BlackboardStats:
         self.last_reset = time.time()
 
 
+class TransactionBlackboard:
+    """Wrapper for blackboard operations within a transaction context."""
+    
+    def __init__(self, blackboard: "OptimizedBlackboard"):
+        self._blackboard = blackboard
+    
+    def set(self, key: str, value: Any) -> None:
+        """Set data without acquiring locks (already in transaction)."""
+        # Direct access without locks since we're in a transaction
+        self._blackboard._data[key] = value
+        if self._blackboard._enable_caching:
+            self._blackboard._cache_sync_update(key, value)
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get data without acquiring locks (already in transaction)."""
+        # Check cache first
+        if self._blackboard._enable_caching and key in self._blackboard._cache:
+            value, timestamp = self._blackboard._cache[key]
+            if time.time() - timestamp < 300:  # 5 minutes cache
+                self._blackboard._access_count[key] += 1
+                return value
+        
+        # Direct access without locks since we're in a transaction
+        value = self._blackboard._data.get(key, default)
+        if self._blackboard._enable_caching:
+            self._blackboard._cache_sync_update(key, value)
+        return value
+    
+    async def set_async(self, key: str, value: Any) -> None:
+        """Set data without acquiring locks (already in transaction)."""
+        # Direct access without locks since we're in a transaction
+        self._blackboard._data[key] = value
+        if self._blackboard._enable_caching:
+            await self._blackboard._set_cache(key, value)
+    
+    async def get_async(self, key: str, default: Any = None) -> Any:
+        """Get data without acquiring locks (already in transaction)."""
+        # Try cache first
+        cached_value = await self._blackboard._get_from_cache(key)
+        if cached_value is not None:
+            return cached_value
+        
+        # Direct access without locks since we're in a transaction
+        value = self._blackboard._data.get(key, default)
+        if self._blackboard._enable_caching:
+            await self._blackboard._set_cache(key, value)
+        return value
+
+
 class OptimizedBlackboard:
     """
     High-performance blackboard system with optimized thread safety and caching.
@@ -109,7 +158,7 @@ class OptimizedBlackboard:
         
         # Thread safety for synchronous operations
         self._thread_lock = threading.RLock()
-        
+    
     async def _acquire_read_lock(self) -> None:
         """Acquire read lock for concurrent read access."""
         async with self._readers_lock:
@@ -159,7 +208,7 @@ class OptimizedBlackboard:
                     
                     self._stats.lock_wait_time += wait_time
             
-            # Fire and forget async update
+            # Schedule the update
             asyncio.create_task(_update())
         except RuntimeError:
             # No running event loop, update synchronously
@@ -180,44 +229,45 @@ class OptimizedBlackboard:
         """Get value from cache if available."""
         if not self._enable_caching:
             return None
-            
+        
         async with self._cache_lock:
             if key in self._cache:
                 value, timestamp = self._cache[key]
-                # Check if cache entry is still valid (5 minute TTL)
+                # Simple cache invalidation based on time (5 minutes)
                 if time.time() - timestamp < 300:
                     self._access_count[key] += 1
                     return value
                 else:
                     # Remove expired cache entry
                     del self._cache[key]
+                    self._access_count.pop(key, None)
         return None
     
     async def _set_cache(self, key: str, value: Any) -> None:
         """Set value in cache."""
         if not self._enable_caching:
             return
-            
+        
         async with self._cache_lock:
-            # Implement LRU eviction if cache is full
+            # Implement LRU cache eviction
             if len(self._cache) >= self._cache_size:
-                # Remove least recently used entry
+                # Remove least recently used item
                 lru_key = min(self._access_count.keys(), key=lambda k: self._access_count[k])
                 del self._cache[lru_key]
-                del self._access_count[lru_key]
+                self._access_count.pop(lru_key, None)
             
             self._cache[key] = (value, time.time())
-            self._access_count[key] += 1
+            self._access_count[key] = 1
     
     async def _clear_cache(self) -> None:
-        """Clear the cache."""
+        """Clear all cached data."""
         async with self._cache_lock:
             self._cache.clear()
             self._access_count.clear()
     
     def set(self, key: str, value: Any) -> None:
         """
-        Set blackboard data with optimized performance.
+        Set blackboard data with optimized thread safety.
         
         Args:
             key: Data key
@@ -225,54 +275,55 @@ class OptimizedBlackboard:
         """
         start_time = time.time()
         
-        # Use thread lock for synchronous operations
         with self._thread_lock:
             self._data[key] = value
-            # Update cache synchronously to avoid async issues
-            if self._enable_caching:
-                # Simple cache update without async
-                self._cache_sync_update(key, value)
+            # Update cache synchronously
+            self._cache_sync_update(key, value)
         
-        self._update_stats("write", wait_time=time.time() - start_time)
+        self._update_stats("write", False, time.time() - start_time)
     
     def get(self, key: str, default: Any = None) -> Any:
         """
-        Get blackboard data with optimized performance.
+        Get blackboard data with optimized thread safety.
         
         Args:
             key: Data key
-            default: Default value returned when key doesn't exist
+            default: Default value
 
         Returns:
             Stored data value or default value (direct reference)
         """
         start_time = time.time()
         
-        # Use thread lock for synchronous operations
         with self._thread_lock:
+            # Check cache first
+            if self._enable_caching and key in self._cache:
+                value, timestamp = self._cache[key]
+                if time.time() - timestamp < 300:  # 5 minutes cache
+                    self._access_count[key] += 1
+                    self._update_stats("read", True, time.time() - start_time)
+                    return value
+            
+            # Cache miss or disabled, get from main storage
             value = self._data.get(key, default)
-            # Update cache synchronously to avoid async issues
-            if self._enable_caching:
-                self._cache_sync_update(key, value)
+            self._cache_sync_update(key, value)
         
-        self._update_stats("read", wait_time=time.time() - start_time)
+        self._update_stats("read", False, time.time() - start_time)
         return value
     
     def _cache_sync_update(self, key: str, value: Any) -> None:
-        """Synchronous cache update for use in sync methods."""
+        """Update cache synchronously."""
         if not self._enable_caching:
             return
         
-        # Simple cache update without locks for performance
+        # Simple synchronous cache update
         if len(self._cache) >= self._cache_size:
-            # Remove least recently used entry
-            if self._access_count:
-                lru_key = min(self._access_count.keys(), key=lambda k: self._access_count[k])
-                self._cache.pop(lru_key, None)
-                self._access_count.pop(lru_key, None)
+            lru_key = min(self._access_count.keys(), key=lambda k: self._access_count[k])
+            del self._cache[lru_key]
+            self._access_count.pop(lru_key, None)
         
         self._cache[key] = (value, time.time())
-        self._access_count[key] += 1
+        self._access_count[key] = 1
     
     async def set_async(self, key: str, value: Any) -> None:
         """
@@ -392,70 +443,54 @@ class OptimizedBlackboard:
     
     async def _remove_from_cache(self, key: str) -> None:
         """Remove key from cache."""
-        if not self._enable_caching:
-            return
-            
-        async with self._cache_lock:
-            self._cache.pop(key, None)
-            self._access_count.pop(key, None)
+        if self._enable_caching:
+            async with self._cache_lock:
+                self._cache.pop(key, None)
+                self._access_count.pop(key, None)
     
     def clear(self) -> None:
-        """Clear all data in the blackboard with optimized performance."""
+        """Clear all data from blackboard."""
         with self._thread_lock:
             self._data.clear()
-            # Clear cache synchronously
             if self._enable_caching:
                 self._cache.clear()
                 self._access_count.clear()
     
     async def clear_async(self) -> None:
-        """Asynchronously clear all data in the blackboard."""
+        """Asynchronously clear all data from blackboard."""
         async with self._write_lock:
             self._data.clear()
             await self._clear_cache()
     
     def keys(self) -> List[str]:
-        """
-        Get list of all keys in blackboard with optimized performance.
-        
-        Returns:
-            List of keys
-        """
+        """Get all keys in blackboard."""
         with self._thread_lock:
             return list(self._data.keys())
     
     def values(self) -> List[Any]:
-        """
-        Get list of all values in blackboard with optimized performance.
-        
-        Returns:
-            List of values (direct references)
-        """
+        """Get all values in blackboard."""
         with self._thread_lock:
             return list(self._data.values())
     
     def items(self) -> List[Tuple[str, Any]]:
-        """
-        Get list of all key-value pairs in blackboard with optimized performance.
-        
-        Returns:
-            List of key-value pairs (direct references)
-        """
+        """Get all key-value pairs in blackboard."""
         with self._thread_lock:
             return list(self._data.items())
     
     @asynccontextmanager
-    async def transaction(self) -> AsyncGenerator["OptimizedBlackboard", None]:
+    async def transaction(self) -> AsyncGenerator["TransactionBlackboard", None]:
         """
         Blackboard transaction context manager with optimized performance.
 
         Provides atomic operations, ensuring data consistency during transactions.
 
         Yields:
-            OptimizedBlackboard: Current blackboard instance
+            TransactionBlackboard: Transaction wrapper for blackboard operations
         """
         async with self._write_lock:
-            yield self
+            # Create a transaction wrapper that bypasses locks
+            transaction_bb = TransactionBlackboard(self)
+            yield transaction_bb
     
     def get_stats(self) -> Dict[str, Any]:
         """Get performance statistics."""

@@ -117,7 +117,7 @@ class CheckBlackboard(Condition):
         Returns:
             Whether the condition is met
         """
-        if not self.key:
+        if not self.key or self.blackboard is None:
             return False
 
         if self.check_exists:
@@ -176,7 +176,7 @@ class IsTrue(Condition):
         Returns:
             Whether the condition is met
         """
-        if not self.key:
+        if not self.key or self.blackboard is None:
             return False
 
         value = self.blackboard.get(self.key, False)
@@ -212,7 +212,7 @@ class IsFalse(Condition):
         Returns:
             Whether the condition is met
         """
-        if not self.key:
+        if not self.key or self.blackboard is None:
             return True  # If the key does not exist, treat as false
 
         value = self.blackboard.get(self.key, False)
@@ -250,7 +250,7 @@ class Compare(Condition):
         Returns:
             Whether the condition is met
         """
-        if not self.key:
+        if not self.key or self.blackboard is None:
             return False
 
         actual_value = self.blackboard.get(self.key)

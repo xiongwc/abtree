@@ -491,13 +491,13 @@ class XMLParser:
 
         # Store execute parameters for later use
         if execute_attributes:
-            node._execute_attributes = execute_attributes
+            setattr(node, '_execute_attributes', execute_attributes)
 
         # Add parameter mappings to execute attributes for validation
         for param_name, blackboard_key in param_mappings.items():
             if param_name not in execute_attributes:
                 execute_attributes[param_name] = None  # Placeholder for blackboard mapping
-                node._execute_attributes = execute_attributes
+                setattr(node, '_execute_attributes', execute_attributes)
 
         # Validate node parameters against execute method signature
         self._validate_node_parameters(node, execute_attributes)

@@ -300,7 +300,8 @@ class TreeBuilder:
         patrol_sequence.add_child(Log(name="PatrolLog", message="Start patrol"))
 
         # Create parallel tasks
-        parallel_tasks = Parallel(name="ParallelTasks", policy=Policy.SUCCEED_ON_ALL)
+        from ..nodes.composite import Policy as CompositePolicy
+        parallel_tasks = Parallel(name="ParallelTasks", policy=CompositePolicy.SUCCEED_ON_ALL)
         parallel_tasks.add_child(
             Repeater(
                 name="RepeatCheck",

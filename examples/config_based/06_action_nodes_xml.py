@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Example 05: Action Nodes - XML Configuration Version
+Example 06: Action Nodes - XML Configuration Version
 
 This is the XML configuration version of the Action Nodes example.
 It demonstrates how to configure various action nodes using XML.

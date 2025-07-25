@@ -50,7 +50,7 @@ class BaseNode(ABC):
         if not hasattr(self, '_last_tick_time'):
             self._last_tick_time = 0.0
         if not hasattr(self, '_param_mappings'):
-            self._param_mappings = {}
+            self._param_mappings: Dict[str, str] = {}
         if not hasattr(self, 'blackboard'):
             self.blackboard: Optional[Blackboard] = None
         
@@ -140,45 +140,36 @@ class BaseNode(ABC):
         """
         return self._param_mappings.copy()
 
-    def getPort(self, default: Any = None) -> Any:
+    def getPort(self, variable_name: str) -> Any:
         """
-        Get value from mapped port using variable name from caller
+        Get value from mapped port using variable name
         
         Args:
-            default: Default value if not found
+            variable_name: Name of the variable to get from blackboard
             
         Returns:
-            Value from blackboard or default
+            Value from blackboard or None if not found
         """
-        # Get the caller's frame
-        frame = inspect.currentframe().f_back
-        # Get the variable name from the caller's locals
-        for name, value in frame.f_locals.items():
-            if value is self.getPort.__defaults__[0] if self.getPort.__defaults__ else None:
-                continue
-            # Find the variable that matches the current call
-            if frame.f_code.co_name == 'execute' and name in self._param_mappings:
-                return self.get_mapped_value(name, default)
-        return default
+        if variable_name in self._param_mappings:
+            mapped_value = self.get_mapped_value(variable_name)
+            return mapped_value
+        else:
+            # If not found, raise an error
+            raise ValueError(f"Variable '{variable_name}' is not mapped to blackboard")
 
-    def setPort(self, value: Any) -> None:
+    def setPort(self, variable_name: str, value: Any) -> None:
         """
-        Set value to mapped port using variable name from caller
+        Set value to mapped port using variable name
         
         Args:
+            variable_name: Name of the variable to set
             value: Value to set
         """
-        # Get the caller's frame
-        frame = inspect.currentframe().f_back
-        # Get the variable name from the caller's locals
-        for name, val in frame.f_locals.items():
-            if val is value:
-                # Found the variable name, use it to set the mapped value
-                if name in self._param_mappings:
-                    self.set_mapped_value(name, value)
-                    return
-        # If not found, raise an error
-        raise ValueError(f"Could not determine variable name for value {value}")
+        if variable_name in self._param_mappings:
+            self.set_mapped_value(variable_name, value)
+        else:
+            # If not found, raise an error
+            raise ValueError(f"Variable '{variable_name}' is not mapped to blackboard")
 
     @abstractmethod
     async def tick(self) -> Status:

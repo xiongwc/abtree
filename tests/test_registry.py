@@ -11,6 +11,14 @@ class TestNode2(BaseNode):
     async def tick(self):
         return Status.FAILURE
 
+class DummyNode(BaseNode):
+    async def tick(self):
+        return Status.SUCCESS
+
+class AnotherDummyNode(BaseNode):
+    async def tick(self):
+        return Status.FAILURE
+
 def test_register_and_create_node():
     reg = NodeRegistry()
     reg.register("Dummy", DummyNode, metadata={"desc": "test node"})

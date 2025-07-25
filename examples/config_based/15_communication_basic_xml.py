@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Example 25: Event System Test
+Example 15: Communication Basic - XML Configuration Version
 
-Simple example demonstrating event communication within a single behavior tree.
+Simple example demonstrating event communication within a single behavior tree using XML configuration.
 """
 
 import asyncio
@@ -68,7 +68,7 @@ def register_custom_nodes():
 
 async def main():
     """Main function"""
-    print("=== Event System Test ===\n")
+    print("=== Communication Basic Test (XML) ===\n")
     
     register_custom_nodes()
     
@@ -83,23 +83,20 @@ async def main():
         name="EventTestTree"
     )
     
-    # Create a simple sequence: Subscriber -> Publisher
-    from abtree.nodes.composite import Sequence
-    from abtree.nodes.action import Log
+    # XML configuration for event system test
+    xml_config = '''
+    <BehaviorTree name="EventTestTree">
+        <Sequence name="Event Test Sequence">
+            <SubscriberAction name="Subscribe Event" topic="news" />
+            <PublisherAction name="Publish Event" topic="news" message="Hello World" />
+        </Sequence>
+    </BehaviorTree>
+    '''
     
-    sequence = Sequence("Event Test Sequence")
+    # Load tree from XML
+    tree.load_from_string(xml_config)
     
-    # Add subscriber first (will wait for event)
-    subscriber = SubscriberAction("Subscribe Event", "news")
-    sequence.add_child(subscriber)
-    
-    # Add publisher (will emit event)
-    publisher = PublisherAction("Publish Event", "news", "Hello World")
-    sequence.add_child(publisher)
-    
-    tree.set_root(sequence)
-    
-    print("🚀 Starting event system test...")
+    print("🚀 Starting event system test (XML)...")
     await tree.start()
     
     # Wait for the sequence to complete

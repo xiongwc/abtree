@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Example 07: Decorator Nodes - XML Configuration Version
+Example 12: Decorator Nodes - XML Configuration Version
 
 This is the XML configuration version of the Decorator Nodes example.
 It demonstrates how to configure various decorator nodes using XML.
