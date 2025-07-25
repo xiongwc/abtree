@@ -103,8 +103,8 @@ class StateMachine(BaseNode):
         print(f"State machine {self.name}: Error state")
         await asyncio.sleep(0.01)  # Fast simulation
         
-        # Try to recover
-        if random.random() < 0.7:  # 70% recovery probability
+        # Attempt recovery
+        if random.random() < 0.8:  # 80% recovery success
             self.current_state = "recovery"
             return Status.SUCCESS
         else:
@@ -119,10 +119,13 @@ class StateMachine(BaseNode):
         self.current_state = "working"
         return Status.SUCCESS
     
-    async def tick(self, blackboard):
+    async def tick(self):
         """Execute current state"""
+        if not self.blackboard:
+            return Status.FAILURE
+            
         if self.current_state in self.states:
-            return await self.states[self.current_state](blackboard)
+            return await self.states[self.current_state](self.blackboard)
         return Status.FAILURE
 
 
@@ -175,8 +178,11 @@ class EventDrivenController(BaseNode):
         
         return Status.SUCCESS
     
-    async def tick(self, blackboard):
+    async def tick(self):
         """Handle event queue"""
+        if not self.blackboard:
+            return Status.FAILURE
+            
         if not self.event_queue:
             return Status.SUCCESS
         
@@ -184,7 +190,7 @@ class EventDrivenController(BaseNode):
         priority, timestamp, event_type = self.event_queue.pop(0)
         
         if event_type in self.event_handlers:
-            return await self.event_handlers[event_type](blackboard)
+            return await self.event_handlers[event_type](self.blackboard)
         
         return Status.FAILURE
 
@@ -202,11 +208,14 @@ class PriorityQueue(BaseNode):
         self.tasks.append((priority, time.time(), task))
         self.tasks.sort(key=lambda x: (-x[0], x[1]))
     
-    async def tick(self, blackboard):
+    async def tick(self):
         """Execute highest priority task"""
+        if not self.blackboard:
+            return Status.FAILURE
+            
         if self.current_task:
             # Continue executing current task
-            result = await self.current_task.tick(blackboard)
+            result = await self.current_task.tick()
             if result != Status.RUNNING:
                 self.current_task = None
             return result
@@ -217,9 +226,7 @@ class PriorityQueue(BaseNode):
         # Start executing new task
         priority, timestamp, task = self.tasks.pop(0)
         self.current_task = task
-        
-        print(f"Priority queue {self.name}: Start executing task {task.name} (priority: {priority})")
-        return await task.tick(blackboard)
+        return await self.current_task.tick()
 
 
 class DynamicDecisionMaker(BaseNode):
@@ -230,14 +237,14 @@ class DynamicDecisionMaker(BaseNode):
         self.decision_history = []
         self.adaptation_factor = 1.0
     
-    async def tick(self, blackboard):
+    async def tick(self):
         """Make dynamic decision based on current state"""
         print(f"Dynamic decision maker {self.name}: Analyze current state")
         
         # Get current state information
-        battery_level = blackboard.get("battery_level", 100)
-        workload = blackboard.get("workload", 0)
-        error_rate = blackboard.get("error_rate", 0)
+        battery_level = self.blackboard.get("battery_level", 100)
+        workload = self.blackboard.get("workload", 0)
+        error_rate = self.blackboard.get("error_rate", 0)
         
         # Calculate decision weights
         battery_weight = max(0, (100 - battery_level) / 100)
@@ -278,8 +285,8 @@ class DynamicDecisionMaker(BaseNode):
             self.decision_history.pop(0)
         
         # Set decision result
-        blackboard.set("current_decision", decision)
-        blackboard.set("adaptation_factor", self.adaptation_factor)
+        self.blackboard.set("current_decision", decision)
+        self.blackboard.set("adaptation_factor", self.adaptation_factor)
         
         print(f"Dynamic decision maker {self.name}: Decision: {decision}, Adaptation factor: {self.adaptation_factor:.2f}")
         

@@ -464,17 +464,28 @@ class XMLParser:
         if hasattr(node_class, 'execute'):
             import inspect
             try:
-                sig = inspect.signature(node_class.execute)
-                execute_param_names = list(sig.parameters.keys())
+                # First, check __init__ method signature
+                init_sig = inspect.signature(node_class.__init__)
+                init_param_names = list(init_sig.parameters.keys())
+                # Skip 'self' parameter
+                if init_param_names and init_param_names[0] == 'self':
+                    init_param_names = init_param_names[1:]
+                
+                # Then check execute method signature
+                execute_sig = inspect.signature(node_class.execute)
+                execute_param_names = list(execute_sig.parameters.keys())
                 # Skip 'self' parameter
                 if execute_param_names and execute_param_names[0] == 'self':
                     execute_param_names = execute_param_names[1:]
                 
-                # Separate attributes
+                # Separate attributes based on both signatures
                 for key, value in attributes.items():
-                    if key in execute_param_names:
+                    if key in init_param_names:
+                        init_attributes[key] = value
+                    elif key in execute_param_names:
                         execute_attributes[key] = value
                     else:
+                        # If not found in either, default to init
                         init_attributes[key] = value
             except Exception:
                 # If we can't inspect, pass all to init
@@ -500,7 +511,8 @@ class XMLParser:
                 setattr(node, '_execute_attributes', execute_attributes)
 
         # Validate node parameters against execute method signature
-        self._validate_node_parameters(node, execute_attributes)
+        if execute_attributes:
+            self._validate_node_parameters(node, execute_attributes)
 
         # Ensure node has children attribute initialized
         if not hasattr(node, 'children'):

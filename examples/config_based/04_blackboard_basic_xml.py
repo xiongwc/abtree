@@ -19,9 +19,12 @@ class CheckValueCondition(Condition):
         super().__init__(name)
         self.params = kwargs
     
-    async def evaluate(self, blackboard):
-        threshold = blackboard.get("threshold", 50)
-        value = blackboard.get("current_value", 0)
+    async def evaluate(self):
+        if not self.blackboard:
+            return False
+            
+        threshold = self.blackboard.get("threshold", 50)
+        value = self.blackboard.get("current_value", 0)
         
         print(f"Check: {value} > {threshold} = {value > threshold}")
         return value > threshold

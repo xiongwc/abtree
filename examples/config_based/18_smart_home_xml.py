@@ -198,13 +198,13 @@ class SmartHomeSystem:
 class UpdateSensorsAction(Action):
     """Update sensors action"""
     
-    async def execute(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def execute(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return Status.FAILURE
         
         await system.update_sensors()
-        blackboard.set("sensors_updated", True)
+        self.blackboard.set("sensors_updated", True)
         print("📡 Sensor data updated")
         return Status.SUCCESS
 
@@ -212,13 +212,13 @@ class UpdateSensorsAction(Action):
 class UpdateDevicesAction(Action):
     """Update devices action"""
     
-    async def execute(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def execute(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return Status.FAILURE
         
         await system.update_devices()
-        blackboard.set("devices_updated", True)
+        self.blackboard.set("devices_updated", True)
         print("🔧 Device status updated")
         return Status.SUCCESS
 
@@ -226,8 +226,8 @@ class UpdateDevicesAction(Action):
 class CheckSecurityAction(Action):
     """Check security action"""
     
-    async def execute(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def execute(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return Status.FAILURE
         
@@ -240,19 +240,19 @@ class CheckSecurityAction(Action):
         ]
         
         if recent_events:
-            blackboard.set("security_alert", True)
-            blackboard.set("security_events", recent_events)
+            self.blackboard.set("security_alert", True)
+            self.blackboard.set("security_events", recent_events)
             print(f"🚨 Detected {len(recent_events)} security events")
         else:
-            blackboard.set("security_alert", False)
+            self.blackboard.set("security_alert", False)
         
         return Status.SUCCESS
 
 
 class SceneModeSelector(Action):
     """Scene mode selector action"""
-    async def execute(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def execute(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return Status.FAILURE
         # Determine scene based on time and user preferences
@@ -268,21 +268,21 @@ class SceneModeSelector(Action):
             new_scene = SceneMode.HOME
         if new_scene != system.current_scene:
             system.current_scene = new_scene
-            blackboard.set("scene_changed", True)
-            blackboard.set("current_scene", new_scene.value)
+            self.blackboard.set("scene_changed", True)
+            self.blackboard.set("current_scene", new_scene.value)
             print(f"🏠 Scene switched: {new_scene.value}")
         else:
-            blackboard.set("scene_changed", False)
+            self.blackboard.set("scene_changed", False)
         return Status.SUCCESS
-    async def tick(self, blackboard):
-        return await self.execute(blackboard)
+    async def tick(self):
+        return await self.execute()
 
 
 class ApplySceneModeAction(Action):
     """Apply scene mode action"""
     
-    async def execute(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def execute(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return Status.FAILURE
         
@@ -325,7 +325,7 @@ class ApplySceneModeAction(Action):
                     device.status = True
                     device.value = 20.0
         
-        blackboard.set("scene_applied", True)
+        self.blackboard.set("scene_applied", True)
         return Status.SUCCESS
 
 

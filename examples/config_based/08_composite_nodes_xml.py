@@ -32,11 +32,14 @@ class ParallelNode(CompositeNode):
     def add_child(self, child):
         self.children.append(child)
     
-    async def tick(self, blackboard):
+    async def tick(self):
+        if not self.blackboard:
+            return Status.FAILURE
+            
         print(f"Parallel node {self.name}: executing {len(self.children)} child nodes")
         
         # Execute all child nodes simultaneously
-        tasks = [child.tick(blackboard) for child in self.children]
+        tasks = [child.tick() for child in self.children]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
         # Count results
@@ -84,7 +87,10 @@ class PriorityNode(CompositeNode):
     def add_child(self, child):
         self.children.append(child)
     
-    async def tick(self, blackboard):
+    async def tick(self):
+        if not self.blackboard:
+            return Status.FAILURE
+            
         print(f"Priority node {self.name}: current index {self.current_index}")
         
         # Try executing child nodes starting from current index
@@ -92,19 +98,21 @@ class PriorityNode(CompositeNode):
             child = self.children[i]
             print(f"Priority node {self.name}: trying to execute child node {i}: {child.name}")
             
-            result = await child.tick(blackboard)
+            result = await child.tick()
             
             if result == Status.SUCCESS:
                 print(f"Priority node {self.name}: child {i} succeeded, resetting index")
                 self.current_index = 0
                 return Status.SUCCESS
             elif result == Status.RUNNING:
-                print(f"Priority node {self.name}: child {i} running, keeping index")
+                print(f"Priority node {self.name}: child {i} running, continuing")
                 self.current_index = i
                 return Status.RUNNING
+            else:
+                print(f"Priority node {self.name}: child {i} failed, trying next")
         
         # All children failed
-        print(f"Priority node {self.name}: all children failed, resetting index")
+        print(f"Priority node {self.name}: all children failed")
         self.current_index = 0
         return Status.FAILURE
 
@@ -119,15 +127,18 @@ class RandomSelector(CompositeNode):
     def add_child(self, child):
         self.children.append(child)
     
-    async def tick(self, blackboard):
+    async def tick(self):
+        if not self.blackboard:
+            return Status.FAILURE
+            
         if not self.children:
             return Status.FAILURE
         
-        # Randomly select a child
+        # Randomly select a child node
         selected_child = random.choice(self.children)
-        print(f"Random selector {self.name}: selected child '{selected_child.name}'")
+        print(f"Random selector {self.name}: selected child {selected_child.name}")
         
-        return await selected_child.tick(blackboard)
+        return await selected_child.tick()
 
 
 class MemorySequence(CompositeNode):
@@ -137,11 +148,15 @@ class MemorySequence(CompositeNode):
         super().__init__(name)
         self.children = children or []
         self.current_index = 0
+        self.memory = {}  # Store execution results
     
     def add_child(self, child):
         self.children.append(child)
     
-    async def tick(self, blackboard):
+    async def tick(self):
+        if not self.blackboard:
+            return Status.FAILURE
+            
         print(f"Memory sequence {self.name}: current index {self.current_index}")
         
         # Execute children from current index
@@ -149,22 +164,23 @@ class MemorySequence(CompositeNode):
             child = self.children[i]
             print(f"Memory sequence {self.name}: executing child {i}: {child.name}")
             
-            result = await child.tick(blackboard)
+            result = await child.tick()
+            self.memory[child.name] = result
             
             if result == Status.SUCCESS:
                 print(f"Memory sequence {self.name}: child {i} succeeded, continuing")
                 continue
             elif result == Status.RUNNING:
-                print(f"Memory sequence {self.name}: child {i} running, staying at index {i}")
+                print(f"Memory sequence {self.name}: child {i} running, stopping")
                 self.current_index = i
                 return Status.RUNNING
-            else:  # FAILURE
-                print(f"Memory sequence {self.name}: child {i} failed, resetting to beginning")
+            else:
+                print(f"Memory sequence {self.name}: child {i} failed, resetting")
                 self.current_index = 0
                 return Status.FAILURE
         
         # All children succeeded
-        print(f"Memory sequence {self.name}: all children succeeded, resetting to beginning")
+        print(f"Memory sequence {self.name}: all children succeeded")
         self.current_index = 0
         return Status.SUCCESS
 
@@ -181,31 +197,33 @@ class WeightedSelector(CompositeNode):
         self.children.append(child)
         self.weights.append(weight)
     
-    async def tick(self, blackboard):
+    async def tick(self):
+        if not self.blackboard:
+            return Status.FAILURE
+            
         if not self.children:
             return Status.FAILURE
         
-        # Calculate total weight
+        # Select child based on weights
         total_weight = sum(self.weights)
         if total_weight == 0:
             return Status.FAILURE
         
-        # Generate random value
-        random_value = random.uniform(0, total_weight)
-        
-        # Select child based on weights
+        # Simple weighted selection (could be improved with more sophisticated algorithms)
+        rand_val = random.uniform(0, total_weight)
         cumulative_weight = 0
-        selected_index = 0
+        
         for i, weight in enumerate(self.weights):
             cumulative_weight += weight
-            if random_value <= cumulative_weight:
-                selected_index = i
-                break
+            if rand_val <= cumulative_weight:
+                selected_child = self.children[i]
+                print(f"Weighted selector {self.name}: selected child {selected_child.name} (weight={weight})")
+                return await selected_child.tick()
         
-        selected_child = self.children[selected_index]
-        print(f"Weighted selector {self.name}: selected child '{selected_child.name}' (weight={self.weights[selected_index]})")
-        
-        return await selected_child.tick(blackboard)
+        # Fallback to first child
+        selected_child = self.children[0]
+        print(f"Weighted selector {self.name}: fallback to child {selected_child.name}")
+        return await selected_child.tick()
 
 
 class TestAction(Action):
@@ -235,7 +253,10 @@ class TestCondition(Condition):
         self.name = name
         self.success_rate = success_rate
     
-    async def evaluate(self, blackboard):
+    async def evaluate(self):
+        if not self.blackboard:
+            return False
+            
         print(f"Evaluating test condition: {self.name}")
         await asyncio.sleep(0.02)  # Reduced from 0.1
         

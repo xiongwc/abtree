@@ -96,7 +96,13 @@ class Action(BaseNode):
                             node_args.append(None)
 
             # Execute specific actions with node attributes
-            result = await self.execute(*node_args, **kwargs)
+            # Check if execute method has specific parameter names (not *args, **kwargs)
+            if param_names and len(param_names) > 0:
+                # Execute with positional arguments in the correct order
+                result = await self.execute(*node_args)
+            else:
+                # Execute with *args, **kwargs signature
+                result = await self.execute(*node_args, **kwargs)
 
             # Set status
             self.status = result

@@ -16,11 +16,11 @@ Key Learning Points:
 import asyncio
 import time
 import random
-from abtree import BehaviorTree, Action, Decorator, register_node
+from abtree import BehaviorTree, Action, DecoratorNode, register_node
 from abtree.core import Status
 
 
-class RepeatDecorator(Decorator):
+class RepeatDecorator(DecoratorNode):
     """Repeat decorator - repeats child node execution for specified number of times"""
     
     def __init__(self, name, repeat_count=3, **kwargs):
@@ -28,7 +28,7 @@ class RepeatDecorator(Decorator):
         self.repeat_count = repeat_count
         self.current_count = 0
     
-    async def tick(self, blackboard):
+    async def tick(self):
         if self.current_count >= self.repeat_count:
             self.current_count = 0
             return Status.SUCCESS
@@ -36,21 +36,21 @@ class RepeatDecorator(Decorator):
         self.current_count += 1
         print(f"Repeat execution {self.name}: {self.current_count}/{self.repeat_count} times")
         
-        result = await self.child.tick(blackboard)
+        result = await self.child.tick()
         print(f"Repeat execution {self.name}: child node returns {result}")
         
         return result
 
 
-class InverterDecorator(Decorator):
+class InverterDecorator(DecoratorNode):
     """Inverter decorator - inverts the result of child node"""
     
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
     
-    async def tick(self, blackboard):
+    async def tick(self):
         print(f"Inverter decorator {self.name}: executing child node")
-        result = await self.child.tick(blackboard)
+        result = await self.child.tick()
         
         # Invert result
         if result == Status.SUCCESS:
@@ -64,7 +64,7 @@ class InverterDecorator(Decorator):
         return inverted_result
 
 
-class UntilSuccessDecorator(Decorator):
+class UntilSuccessDecorator(DecoratorNode):
     """Until success decorator - repeats execution until success"""
     
     def __init__(self, name, max_attempts=5, **kwargs):
@@ -72,12 +72,12 @@ class UntilSuccessDecorator(Decorator):
         self.max_attempts = max_attempts
         self.attempt_count = 0
     
-    async def tick(self, blackboard):
+    async def tick(self):
         while self.attempt_count < self.max_attempts:
             self.attempt_count += 1
             print(f"Until success {self.name}: attempt {self.attempt_count}/{self.max_attempts}")
             
-            result = await self.child.tick(blackboard)
+            result = await self.child.tick()
             if result == Status.SUCCESS:
                 print(f"Until success {self.name}: succeeded on attempt {self.attempt_count}")
                 return Status.SUCCESS
@@ -86,21 +86,21 @@ class UntilSuccessDecorator(Decorator):
         return Status.FAILURE
 
 
-class TimeoutDecorator(Decorator):
+class TimeoutDecorator(DecoratorNode):
     """Timeout decorator - limits execution time"""
     
     def __init__(self, name, timeout_seconds=2.0, **kwargs):
         super().__init__(name, **kwargs)
         self.timeout_seconds = timeout_seconds
     
-    async def tick(self, blackboard):
+    async def tick(self):
         print(f"Timeout decorator {self.name}: starting with {self.timeout_seconds}s timeout")
         start_time = time.time()
         
         try:
             # Execute child with timeout
             result = await asyncio.wait_for(
-                self.child.tick(blackboard),
+                self.child.tick(),
                 timeout=self.timeout_seconds
             )
             print(f"Timeout decorator {self.name}: completed successfully")
@@ -110,7 +110,7 @@ class TimeoutDecorator(Decorator):
             return Status.FAILURE
 
 
-class ConditionalDecorator(Decorator):
+class ConditionalDecorator(DecoratorNode):
     """Conditional decorator - executes child only if condition is met"""
     
     def __init__(self, name, condition_key, condition_value=True, **kwargs):
@@ -118,18 +118,18 @@ class ConditionalDecorator(Decorator):
         self.condition_key = condition_key
         self.condition_value = condition_value
     
-    async def tick(self, blackboard):
-        condition_met = blackboard.get(self.condition_key, False) == self.condition_value
+    async def tick(self):
+        condition_met = self.blackboard.get(self.condition_key, False) == self.condition_value
         print(f"Conditional decorator {self.name}: condition {self.condition_key}={condition_met}")
         
         if condition_met:
-            return await self.child.tick(blackboard)
+            return await self.child.tick()
         else:
             print(f"Conditional decorator {self.name}: skipping execution")
             return Status.SUCCESS
 
 
-class RetryDecorator(Decorator):
+class RetryDecorator(DecoratorNode):
     """Retry decorator - retries on failure with delay"""
     
     def __init__(self, name, max_retries=3, delay=0.5, **kwargs):
@@ -137,11 +137,11 @@ class RetryDecorator(Decorator):
         self.max_retries = max_retries
         self.delay = delay
     
-    async def tick(self, blackboard):
+    async def tick(self):
         for attempt in range(self.max_retries + 1):
             print(f"Retry decorator {self.name}: attempt {attempt + 1}/{self.max_retries + 1}")
             
-            result = await self.child.tick(blackboard)
+            result = await self.child.tick()
             if result == Status.SUCCESS:
                 print(f"Retry decorator {self.name}: succeeded on attempt {attempt + 1}")
                 return Status.SUCCESS
@@ -157,7 +157,7 @@ class RetryDecorator(Decorator):
 class SuccessAction(Action):
     """Action that always succeeds"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print(f"Executing success action: {self.name}")
         await asyncio.sleep(0.02)
         return Status.SUCCESS
@@ -166,7 +166,7 @@ class SuccessAction(Action):
 class FailureAction(Action):
     """Action that always fails"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print(f"Executing failure action: {self.name}")
         await asyncio.sleep(0.02)
         return Status.FAILURE
@@ -179,7 +179,7 @@ class RandomAction(Action):
         self.name = name
         self.success_rate = success_rate
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print(f"Executing random action: {self.name}")
         await asyncio.sleep(0.02)
         
@@ -198,7 +198,7 @@ class LongRunningAction(Action):
         self.name = name
         self.duration = duration
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print(f"Starting long-running action: {self.name} ({self.duration}s)")
         
         for i in range(int(self.duration * 10)):

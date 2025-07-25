@@ -27,8 +27,14 @@ class Condition(BaseNode):
     children: List["BaseNode"] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        """Ensure no child nodes after initialization"""
+        """Ensure proper initialization of base attributes"""
+        # Call parent's __post_init__ first
         super().__post_init__()
+        
+        # Ensure _param_mappings is initialized
+        if not hasattr(self, '_param_mappings'):
+            self._param_mappings = {}
+            
         # Condition nodes should not have child nodes
         if self.children:
             raise ValueError("Condition nodes cannot have child nodes")

@@ -99,7 +99,7 @@ class MiddlewarePlugin(BasePlugin):
     @abstractmethod
     def create_middleware(self) -> Any:
         """Create the middleware instance."""
-        raise NotImplementedError  # type: ignore[unreachable]
+        raise NotImplementedError
 
 
 class NodePlugin(BasePlugin):
@@ -117,7 +117,7 @@ class NodePlugin(BasePlugin):
     @abstractmethod
     def register_custom_nodes(self) -> None:
         """Register custom node types."""
-        raise NotImplementedError  # type: ignore[unreachable]
+        raise NotImplementedError
 
 
 class UtilityPlugin(BasePlugin):
@@ -131,7 +131,7 @@ class UtilityPlugin(BasePlugin):
     @abstractmethod
     def setup_utilities(self) -> None:
         """Setup utility functions."""
-        raise NotImplementedError  # type: ignore[unreachable]
+        raise NotImplementedError
 
 
 class PluginManager:

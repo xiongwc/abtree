@@ -23,95 +23,80 @@ from abtree.nodes.base import BaseNode
 
 
 class StateMachine(BaseNode):
-    """State machine - manages complex state transitions"""
+    """State machine node for advanced control flow"""
     
     def __init__(self, name, **kwargs):
-        super().__init__(name=name, **kwargs)
+        super().__init__(name, **kwargs)
         self.current_state = "idle"
-        self.states = {
+        self.state_transitions = {
             "idle": self.idle_state,
             "working": self.working_state,
             "error": self.error_state,
             "recovery": self.recovery_state
         }
-        self.transitions = {
-            "idle": ["working"],
-            "working": ["idle", "error"],
-            "error": ["recovery", "idle"],
-            "recovery": ["working", "idle"]
-        }
     
     async def idle_state(self, blackboard):
-        """Idle state"""
-        print(f"State machine {self.name}: idle state")
-        await asyncio.sleep(0.02)
+        """Idle state logic"""
+        print("State Machine: In idle state")
+        battery_level = blackboard.get("battery_level", 100)
         
-        # Check if there's work to do
-        if blackboard.get("has_work", False):
+        if battery_level < 30:
+            self.current_state = "error"
+            return Status.RUNNING
+        elif blackboard.get("has_work", False):
             self.current_state = "working"
+            return Status.RUNNING
+        else:
+            return Status.SUCCESS
+    
+    async def working_state(self, blackboard):
+        """Working state logic"""
+        print("State Machine: In working state")
+        battery_level = blackboard.get("battery_level", 100)
+        work_progress = blackboard.get("work_progress", 0)
+        
+        # Simulate work progress
+        work_progress += 10
+        blackboard.set("work_progress", min(100, work_progress))
+        
+        if battery_level < 20:
+            self.current_state = "error"
+            return Status.RUNNING
+        elif work_progress >= 100:
+            self.current_state = "idle"
+            blackboard.set("has_work", False)
             return Status.SUCCESS
         else:
             return Status.RUNNING
     
-    async def working_state(self, blackboard):
-        """Working state"""
-        print(f"State machine {self.name}: working state")
-        await asyncio.sleep(0.03)
-        
-        # Simulate work process
-        work_progress = blackboard.get("work_progress", 0)
-        work_progress += random.randint(10, 30)
-        blackboard.set("work_progress", work_progress)
-        
-        # Check for errors
-        if random.random() < 0.1:  # 10% error probability
-            self.current_state = "error"
-            blackboard.set("error_count", blackboard.get("error_count", 0) + 1)
-            return Status.FAILURE
-        
-        # Check if work is completed
-        if work_progress >= 100:
-            self.current_state = "idle"
-            blackboard.set("work_completed", True)
-            blackboard.set("work_progress", 0)
-            return Status.SUCCESS
-        
+    async def error_state(self, blackboard):
+        """Error state logic"""
+        print("State Machine: In error state")
+        self.current_state = "recovery"
         return Status.RUNNING
     
-    async def error_state(self, blackboard):
-        """Error state"""
-        print(f"State machine {self.name}: error state")
-        await asyncio.sleep(0.02)
-        
-        # Attempt recovery
-        if random.random() < 0.8:  # 80% recovery success
-            self.current_state = "recovery"
-            return Status.SUCCESS
-        else:
-            self.current_state = "idle"
-            return Status.FAILURE
-    
     async def recovery_state(self, blackboard):
-        """Recovery state"""
-        print(f"State machine {self.name}: recovery state")
-        await asyncio.sleep(0.03)
-        
-        self.current_state = "working"
+        """Recovery state logic"""
+        print("State Machine: In recovery state")
+        self.current_state = "idle"
         return Status.SUCCESS
     
-    async def tick(self, blackboard):
-        """Execute current state"""
-        if self.current_state in self.states:
-            return await self.states[self.current_state](blackboard)
-        else:
+    async def tick(self):
+        """Execute state machine"""
+        if not self.blackboard:
             return Status.FAILURE
+            
+        current_state_func = self.state_transitions.get(self.current_state)
+        if current_state_func:
+            return await current_state_func(self.blackboard)
+        return Status.FAILURE
 
 
 class EventDrivenController(BaseNode):
-    """Event-driven controller - handles different types of events"""
+    """Event-driven controller node"""
     
     def __init__(self, name, **kwargs):
-        super().__init__(name=name, **kwargs)
+        super().__init__(name, **kwargs)
         self.events = []
         self.event_handlers = {
             "emergency": self.handle_emergency,
@@ -122,95 +107,111 @@ class EventDrivenController(BaseNode):
     def add_event(self, event_type, priority=1):
         """Add event to queue"""
         self.events.append((event_type, priority))
-        self.events.sort(key=lambda x: x[1], reverse=True)  # Sort by priority
+        self.events.sort(key=lambda x: x[1], reverse=True)
     
     async def handle_emergency(self, blackboard):
         """Handle emergency event"""
-        print(f"Event controller {self.name}: handling emergency")
-        await asyncio.sleep(0.02)
+        print("Event Controller: Handling emergency event")
         return Status.SUCCESS
     
     async def handle_normal(self, blackboard):
         """Handle normal event"""
-        print(f"Event controller {self.name}: handling normal event")
-        await asyncio.sleep(0.01)
+        print("Event Controller: Handling normal event")
         return Status.SUCCESS
     
     async def handle_maintenance(self, blackboard):
         """Handle maintenance event"""
-        print(f"Event controller {self.name}: handling maintenance")
-        await asyncio.sleep(0.03)
+        print("Event Controller: Handling maintenance event")
         return Status.SUCCESS
     
-    async def tick(self, blackboard):
-        """Process events"""
-        if not self.events:
-            return Status.RUNNING
-        
-        event_type, priority = self.events.pop(0)
-        if event_type in self.event_handlers:
-            return await self.event_handlers[event_type](blackboard)
-        else:
+    async def tick(self):
+        """Execute event-driven controller"""
+        if not self.blackboard:
             return Status.FAILURE
+            
+        if not self.events:
+            # Add some test events
+            self.add_event("normal", 1)
+            self.add_event("maintenance", 2)
+        
+        if self.events:
+            event_type, priority = self.events.pop(0)
+            handler = self.event_handlers.get(event_type)
+            if handler:
+                return await handler(self.blackboard)
+        
+        return Status.SUCCESS
 
 
 class PriorityQueue(BaseNode):
-    """Priority queue - manages tasks with priorities"""
+    """Priority queue node for task management"""
     
     def __init__(self, name, **kwargs):
-        super().__init__(name=name, **kwargs)
+        super().__init__(name, **kwargs)
         self.tasks = []
     
     def add_task(self, task, priority=1):
-        """Add task to queue"""
+        """Add task to priority queue"""
         self.tasks.append((task, priority))
-        self.tasks.sort(key=lambda x: x[1], reverse=True)  # Sort by priority
+        self.tasks.sort(key=lambda x: x[1], reverse=True)
     
-    async def tick(self, blackboard):
-        """Process highest priority task"""
+    async def tick(self):
+        """Execute priority queue"""
+        if not self.blackboard:
+            return Status.FAILURE
+            
         if not self.tasks:
-            return Status.RUNNING
+            # Add some test tasks
+            self.add_task("Process data", 3)
+            self.add_task("Update system", 2)
+            self.add_task("Clean cache", 1)
         
-        task, priority = self.tasks.pop(0)
-        print(f"Priority queue {self.name}: processing task '{task}' (priority={priority})")
-        await asyncio.sleep(0.02)
+        if self.tasks:
+            task, priority = self.tasks.pop(0)
+            print(f"Priority Queue: Executing task '{task}' with priority {priority}")
+            tasks_completed = self.blackboard.get("tasks_completed", 0)
+            self.blackboard.set("tasks_completed", tasks_completed + 1)
+            return Status.SUCCESS
+        
         return Status.SUCCESS
 
 
 class DynamicDecisionMaker(BaseNode):
-    """Dynamic decision maker - adapts decisions based on context"""
+    """Dynamic decision maker node"""
     
     def __init__(self, name, **kwargs):
-        super().__init__(name=name, **kwargs)
-        self.decision_history = []
-        self.context_factors = ["battery_level", "workload", "time_of_day"]
+        super().__init__(name, **kwargs)
+        self.decision_count = 0
     
-    async def tick(self, blackboard):
-        """Make dynamic decision"""
-        print(f"Dynamic decision maker {self.name}: analyzing context")
+    async def tick(self):
+        """Execute dynamic decision maker"""
+        if not self.blackboard:
+            return Status.FAILURE
+            
+        self.decision_count += 1
+        battery_level = self.blackboard.get("battery_level", 100)
+        work_load = self.blackboard.get("work_load", 0)
+        error_count = self.blackboard.get("error_count", 0)
         
-        # Analyze context factors
-        battery_level = blackboard.get("battery_level", 50)
-        workload = blackboard.get("workload", 0)
-        time_of_day = blackboard.get("time_of_day", 12)
-        
-        # Make decision based on context
-        if battery_level < 20:
-            decision = "charge"
-        elif workload > 80:
-            decision = "optimize"
-        elif time_of_day < 6 or time_of_day > 22:
+        # Dynamic decision logic
+        if error_count > 2:
             decision = "maintenance"
+            reason = "High error count"
+        elif battery_level < 30:
+            decision = "charge"
+            reason = "Low battery"
+        elif work_load > 80:
+            decision = "optimize"
+            reason = "High work load"
         else:
-            decision = "normal"
+            decision = "continue"
+            reason = "Normal operation"
         
-        print(f"Dynamic decision maker {self.name}: decided '{decision}'")
-        self.decision_history.append(decision)
+        self.blackboard.set("last_decision", decision)
+        self.blackboard.set("decision_reason", reason)
+        self.blackboard.set("decision_count", self.decision_count)
         
-        # Set decision in blackboard
-        blackboard.set("current_decision", decision)
-        
-        await asyncio.sleep(0.01)
+        print(f"Dynamic Decision: {decision} - {reason}")
         return Status.SUCCESS
 
 
@@ -221,11 +222,10 @@ class ChargeAction(Action):
         print("Executing charge action...")
         await asyncio.sleep(0.05)
         
-        current_battery = blackboard.get("battery_level", 0)
-        new_battery = min(100, current_battery + 30)
-        blackboard.set("battery_level", new_battery)
+        current_battery = blackboard.get("battery_level", 100)
+        blackboard.set("battery_level", min(100, current_battery + 15))
         
-        print(f"Battery charged to {new_battery}%")
+        print("Battery charged")
         return Status.SUCCESS
 
 
@@ -236,11 +236,10 @@ class OptimizeAction(Action):
         print("Executing optimize action...")
         await asyncio.sleep(0.04)
         
-        current_workload = blackboard.get("work_load", 100)
-        optimized_workload = max(0, current_workload - 20)
-        blackboard.set("work_load", optimized_workload)
+        current_work_load = blackboard.get("work_load", 0)
+        blackboard.set("work_load", max(0, current_work_load - 10))
         
-        print(f"Workload optimized to {optimized_workload}%")
+        print("System optimized")
         return Status.SUCCESS
 
 

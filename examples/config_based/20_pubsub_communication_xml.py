@@ -16,21 +16,19 @@ from abtree import (
 )
 from abtree.parser.xml_parser import XMLParser
 from abtree.engine.event_system import EventSystem
-from abtree.nodes.action import blackboard_binding
 
 
 class PublisherAction(Action):
     """Simple publisher action that emits events"""
     
-    def __init__(self, name: str, topic: str, message: str):
+    def __init__(self, name: str):
         super().__init__(name)
-        self.topic = topic
-        self.message = message
+        self.topic = "news"
+        self.message = "hello world"
     
-    @blackboard_binding
-    async def execute(self, blackboard):
+    async def execute(self,topic:str,message:str):
         # Use self.topic and self.message directly to automatically sync with blackboard
-        event_system = blackboard.get("__event_system")
+        event_system = self.blackboard.get("__event_system")
         if event_system:
             await event_system.emit(f"topic_{self.topic}", source=self.name, data=self.message)
         else:
@@ -41,14 +39,13 @@ class PublisherAction(Action):
 class SubscriberAction(Action):
     """Simple subscriber action that waits for events"""
     
-    def __init__(self, name: str, topic: str, message: str):
+    def __init__(self, name: str):
         super().__init__(name)
-        self.topic = topic
-        self.message = message
+        self.topic = "news"
+        self.message = "hello world"
     
-    @blackboard_binding
-    async def execute(self, blackboard):
-        event_system = blackboard.get("__event_system")
+    async def execute(self,topic:str,message:str):
+        event_system = self.blackboard.get("__event_system")
         if event_system:            
             event_triggered = await event_system.wait_for(f"topic_{self.topic}", timeout=2.0)
             if event_triggered:
@@ -95,6 +92,13 @@ def register_custom_nodes():
     """Register custom node types"""
     register_node("PublisherAction", PublisherAction)
     register_node("SubscriberAction", SubscriberAction)
+    
+    # Debug: Check if nodes are registered
+    from abtree.registry.node_registry import get_registered_nodes
+    registered = get_registered_nodes()
+    print(f"Registered nodes: {registered}")
+    print(f"PublisherAction registered: {'PublisherAction' in registered}")
+    print(f"SubscriberAction registered: {'SubscriberAction' in registered}")
 
 
 
