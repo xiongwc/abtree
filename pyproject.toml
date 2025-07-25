@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "abtree"
-version = "0.3.7"
+version = "0.3.8"
 description = """High-performance asynchronous behavior tree framework with behavior forest collaboration,
     built on Python asyncio for embodied intelligence, multi-agent systems, and autonomous decision-making"""
 authors = [

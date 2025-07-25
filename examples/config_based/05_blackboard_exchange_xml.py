@@ -24,7 +24,7 @@ class DataProducerAction(Action):
         
         # Generate data and store in blackboard
         generated_data = 100
-        self.setPort("output_port", generated_data)
+        self.set_port("output_port", generated_data)
         print(f"   ✅ Successfully generated data: {generated_data} and stored in blackboard")
         
         return Status.SUCCESS
@@ -41,7 +41,7 @@ class DataConsumerAction(Action):
         print(f"   Received input port parameter: {input_port}")
         
         # Get data from blackboard
-        received_data = self.getPort("input_port")
+        received_data = self.get_port("input_port")
         print(f"   📊 Data retrieved from blackboard: {received_data}")
         
         # Simulate data processing
@@ -92,8 +92,8 @@ async def main():
     print("-" * 30)
     print(f"🎯 Behavior tree execution completed, status: {result}")
     print("\n💡 Key Points:")
-    print("   • DataProducerAction stores data in blackboard using setPort()")
-    print("   • DataConsumerAction retrieves data from blackboard using getPort()")
+    print("   • DataProducerAction stores data in blackboard using set_port()")
+    print("   • DataConsumerAction retrieves data from blackboard using get_port()")
     print("   • {shared_data} in XML automatically binds to corresponding ports")
 
 

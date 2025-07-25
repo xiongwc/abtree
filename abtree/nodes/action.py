@@ -232,14 +232,14 @@ class Log(Action):
 
         # Try to get message from blackboard mapping first, then from parameter
         try:
-            message = self.getPort("message")
+            message = self.get_port("message")
         except ValueError:
             # If not mapped to blackboard, use the parameter value
             pass
         
         # Try to get level from blackboard mapping first, then from parameter
         try:
-            level = self.getPort("level")
+            level = self.get_port("level")
         except ValueError:
             # If not mapped to blackboard, use the parameter value
             pass
@@ -338,7 +338,7 @@ class CommSubscriber(Action):
             if event_triggered:
                 event_info = event_dispatcher.get_event_info(f"topic_{topic}")
                 received_message = event_info.data if event_info and event_info.data else "No message data"
-                self.setPort("message", received_message)
+                self.set_port("message", received_message)
             else:
                 logger.warning(f"Timeout waiting for event: topic_{topic}")
                 return Status.FAILURE

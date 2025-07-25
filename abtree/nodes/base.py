@@ -146,7 +146,7 @@ class BaseNode(ABC):
         """
         return self._param_mappings.copy()
 
-    def getPort(self, variable_name: str) -> Any:
+    def get_port(self, variable_name: str) -> Any:
         """
         Get value from mapped port using variable name
         
@@ -163,7 +163,7 @@ class BaseNode(ABC):
             # If not found, raise an error
             raise ValueError(f"Variable '{variable_name}' is not mapped to blackboard")
 
-    def setPort(self, variable_name: str, value: Any) -> None:
+    def set_port(self, variable_name: str, value: Any) -> None:
         """
         Set value to mapped port using variable name
         
