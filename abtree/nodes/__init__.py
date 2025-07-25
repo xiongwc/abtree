@@ -8,7 +8,7 @@ Contains implementations of various types of behavior tree nodes:
 """
 
 from .base import BaseNode
-from .action import Action, Wait, Log, SetBlackboard
+from .action import Action, Wait, Log, SetBlackboard, CommPublisher, CommSubscriber
 from .condition import (
     Condition,
     CheckBlackboard,
@@ -56,6 +56,8 @@ __all__.extend([
     "Wait",
     "Log",
     "SetBlackboard",
+    "CommPublisher",
+    "CommSubscriber",
 ])
 
 # Condition nodes

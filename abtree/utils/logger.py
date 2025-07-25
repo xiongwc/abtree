@@ -8,6 +8,7 @@ import logging
 import os
 import sys
 import inspect
+import threading
 from dataclasses import dataclass
 from typing import Optional
 
@@ -44,7 +45,7 @@ class LevelColor:
 @dataclass
 class LoggerConfig:
     """Logger configuration"""
-    level: str = "INFO"
+    level: str = "DEBUG"
     format: str = "%(asctime)s | %(levelname)s | %(classname)s | %(message)s"
     enable_colors: bool = True
 
@@ -253,13 +254,14 @@ class ABTreeLogger:
             self._logger.info(message, extra=extra)
 
 
-# Global logger instances
+# Global logger instances with thread safety
 _logger_instances = {}
+_logger_lock = threading.Lock()
 
 
 def get_logger(name: str = "abtree", config: Optional[LoggerConfig] = None) -> ABTreeLogger:
     """
-    Get or create a logger instance
+    Get or create a logger instance with thread safety
     
     Args:
         name: Logger name
@@ -268,17 +270,18 @@ def get_logger(name: str = "abtree", config: Optional[LoggerConfig] = None) -> A
     Returns:
         ABTreeLogger instance
     """
-    global _logger_instances
+    global _logger_instances, _logger_lock
     
-    if name not in _logger_instances:
-        _logger_instances[name] = ABTreeLogger(name, config)
-    
-    return _logger_instances[name]
+    with _logger_lock:
+        if name not in _logger_instances:
+            _logger_instances[name] = ABTreeLogger(name, config)
+        
+        return _logger_instances[name]
 
 
 def get_abtree_logger() -> logging.Logger:
     """
-    Get abtree logger instance
+    Get abtree logger instance with thread safety
     
     Returns:
         abtree logger instance
@@ -291,3 +294,48 @@ def get_abtree_logger() -> logging.Logger:
         logger = get_logger("abtree", config)
     
     return logger.get_logger()
+
+
+# Thread-safe global logger instance, similar to loguru usage
+# Using lazy initialization to ensure thread safety
+class ThreadSafeLogger:
+    """Thread-safe singleton logger class"""
+    
+    _instance: Optional[ABTreeLogger] = None
+    _lock = threading.Lock()
+    
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = get_logger("abtree")
+        return cls._instance
+    
+    def debug(self, message: str) -> None:
+        """Log debug message"""
+        if self._instance:
+            self._instance.debug(message)
+    
+    def info(self, message: str) -> None:
+        """Log info message"""
+        if self._instance:
+            self._instance.info(message)
+    
+    def warning(self, message: str) -> None:
+        """Log warning message"""
+        if self._instance:
+            self._instance.warning(message)
+    
+    def error(self, message: str) -> None:
+        """Log error message"""
+        if self._instance:
+            self._instance.error(message)
+    
+    def critical(self, message: str) -> None:
+        """Log critical message"""
+        if self._instance:
+            self._instance.critical(message)
+
+
+# Create thread-safe global logger instance
+logger = ThreadSafeLogger()

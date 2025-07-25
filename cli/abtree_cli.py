@@ -15,10 +15,9 @@ import click
 # Add project root directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from abtree import BehaviorTree
+from abtree import BehaviorTree, get_abtree_logger
 from abtree.parser.tree_builder import TreeBuilder
 from abtree.parser.xml_parser import XMLParser
-from abtree.utils.logger import get_abtree_logger
 from abtree.validators import print_validation_result, validate_tree
 
 

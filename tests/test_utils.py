@@ -1,7 +1,7 @@
 import pytest
 import logging
 from abtree.validators import validate_tree, validate_node, ValidationResult, validate_blackboard_data, validate_xml_structure, get_tree_statistics, print_validation_result
-from abtree.utils.logger import (
+from abtree import (
     get_logger, get_abtree_logger, ABTreeLogger, LoggerConfig, ColorCode, LevelColor,
     ColoredFormatter
 )

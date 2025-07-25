@@ -4,5 +4,5 @@ from .forest.communication import (
     Message,
     Request,
     Response,
-    Task,
+    Task
 ) 

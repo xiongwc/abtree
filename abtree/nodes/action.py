@@ -12,7 +12,7 @@ import functools
 
 from ..core.status import Status
 from ..engine.blackboard import Blackboard
-from ..utils.logger import get_logger
+from ..utils.logger import get_logger, logger
 from .base import BaseNode
 
 class Action(BaseNode):
@@ -216,10 +216,11 @@ class Log(Action):
     Output log information.
     """
 
-    def __init__(self, name: str = ""):
+    def __init__(self, name: str = "", message: Any = None, level: str = "INFO"):
         """Initialize Log node with level as name if not specified"""
         super().__init__(name)
-
+        self.message = message
+        self.level = level
 
     async def execute(self, message: Any, level: str = "INFO") -> Status:
         """
@@ -231,7 +232,6 @@ class Log(Action):
 
         # Try to get message from blackboard mapping first, then from parameter
         try:
-            print(self._param_mappings)
             message = self.getPort("message")
         except ValueError:
             # If not mapped to blackboard, use the parameter value
@@ -308,3 +308,41 @@ class SetBlackboard(Action):
         """
         self.key = key
         self.value = value
+
+
+class CommPublisher(Action):
+    """publisher action that emits events"""
+    
+    def __init__(self, name: str):
+        super().__init__(name)
+    
+    async def execute(self, topic:str, message: Any):
+        event_dispatcher = self.get_event_dispatcher()
+        if event_dispatcher:
+            await event_dispatcher.emit(f"topic_{topic}", source=self.name, data=message)
+        else:
+            logger.error("No event dispatcher found in blackboard")
+            return Status.FAILURE
+        return Status.SUCCESS
+
+
+class CommSubscriber(Action):
+    """subscriber action that waits for events"""
+    
+    def __init__(self, name: str):
+        super().__init__(name)
+    async def execute(self, topic:str, message: Any, timeout: float = None):
+        event_dispatcher = self.get_event_dispatcher()
+        if event_dispatcher:            
+            event_triggered = await event_dispatcher.wait_for(f"topic_{topic}", timeout=timeout)
+            if event_triggered:
+                event_info = event_dispatcher.get_event_info(f"topic_{topic}")
+                received_message = event_info.data if event_info and event_info.data else "No message data"
+                self.setPort("message", received_message)
+            else:
+                logger.warning(f"Timeout waiting for event: topic_{topic}")
+                return Status.FAILURE
+        else:
+            logger.error(f"No event dispatcher found in blackboard")
+            return Status.FAILURE
+        return Status.SUCCESS

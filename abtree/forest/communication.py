@@ -23,6 +23,7 @@ from ..core.status import Status
 from ..engine.blackboard import Blackboard
 from ..engine.event import EventDispatcher
 from ..engine.behavior_tree import BehaviorTree
+from ..nodes.action import Action
 from .core import BehaviorForest, ForestNode
 
 

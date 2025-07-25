@@ -36,7 +36,7 @@ class SystemAction(Action):
         super().__init__(name)
         self.system_id = system_id
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print(f"🏢 {self.system_id}: {self.name}")
         return Status.SUCCESS
 
@@ -44,8 +44,8 @@ class SystemAction(Action):
 class DataProcessingAction(SystemAction):
     """Data processing action"""
     
-    async def execute(self, blackboard):
-        await super().execute(blackboard)
+    async def execute(self):
+        await super().execute(self.blackboard)  
         print(f"   📊 {self.system_id} processing data")
         await asyncio.sleep(0.01)
         return Status.SUCCESS
@@ -54,8 +54,8 @@ class DataProcessingAction(SystemAction):
 class AlertAction(SystemAction):
     """Alert action"""
     
-    async def execute(self, blackboard):
-        await super().execute(blackboard)
+    async def execute(self):
+        await super().execute(self.blackboard)
         print(f"   ⚠️ {self.system_id} sending alert")
         await asyncio.sleep(0.01)
         return Status.SUCCESS
@@ -64,8 +64,8 @@ class AlertAction(SystemAction):
 class MaintenanceAction(SystemAction):
     """Maintenance action"""
     
-    async def execute(self, blackboard):
-        await super().execute(blackboard)
+    async def execute(self,):
+        await super().execute(self.blackboard)
         print(f"   🔧 {self.system_id} performing maintenance")
         await asyncio.sleep(0.01)
         return Status.SUCCESS
@@ -78,8 +78,8 @@ class SystemCheckCondition(Condition):
         super().__init__(name)
         self.system_id = system_id
     
-    async def evaluate(self, blackboard):
-        health_status = blackboard.get("system_health", "good")
+    async def evaluate(self):
+        health_status = self.blackboard.get("system_health", "good")
         is_healthy = health_status in ["good", "excellent"]
         print(f"   🏥 {self.system_id} health check: {health_status} (healthy: {is_healthy})")
         return is_healthy
@@ -92,8 +92,8 @@ class AlertCheckCondition(Condition):
         super().__init__(name)
         self.system_id = system_id
     
-    async def evaluate(self, blackboard):
-        has_alerts = blackboard.get("has_alerts", False)
+    async def evaluate(self):
+        has_alerts = self.blackboard.get("has_alerts", False)
         print(f"   ⚠️ {self.system_id} alert check: {has_alerts}")
         return has_alerts
 
@@ -105,8 +105,8 @@ class MaintenanceCheckCondition(Condition):
         super().__init__(name)
         self.system_id = system_id
     
-    async def evaluate(self, blackboard):
-        needs_maintenance = blackboard.get("needs_maintenance", False)
+    async def evaluate(self):
+        needs_maintenance = self.blackboard.get("needs_maintenance", False)
         print(f"   🔧 {self.system_id} maintenance check: {needs_maintenance}")
         return needs_maintenance
 
@@ -179,17 +179,17 @@ def create_monitoring_forest() -> BehaviorForest:
     
     # System monitoring
     system_monitoring = Sequence("System Monitoring")
-    system_monitoring.add_child(Log(name="Monitor Systems", message="Monitoring all systems"))
+    system_monitoring.add_child(Log(name="Monitor Systems"))
     system_monitoring.add_child(Wait(name="Monitor Wait", duration=1.0))
     
     # Performance tracking
     performance_tracking = Sequence("Performance Tracking")
-    performance_tracking.add_child(Log(name="Track Performance", message="Tracking performance metrics"))
+    performance_tracking.add_child(Log(name="Track Performance"))
     performance_tracking.add_child(Wait(name="Performance Wait", duration=0.8))
     
     # Health reporting
     health_reporting = Sequence("Health Reporting")
-    health_reporting.add_child(Log(name="Report Health", message="Reporting system health"))
+    health_reporting.add_child(Log(name="Report Health"))
     health_reporting.add_child(Wait(name="Health Wait", duration=1.2))
     
     # Assemble tree
@@ -231,12 +231,12 @@ def create_coordination_forest() -> BehaviorForest:
     
     # Task coordination
     task_coordination = Sequence("Task Coordination")
-    task_coordination.add_child(Log(name="Coordinate Tasks", message="Coordinating tasks across systems"))
+    task_coordination.add_child(Log(name="Coordinate Tasks"))
     task_coordination.add_child(Wait(name="Task Wait", duration=0.5))
     
     # Resource management
     resource_management = Sequence("Resource Management")
-    resource_management.add_child(Log(name="Manage Resources", message="Managing system resources"))
+    resource_management.add_child(Log(name="Manage Resources"))
     resource_management.add_child(Wait(name="Resource Wait", duration=0.7))
     
     # Communication

@@ -196,17 +196,17 @@ def create_coordinator_forest_node() -> ForestNode:
     
     # Task distribution
     task_distribution = Sequence("Task Distribution")
-    task_distribution.add_child(Log(name="Distribute Tasks", message="Distributing tasks to robots"))
+    task_distribution.add_child(Log(name="Distribute Tasks"))
     task_distribution.add_child(Wait(name="Task Wait", duration=1.0))
     
     # Emergency monitoring
     emergency_monitoring = Sequence("Emergency Monitoring")
-    emergency_monitoring.add_child(Log(name="Monitor Emergencies", message="Monitoring for emergencies"))
+    emergency_monitoring.add_child(Log(name="Monitor Emergencies"))
     emergency_monitoring.add_child(Wait(name="Emergency Wait", duration=0.5))
     
     # System status
     system_status = Sequence("System Status")
-    system_status.add_child(Log(name="Update Status", message="Updating system status"))
+    system_status.add_child(Log(name="Update Status"))
     system_status.add_child(Wait(name="Status Wait", duration=2.0))
     
     # Assemble tree
@@ -237,12 +237,12 @@ def create_monitor_forest_node() -> ForestNode:
     
     # System monitoring
     system_monitoring = Sequence("System Monitoring")
-    system_monitoring.add_child(Log(name="Monitor System", message="Monitoring system health"))
+    system_monitoring.add_child(Log(name="Monitor System"))
     system_monitoring.add_child(Wait(name="Monitor Wait", duration=1.5))
     
     # Performance tracking
     performance_tracking = Sequence("Performance Tracking")
-    performance_tracking.add_child(Log(name="Track Performance", message="Tracking performance metrics"))
+    performance_tracking.add_child(Log(name="Track Performance"))
     performance_tracking.add_child(Wait(name="Performance Wait", duration=1.0))
     
     # Assemble tree
