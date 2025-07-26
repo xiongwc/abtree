@@ -635,9 +635,17 @@ class XMLParser:
                     # Try to convert to boolean
                     elif value.lower() in ["true", "false"]:
                         attributes[key] = value.lower() == "true"
+                    # Try to convert to JSON object
+                    elif value.startswith('{') and value.endswith('}'):
+                        import json
+                        attributes[key] = json.loads(value)
+                    # Try to convert to JSON array
+                    elif value.startswith('[') and value.endswith(']'):
+                        import json
+                        attributes[key] = json.loads(value)
                     else:
                         attributes[key] = value
-                except (ValueError, TypeError):
+                except (ValueError, TypeError, json.JSONDecodeError):
                     attributes[key] = value
 
         # Add parameter mapping information to attributes for subsequent processing

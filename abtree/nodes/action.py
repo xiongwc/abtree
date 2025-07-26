@@ -346,3 +346,197 @@ class CommSubscriber(Action):
             logger.error(f"No event dispatcher found in blackboard")
             return Status.FAILURE
         return Status.SUCCESS
+
+
+class CommPubExternal(Action):
+    """External publisher action that publishes data to external world through forest"""
+    
+    def __init__(self, name: str, topic: str = "", data: Any = None):
+        super().__init__(name)
+        self.topic = topic
+        self.data = data
+    
+    async def execute(self, topic: str = None, data: Any = None) -> Status:
+        """
+        Execute external publishing
+        
+        Args:
+            topic: Topic to publish to external world (optional, uses instance topic if not provided)
+            data: Data to publish (optional, uses instance data if not provided)
+            
+        Returns:
+            Execution status
+        """
+        # Use provided parameters or fall back to instance attributes
+        publish_topic = topic if topic is not None else self.topic
+        publish_data = data if data is not None else self.data
+        
+        if not publish_topic:
+            logger.error("No topic specified for external publishing")
+            return Status.FAILURE
+        
+        try:
+            # Get forest from blackboard
+            forest = self.blackboard.get("__forest") if self.blackboard else None
+            if not forest:
+                logger.error("No forest found in blackboard")
+                return Status.FAILURE
+            
+            # Get communication middleware from forest
+            comm_middleware = None
+            for middleware in forest.middleware:
+                if hasattr(middleware, 'pub_external'):
+                    comm_middleware = middleware
+                    break
+            
+            if not comm_middleware:
+                logger.error("No communication middleware found in forest")
+                return Status.FAILURE
+            
+            # Publish to external world through middleware
+            await comm_middleware.pub_external(publish_topic, publish_data, self.name)
+            logger.info(f"Published to external topic '{publish_topic}': {publish_data}")
+            return Status.SUCCESS
+        except Exception as e:
+            logger.error(f"Error publishing to external topic '{publish_topic}': {e}")
+            return Status.FAILURE
+    
+    def set_topic_data(self, topic: str, data: Any) -> None:
+        """
+        Set topic and data for external publishing
+        
+        Args:
+            topic: Topic to publish to
+            data: Data to publish
+        """
+        self.topic = topic
+        self.data = data
+
+
+class CommSubExternal(Action):
+    """External subscriber action that receives data from external world through forest"""
+    
+    def __init__(self, name: str, topic: str = "", timeout: float = None):
+        super().__init__(name)
+        self.topic = topic
+        self.timeout = timeout
+        self._received_data = None
+        self._data_received = False
+    
+    async def execute(self, topic: str = None, timeout: float = None) -> Status:
+        """
+        Execute external subscription
+        
+        Args:
+            topic: Topic to subscribe to (optional, uses instance topic if not provided)
+            timeout: Timeout for waiting for data (optional, uses instance timeout if not provided)
+            
+        Returns:
+            Execution status
+        """
+        # Use provided parameters or fall back to instance attributes
+        subscribe_topic = topic if topic is not None else self.topic
+        subscribe_timeout = timeout if timeout is not None else self.timeout
+        
+        if not subscribe_topic:
+            logger.error("No topic specified for external subscription")
+            return Status.FAILURE
+        
+        try:
+            # Get forest from blackboard
+            forest = self.blackboard.get("__forest") if self.blackboard else None
+            if not forest:
+                logger.error("No forest found in blackboard")
+                return Status.FAILURE
+            
+            # Get communication middleware from forest
+            comm_middleware = None
+            for middleware in forest.middleware:
+                if hasattr(middleware, 'get_external_data_queue'):
+                    comm_middleware = middleware
+                    break
+            
+            if not comm_middleware:
+                logger.error("No communication middleware found in forest")
+                return Status.FAILURE
+            
+            # Check for external data in the queue
+            external_data = comm_middleware.get_external_data_queue(subscribe_topic)
+            
+            if external_data:
+                # Get the most recent data
+                latest_data = external_data[-1]
+                self._received_data = latest_data["data"]
+                self._data_received = True
+                
+                # Store received data in blackboard for other nodes to access
+                if self.blackboard:
+                    self.blackboard.set(f"external_data_{subscribe_topic}", self._received_data)
+                    self.blackboard.set(f"external_data_source_{subscribe_topic}", latest_data["source"])
+                    self.blackboard.set(f"external_data_timestamp_{subscribe_topic}", latest_data["timestamp"])
+                
+                logger.info(f"Received external data from topic '{subscribe_topic}': {self._received_data}")
+                return Status.SUCCESS
+            else:
+                if subscribe_timeout is not None and subscribe_timeout > 0:
+                    # Wait for data with timeout
+                    import asyncio
+                    await asyncio.sleep(subscribe_timeout)
+                    # Check again after timeout
+                    external_data = comm_middleware.get_external_data_queue(subscribe_topic)
+                    if external_data:
+                        latest_data = external_data[-1]
+                        self._received_data = latest_data["data"]
+                        self._data_received = True
+                        
+                        if self.blackboard:
+                            self.blackboard.set(f"external_data_{subscribe_topic}", self._received_data)
+                            self.blackboard.set(f"external_data_source_{subscribe_topic}", latest_data["source"])
+                            self.blackboard.set(f"external_data_timestamp_{subscribe_topic}", latest_data["timestamp"])
+                        
+                        logger.info(f"Received external data from topic '{subscribe_topic}' after timeout: {self._received_data}")
+                        return Status.SUCCESS
+                    else:
+                        logger.warning(f"Timeout waiting for external data from topic '{subscribe_topic}'")
+                        return Status.FAILURE
+                else:
+                    logger.warning(f"No external data available for topic '{subscribe_topic}'")
+                    return Status.FAILURE
+                    
+        except Exception as e:
+            logger.error(f"Error subscribing to external topic '{subscribe_topic}': {e}")
+            return Status.FAILURE
+    
+    def get_received_data(self) -> Any:
+        """
+        Get the last received external data
+        
+        Returns:
+            The received data or None if no data was received
+        """
+        return self._received_data
+    
+    def has_received_data(self) -> bool:
+        """
+        Check if data was received
+        
+        Returns:
+            True if data was received, False otherwise
+        """
+        return self._data_received
+    
+    def set_topic_timeout(self, topic: str, timeout: float) -> None:
+        """
+        Set topic and timeout for external subscription
+        
+        Args:
+            topic: Topic to subscribe to
+            timeout: Timeout for waiting for data
+        """
+        self.topic = topic
+        self.timeout = timeout
+    
+    def reset_received_data(self) -> None:
+        """Reset received data state"""
+        self._received_data = None
+        self._data_received = False

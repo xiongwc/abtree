@@ -202,6 +202,10 @@ class BehaviorForest:
     
     def _setup_shared_event_dispatcher_for_node(self, node: ForestNode) -> None:
         """Setup shared EventSystem for a specific node through middleware"""
+        # Store forest reference in the tree's blackboard for external communication nodes
+        if node.tree.blackboard:
+            node.tree.blackboard.set("__forest", self)
+        
         # Find CommunicationMiddleware and setup shared EventSystem
         for middleware in self.middleware:
             if hasattr(middleware, 'add_tree_to_shared_event_dispatcher'):
@@ -583,6 +587,67 @@ class BehaviorForest:
             raise FileNotFoundError(f"XML configuration file not found: {file_path}")
         except Exception as e:
             raise ValueError(f"Failed to load forest from XML file: {e}")
+    
+
+    async def sub_external(self, topic: str, data: Any, source: str = "external") -> None:
+        """
+        Receive data from external world and send to CommSubExternal nodes
+        
+        Args:
+            topic: Topic of the received data
+            data: Received data
+            source: Source identifier (default: "external")
+        """
+        # Find communication middleware
+        for middleware in self.middleware:
+            if hasattr(middleware, 'sub_external'):
+                await middleware.sub_external(topic, data, source)
+                return
+        
+        print(f"Warning: No communication middleware found for external subscription to topic '{topic}'")
+    
+    def register_external_publisher(self, topic: str, callback) -> None:
+        """
+        Register external publisher callback
+        
+        Args:
+            topic: Topic for external publishing
+            callback: Callback function to execute when data is published externally
+        """
+        for middleware in self.middleware:
+            if hasattr(middleware, 'register_external_publisher'):
+                middleware.register_external_publisher(topic, callback)
+                return
+        
+        print(f"Warning: No communication middleware found for registering external publisher to topic '{topic}'")
+    
+    def register_external_subscriber(self, topic: str, callback) -> None:
+        """
+        Register external subscriber callback
+        
+        Args:
+            topic: Topic for external subscription
+            callback: Callback function to execute when external data is received
+        """
+        for middleware in self.middleware:
+            if hasattr(middleware, 'register_external_subscriber'):
+                middleware.register_external_subscriber(topic, callback)
+                return
+        
+        print(f"Warning: No communication middleware found for registering external subscriber to topic '{topic}'")
+    
+    def get_external_communication_stats(self) -> Dict[str, Any]:
+        """
+        Get external communication statistics
+        
+        Returns:
+            External communication statistics dictionary
+        """
+        for middleware in self.middleware:
+            if hasattr(middleware, 'get_external_communication_stats'):
+                return middleware.get_external_communication_stats()
+        
+        return {"error": "No communication middleware found"}
     
     def __repr__(self) -> str:
         stats = self.get_stats()

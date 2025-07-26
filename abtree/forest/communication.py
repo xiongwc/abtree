@@ -35,6 +35,7 @@ class CommunicationType(Enum):
     STATE_WATCHING = auto()
     BEHAVIOR_CALL = auto()
     TASK_BOARD = auto()
+    PUB_SUB_EXTERNAL = auto()
 
 
 @dataclass
@@ -130,6 +131,12 @@ class CommunicationMiddleware:
         self.tasks: Dict[str, Task] = {}
         self.task_counter = 0
         self.claim_callbacks: Dict[str, List[Callable]] = {}
+        
+        # External Communication components - using direct references
+        self.external_publishers: Dict[str, List[Callable]] = {}
+        self.external_subscribers: Dict[str, List[Callable]] = {}
+        self.external_data_queue: List[Dict[str, Any]] = []
+        self.max_external_queue_size = 1000
     
     def initialize(self, forest: BehaviorForest) -> None:
         """Initialize middleware with forest and setup shared EventSystem"""
@@ -822,4 +829,177 @@ class CommunicationMiddleware:
             "shared_trees": len(self.event_dispatcher_nodes),
             "tree_names": list(self.event_dispatcher_nodes.keys()),
             "event_dispatcher_stats": self.shared_event_dispatcher.get_stats()
+        }
+    
+    # ==================== External Communication Methods - Zero-Copy Optimized ====================
+    
+    def register_external_publisher(self, topic: str, callback: Callable) -> None:
+        """
+        Register external publisher callback - zero-copy optimized
+        
+        Args:
+            topic: Topic for external publishing
+            callback: Callback function to execute when data is published externally
+        """
+        if topic not in self.external_publishers:
+            self.external_publishers[topic] = []
+        self.external_publishers[topic].append(callback)
+    
+    def unregister_external_publisher(self, topic: str, callback: Callable) -> bool:
+        """
+        Unregister external publisher callback - zero-copy optimized
+        
+        Args:
+            topic: Topic to unregister from
+            callback: Callback function to remove
+            
+        Returns:
+            True if callback was found and removed
+        """
+        if topic in self.external_publishers and callback in self.external_publishers[topic]:
+            self.external_publishers[topic].remove(callback)
+            return True
+        return False
+    
+    async def pub_external(self, topic: str, data: Any, source: str) -> None:
+        """
+        Publish data to external world - zero-copy optimized
+        
+        Args:
+            topic: Topic to publish to external world
+            data: Data to publish (passed by reference, no copying)
+            source: Source node name
+        """
+        if not self.enabled:
+            return
+        
+        # Create external publish info with direct reference to data (no copying)
+        publish_info = {
+            "topic": topic,
+            "data": data,
+            "source": source,
+            "timestamp": time.time()
+        }
+        
+        # Execute external publisher callbacks with direct data reference
+        if topic in self.external_publishers:
+            tasks = []
+            for callback in self.external_publishers[topic]:
+                if asyncio.iscoroutinefunction(callback):
+                    task = asyncio.create_task(callback(publish_info))
+                else:
+                    task = asyncio.create_task(self._run_sync_external_callback(callback, publish_info))
+                tasks.append(task)
+            
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+    
+    async def _run_sync_external_callback(self, callback: Callable, publish_info: Dict[str, Any]) -> None:
+        """Run synchronous external callback in async context - zero-copy optimized"""
+        try:
+            callback(publish_info)  # Direct publish_info reference
+        except Exception as e:
+            print(f"External publisher callback error: {e}")
+    
+    def register_external_subscriber(self, topic: str, callback: Callable) -> None:
+        """
+        Register external subscriber callback - zero-copy optimized
+        
+        Args:
+            topic: Topic for external subscription
+            callback: Callback function to execute when external data is received
+        """
+        if topic not in self.external_subscribers:
+            self.external_subscribers[topic] = []
+        self.external_subscribers[topic].append(callback)
+    
+    def unregister_external_subscriber(self, topic: str, callback: Callable) -> bool:
+        """
+        Unregister external subscriber callback - zero-copy optimized
+        
+        Args:
+            topic: Topic to unregister from
+            callback: Callback function to remove
+            
+        Returns:
+            True if callback was found and removed
+        """
+        if topic in self.external_subscribers and callback in self.external_subscribers[topic]:
+            self.external_subscribers[topic].remove(callback)
+            return True
+        return False
+    
+    async def sub_external(self, topic: str, data: Any, source: str = "external") -> None:
+        """
+        Receive data from external world - zero-copy optimized
+        
+        Args:
+            topic: Topic of the received data
+            data: Received data (passed by reference, no copying)
+            source: Source identifier (default: "external")
+        """
+        if not self.enabled:
+            return
+        
+        # Create external subscription info with direct reference to data (no copying)
+        subscription_info = {
+            "topic": topic,
+            "data": data,
+            "source": source,
+            "timestamp": time.time()
+        }
+        
+        # Add to external data queue for processing
+        self.external_data_queue.append(subscription_info)
+        
+        # Trim queue if needed
+        if len(self.external_data_queue) > self.max_external_queue_size:
+            self.external_data_queue.pop(0)
+        
+        # Execute external subscriber callbacks with direct data reference
+        if topic in self.external_subscribers:
+            tasks = []
+            for callback in self.external_subscribers[topic]:
+                if asyncio.iscoroutinefunction(callback):
+                    task = asyncio.create_task(callback(subscription_info))
+                else:
+                    task = asyncio.create_task(self._run_sync_external_sub_callback(callback, subscription_info))
+                tasks.append(task)
+            
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+    
+    async def _run_sync_external_sub_callback(self, callback: Callable, subscription_info: Dict[str, Any]) -> None:
+        """Run synchronous external subscriber callback in async context - zero-copy optimized"""
+        try:
+            callback(subscription_info)  # Direct subscription_info reference
+        except Exception as e:
+            print(f"External subscriber callback error: {e}")
+    
+    def get_external_data_queue(self, topic: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get external data queue - zero-copy optimized"""
+        if topic is None:
+            return self.external_data_queue  # Direct reference
+        return [entry for entry in self.external_data_queue if entry["topic"] == topic]
+    
+    def get_external_publishers(self, topic: str) -> List[Callable]:
+        """Get external publishers for a topic - zero-copy optimized"""
+        return self.external_publishers.get(topic, [])
+    
+    def get_external_subscribers(self, topic: str) -> List[Callable]:
+        """Get external subscribers for a topic - zero-copy optimized"""
+        return self.external_subscribers.get(topic, [])
+    
+    def clear_external_data_queue(self) -> None:
+        """Clear external data queue - zero-copy optimized"""
+        self.external_data_queue.clear()
+    
+    def get_external_communication_stats(self) -> Dict[str, Any]:
+        """Get external communication statistics - zero-copy optimized"""
+        return {
+            "external_publishers": len(self.external_publishers),
+            "external_subscribers": len(self.external_subscribers),
+            "external_data_queue_size": len(self.external_data_queue),
+            "publisher_topics": list(self.external_publishers.keys()),
+            "subscriber_topics": list(self.external_subscribers.keys())
         } 
