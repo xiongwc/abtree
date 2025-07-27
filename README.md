@@ -292,6 +292,7 @@ abtree/
 - [x] ✅ **v0.2** - XML configuration support
 - [x] ✅ **v0.3** - event dispatcher and blackboard optimization
 - [ ] 🎯 **v0.4** - Advanced node types
+- [ ] 🤖 **v0.5** - ROS2 integration support
 
 ---
 
