@@ -142,14 +142,13 @@ import asyncio
 from abtree import load_from_xml_string
 
 # Declarative XML: Express behavior logic in a readable, structured format
-xml_string = '''<BehaviorTree name="Robot Decision">
-    <Selector name="Robot Decision">
-        <Sequence name="Door Control Sequence">
-            <CheckBlackboard name="Check Door Status" key="door_open" expected_value="true" />
-            <Log name="Close Door Log" message="Door detected open, preparing to close" />
-            <Wait name="Close Door Wait" duration="1.0" />
-        </Sequence>
-    </Selector>
+xml_string = '''
+<BehaviorTree name="Robot Decision">
+    <Sequence name="Door Control Sequence">
+        <CheckBlackboard name="Check Door Status" key="door_open" expected_value="true" />
+        <Log name="Close Door Log" message="Door detected open, preparing to close" />
+        <Wait name="Close Door Wait" duration="1.0" />
+    </Sequence>
 </BehaviorTree>'''
 
 # Load behavior tree from declarative XML configuration

@@ -140,14 +140,13 @@ import asyncio
 from abtree import load_from_xml_string
 
 # 声明式XML：以可读、结构化的格式表达行为逻辑
-xml_string = '''<BehaviorTree name="机器人决策">
-    <Selector name="机器人决策">
-        <Sequence name="门控制序列">
-            <CheckBlackboard name="检查门状态" key="door_open" expected_value="true" />
-            <Log name="关门日志" message="检测到门开着，准备关门" />
-            <Wait name="关门等待" duration="1.0" />
-        </Sequence>
-    </Selector>
+xml_string = '''
+<BehaviorTree name="Robot Decision">
+    <Sequence name="Door Control Sequence">
+        <CheckBlackboard name="Check Door Status" key="door_open" expected_value="true" />
+        <Log name="Close Door Log" message="Door detected open, preparing to close" />
+        <Wait name="Close Door Wait" duration="1.0" />
+    </Sequence>
 </BehaviorTree>'''
 
 # 从声明式XML配置加载行为树
