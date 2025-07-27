@@ -211,9 +211,10 @@ class BehaviorForest:
             # Set tree's blackboard to forest's shared blackboard
             node.tree.blackboard = self.forest_blackboard
             
-            # Set forest reference in tree metadata
-            node.tree.metadata = getattr(node.tree, 'metadata', {})
-            node.tree.metadata['forest'] = self
+            # Set forest reference in tree metadata if available
+            if hasattr(node.tree, 'metadata'):
+                node.tree.metadata = getattr(node.tree, 'metadata', {})
+                node.tree.metadata['forest'] = self
             
             # Create a custom emit method that also triggers middleware publish
             original_emit = self.forest_event_dispatcher.emit
@@ -665,6 +666,12 @@ class BehaviorForest:
                 except Exception as e:
                     print(f"Error in on_input handler for channel '{channel}': {e}")
         
+        # Process through middleware for proper queue management
+        for middleware in self.middleware:
+            if hasattr(middleware, 'external_input'):
+                await middleware.external_input(channel, data)
+                break
+        
         # Emit event directly through the forest's event dispatcher
         await self.forest_event_dispatcher.emit(f"external_input_{channel}", source="external", data=data)
         
@@ -699,10 +706,16 @@ class BehaviorForest:
         """
         # Store handler for monitoring input calls
         if not hasattr(self, '_input_handlers'):
-            self._input_handlers = {}
+            self._input_handlers: Dict[str, List[Callable]] = {}
         if channel not in self._input_handlers:
             self._input_handlers[channel] = []
         self._input_handlers[channel].append(handler)
+        
+        # Also register with middleware for proper processing
+        for middleware in self.middleware:
+            if hasattr(middleware, 'register_input_handler'):
+                middleware.register_input_handler(channel, handler)
+                break
     
     def on_output(self, channel: str, handler: Callable) -> None:
         """
