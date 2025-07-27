@@ -45,11 +45,11 @@ async def main():
     await forest.input("sensor_data", {"temperature": 25.5, "humidity": 60.0})
     print("✅ External input data has been processed")
 
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
 
     print("📡 External system is receiving output data...") 
     output_data = await forest.output("command_data")
-    print(f"✅ External output data received: {output_data}")    
+    print(f"✅ External output data received: {output_data}")
     
     await forest.stop()
 

@@ -303,7 +303,7 @@ class XMLParser:
             for param_name, param in sig.parameters.items():
                 if param_name == 'self':
                     continue
-                # 跳过*args和**kwargs参数
+                # Skip *args and **kwargs parameters
                 if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
                     continue
                 if param.default == inspect.Parameter.empty:
@@ -460,7 +460,7 @@ class XMLParser:
         if not hasattr(node, '_last_tick_time'):
             node._last_tick_time = 0.0
 
-        # 设置参数映射关系
+        # Set parameter mapping
         for node_attr, blackboard_key in param_mappings.items():
             node.set_param_mapping(node_attr, blackboard_key)
             

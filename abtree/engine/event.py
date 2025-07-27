@@ -114,6 +114,8 @@ class EventDispatcher:
         
         try:
             await asyncio.wait_for(self._events[event_name].wait(), timeout=timeout)
+            # Automatically clear the event to avoid repeated triggers
+            self._events[event_name].clear()
             return True
         except asyncio.TimeoutError:
             return False

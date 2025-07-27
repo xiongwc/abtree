@@ -8,16 +8,16 @@ from cli.abtree_cli import cli, load, run, create, validate, list_nodes, info
 
 
 class TestCLI:
-    """测试CLI工具"""
+    """Test CLI tool"""
     
     @pytest.fixture
     def runner(self):
-        """创建CLI运行器"""
+        """Create CLI runner"""
         return CliRunner()
     
     @pytest.fixture
     def temp_xml_file(self):
-        """创建临时XML文件"""
+        """Create temporary XML file"""
         xml_content = '''<?xml version="1.0" encoding="UTF-8"?>
 <BehaviorTree name="TestTree">
     <Root>
@@ -34,11 +34,11 @@ class TestCLI:
         
         yield temp_file
         
-        # 清理临时文件
+        # Clean up temporary file
         os.unlink(temp_file)
     
     def test_cli_help(self, runner):
-        """测试CLI帮助信息"""
+        """Test CLI help information"""
         result = runner.invoke(cli, ['--help'])
         assert result.exit_code == 0
         assert "ABTree" in result.output
@@ -47,25 +47,25 @@ class TestCLI:
         assert "create" in result.output
     
     def test_cli_verbose_logging(self, runner):
-        """测试CLI详细日志"""
+        """Test CLI verbose logging"""
         result = runner.invoke(cli, ['--verbose', '--help'])
         assert result.exit_code == 0
     
     def test_cli_log_file(self, runner):
-        """测试CLI日志文件"""
+        """Test CLI log file"""
         with tempfile.NamedTemporaryFile(suffix='.log', delete=False) as log_file:
             result = runner.invoke(cli, ['--log-file', log_file.name, '--help'])
             assert result.exit_code == 0
             
-            # 清理日志文件
+            # Clean up log file
             os.unlink(log_file.name)
     
     @patch('cli.abtree_cli.XMLParser')
     @patch('cli.abtree_cli.validate_tree')
     @patch('cli.abtree_cli.print_validation_result')
     def test_load_command_success(self, mock_print_validation, mock_validate_tree, mock_xml_parser, runner, temp_xml_file):
-        """测试load命令成功"""
-        # 模拟XML解析器
+        """Test load command success"""
+        # Mock XML parser
         mock_parser = Mock()
         mock_tree = Mock()
         mock_tree.name = "TestTree"
@@ -79,27 +79,27 @@ class TestCLI:
         mock_parser.parse_file.return_value = mock_tree
         mock_xml_parser.return_value = mock_parser
         
-        # 模拟验证结果
+        # Mock validation result
         mock_validation_result = Mock()
         mock_validation_result.is_valid = True
         mock_validate_tree.return_value = mock_validation_result
         
-        # 执行命令
+        # Execute command
         result = runner.invoke(load, [temp_xml_file, '--validate'])
         
         assert result.exit_code == 0
         assert "TestTree" in result.output
-        assert "3" in result.output  # 总节点数
+        assert "3" in result.output  # Total node count
     
     @patch('cli.abtree_cli.XMLParser')
     def test_load_command_parse_error(self, mock_xml_parser, runner, temp_xml_file):
-        """测试load命令解析错误"""
-        # 模拟解析错误
+        """Test load command parse error"""
+        # Mock parse error
         mock_parser = Mock()
         mock_parser.parse_file.side_effect = Exception("Parse error")
         mock_xml_parser.return_value = mock_parser
         
-        # 执行命令
+        # Execute command
         result = runner.invoke(load, [temp_xml_file])
         
         assert result.exit_code == 1
@@ -108,21 +108,21 @@ class TestCLI:
     @patch('cli.abtree_cli.XMLParser')
     @patch('cli.abtree_cli.validate_tree')
     def test_load_command_validation_failure(self, mock_validate_tree, mock_xml_parser, runner, temp_xml_file):
-        """测试load命令验证失败"""
-        # 模拟XML解析器
+        """Test load command validation failure"""
+        # Mock XML parser
         mock_parser = Mock()
         mock_tree = Mock()
         mock_tree.name = "TestTree"
         mock_parser.parse_file.return_value = mock_tree
         mock_xml_parser.return_value = mock_parser
         
-        # 模拟验证失败
+        # Mock validation failure
         mock_validation_result = Mock()
         mock_validation_result.is_valid = False
         mock_validation_result.errors = ["Invalid tree structure"]
         mock_validate_tree.return_value = mock_validation_result
         
-        # 执行命令
+        # Execute command
         result = runner.invoke(load, [temp_xml_file, '--validate'])
         
         assert result.exit_code == 1
@@ -130,8 +130,8 @@ class TestCLI:
     @patch('cli.abtree_cli.XMLParser')
     @patch('cli.abtree_cli.TreeBuilder')
     def test_load_command_with_output(self, mock_tree_builder, mock_xml_parser, runner, temp_xml_file):
-        """测试load命令带输出文件"""
-        # 模拟XML解析器
+        """Test load command with output file"""
+        # Mock XML parser
         mock_parser = Mock()
         mock_tree = Mock()
         mock_tree.name = "TestTree"
@@ -145,55 +145,55 @@ class TestCLI:
         mock_parser.parse_file.return_value = mock_tree
         mock_xml_parser.return_value = mock_parser
         
-        # 模拟树构建器
+        # Mock tree builder
         mock_builder = Mock()
         mock_builder.export_to_xml.return_value = "exported_xml"
         mock_tree_builder.return_value = mock_builder
         
-        # 创建临时输出文件
+        # Create temporary output file
         with tempfile.NamedTemporaryFile(suffix='.xml', delete=False) as output_file:
             output_path = output_file.name
         
         try:
-            # 执行命令
+            # Execute command
             result = runner.invoke(load, [temp_xml_file, '--output', output_path])
             
             assert result.exit_code == 0
             assert "exported" in result.output
             
         finally:
-            # 清理输出文件
+            # Clean up output file
             if os.path.exists(output_path):
                 os.unlink(output_path)
     
     @patch('cli.abtree_cli.XMLParser')
     @patch('cli.abtree_cli.asyncio.run')
     def test_run_command_success(self, mock_asyncio_run, mock_xml_parser, runner, temp_xml_file):
-        """测试run命令成功"""
-        # 模拟XML解析器
+        """Test run command success"""
+        # Mock XML parser
         mock_parser = Mock()
         mock_tree = Mock()
         mock_tree.name = "TestTree"
         mock_parser.parse_file.return_value = mock_tree
         mock_xml_parser.return_value = mock_parser
         
-        # 模拟异步运行
+        # Mock async execution
         mock_asyncio_run.return_value = None
         
-        # 执行命令
+        # Execute command
         result = runner.invoke(run, [temp_xml_file, '--ticks', '5', '--rate', '30.0'])
         
         assert result.exit_code == 0
     
     @patch('cli.abtree_cli.XMLParser')
     def test_run_command_parse_error(self, mock_xml_parser, runner, temp_xml_file):
-        """测试run命令解析错误"""
-        # 模拟解析错误
+        """Test run command parse error"""
+        # Mock parse error
         mock_parser = Mock()
         mock_parser.parse_file.side_effect = Exception("Parse error")
         mock_xml_parser.return_value = mock_parser
         
-        # 执行命令
+        # Execute command
         result = runner.invoke(run, [temp_xml_file])
         
         assert result.exit_code == 1
@@ -202,8 +202,8 @@ class TestCLI:
     @patch('click.open_file')
     @patch('cli.abtree_cli.TreeBuilder')
     def test_create_command_simple(self, mock_tree_builder, mock_open_file, runner):
-        """测试create命令简单示例"""
-        # 模拟树构建器
+        """Test create command simple example"""
+        # Mock tree builder
         mock_builder = Mock()
         mock_tree = Mock()
         mock_tree.name = "TestTree"
@@ -217,11 +217,11 @@ class TestCLI:
         mock_builder.create_simple_tree.return_value = mock_tree
         mock_tree_builder.return_value = mock_builder
         
-        # 模拟文件操作
+        # Mock file operations
         mock_file = Mock()
         mock_open_file.return_value.__enter__.return_value = mock_file
         
-        # 执行命令
+        # Execute command
         result = runner.invoke(create, ['--name', 'TestTree', '--type', 'simple'])
         
         assert result.exit_code == 0
@@ -230,8 +230,8 @@ class TestCLI:
     @patch('click.open_file')
     @patch('cli.abtree_cli.TreeBuilder')
     def test_create_command_advanced(self, mock_tree_builder, mock_open_file, runner):
-        """测试create命令高级示例"""
-        # 模拟树构建器
+        """Test create command advanced example"""
+        # Mock tree builder
         mock_builder = Mock()
         mock_tree = Mock()
         mock_tree.name = "AdvancedTree"
@@ -245,11 +245,11 @@ class TestCLI:
         mock_builder.create_advanced_tree.return_value = mock_tree
         mock_tree_builder.return_value = mock_builder
         
-        # 模拟文件操作
+        # Mock file operations
         mock_file = Mock()
         mock_open_file.return_value.__enter__.return_value = mock_file
         
-        # 执行命令
+        # Execute command
         result = runner.invoke(create, ['--name', 'AdvancedTree', '--type', 'advanced'])
         
         assert result.exit_code == 0
@@ -258,8 +258,8 @@ class TestCLI:
     @patch('click.open_file')
     @patch('cli.abtree_cli.TreeBuilder')
     def test_create_command_with_output(self, mock_tree_builder, mock_open_file, runner):
-        """测试create命令带输出文件"""
-        # 模拟树构建器
+        """Test create command with output file"""
+        # Mock tree builder
         mock_builder = Mock()
         mock_tree = Mock()
         mock_tree.name = "TestTree"
@@ -273,19 +273,19 @@ class TestCLI:
         mock_builder.create_simple_tree.return_value = mock_tree
         mock_tree_builder.return_value = mock_builder
         
-        # 创建临时输出文件
+        # Create temporary output file
         with tempfile.NamedTemporaryFile(suffix='.xml', delete=False) as output_file:
             output_path = output_file.name
         
         try:
-            # 执行命令
+            # Execute command
             result = runner.invoke(create, ['--name', 'TestTree', '--output', output_path])
             
             assert result.exit_code == 0
             assert "TestTree" in result.output
             
         finally:
-            # 清理输出文件
+            # Clean up output file
             if os.path.exists(output_path):
                 os.unlink(output_path)
     
@@ -293,29 +293,29 @@ class TestCLI:
     @patch('cli.abtree_cli.validate_tree')
     @patch('abtree.validators.validate_xml_structure')
     def test_validate_command_success(self, mock_validate_xml_structure, mock_validate_tree, mock_xml_parser, runner, temp_xml_file):
-        """测试validate命令成功"""
-        # 模拟XML解析器
+        """Test validate command success"""
+        # Mock XML parser
         mock_parser = Mock()
         mock_tree = Mock()
         mock_tree.name = "TestTree"
         mock_parser.parse_file.return_value = mock_tree
         mock_xml_parser.return_value = mock_parser
         
-        # 模拟XML验证结果
+        # Mock XML validation result
         mock_xml_validation_result = Mock()
         mock_xml_validation_result.is_valid = True
         mock_xml_validation_result.errors = []
         mock_xml_validation_result.warnings = []
         mock_validate_xml_structure.return_value = mock_xml_validation_result
         
-        # 模拟验证结果
+        # Mock validation result
         mock_validation_result = Mock()
         mock_validation_result.is_valid = True
         mock_validation_result.errors = []
         mock_validation_result.warnings = ["Minor warning"]
         mock_validate_tree.return_value = mock_validation_result
         
-        # 执行命令
+        # Execute command
         result = runner.invoke(validate, [temp_xml_file])
         
         assert result.exit_code == 0
@@ -324,29 +324,29 @@ class TestCLI:
     @patch('cli.abtree_cli.XMLParser')
     @patch('cli.abtree_cli.validate_tree')
     def test_validate_command_failure(self, mock_validate_tree, mock_xml_parser, runner, temp_xml_file):
-        """测试validate命令失败"""
-        # 模拟XML解析器
+        """Test validate command failure"""
+        # Mock XML parser
         mock_parser = Mock()
         mock_tree = Mock()
         mock_tree.name = "TestTree"
         mock_parser.parse_file.return_value = mock_tree
         mock_xml_parser.return_value = mock_parser
         
-        # 模拟验证失败
+        # Mock validation failure
         mock_validation_result = Mock()
         mock_validation_result.is_valid = False
         mock_validation_result.errors = ["Invalid structure"]
         mock_validate_tree.return_value = mock_validation_result
         
-        # 执行命令
+        # Execute command
         result = runner.invoke(validate, [temp_xml_file])
         
         assert result.exit_code == 1
     
     @patch('abtree.registry.node_registry.get_global_registry')
     def test_list_nodes_command(self, mock_get_global_registry, runner):
-        """测试list_nodes命令"""
-        # 模拟注册表
+        """Test list_nodes command"""
+        # Mock registry
         mock_registry = Mock()
         mock_registry.get_registered.return_value = ['AlwaysSuccess', 'Sequence', 'Inverter']
         mock_registry.get_metadata.side_effect = lambda node_type: {
@@ -354,7 +354,7 @@ class TestCLI:
         }
         mock_get_global_registry.return_value = mock_registry
         
-        # 执行命令
+        # Execute command
         result = runner.invoke(list_nodes)
         
         assert result.exit_code == 0

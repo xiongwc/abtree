@@ -840,9 +840,22 @@ class CommunicationMiddleware:
         if not self.enabled:
             return
         
-        asyncio.create_task(
-            self.shared_event_dispatcher.emit(event_name, source=source, data=data)
-        )
+        # Use asyncio.create_task but also trigger the event immediately
+        try:
+            asyncio.create_task(
+                self.shared_event_dispatcher.emit(event_name, source=source, data=data)
+            )
+        except RuntimeError:
+            # If no event loop is running, try to emit synchronously
+            import asyncio as asyncio_module
+            loop = asyncio_module.new_event_loop()
+            asyncio_module.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    self.shared_event_dispatcher.emit(event_name, source=source, data=data)
+                )
+            finally:
+                loop.close()
     
     def get_shared_event_dispatcher_stats(self) -> Dict[str, Any]:
         """Get shared EventSystem statistics - zero-copy optimized"""
@@ -1092,7 +1105,10 @@ class CommunicationMiddleware:
             data: Input data (passed by reference, no copying)
         """
         if not self.enabled:
+            print(f"Warning: Communication middleware is disabled, skipping external input for channel '{channel}'")
             return
+        
+        print(f"Processing external input for channel '{channel}' with data: {data}")
         
         # Create input info with direct reference to data (no copying)
         input_info = {
@@ -1109,7 +1125,7 @@ class CommunicationMiddleware:
         if len(self.input_queue) > self.max_io_queue_size:
             self.input_queue.pop(0)
         
-        # Execute input handlers with direct data reference
+        # Execute on_input handlers (for external system callbacks only)
         if channel in self.external_input_handlers:
             tasks = []
             for handler in self.external_input_handlers[channel]:
@@ -1122,9 +1138,10 @@ class CommunicationMiddleware:
             if tasks:
                 await asyncio.gather(*tasks, return_exceptions=True)
         
-        # Emit shared event with data for CommExternalInput nodes
-        if hasattr(self, 'emit_shared_event'):
-            self.emit_shared_event(f"external_input_{channel}", source="external", data=data)
+        # Emit event to forest's event dispatcher for CommExternalInput nodes (separate from on_input)
+        if self.forest and hasattr(self.forest, 'forest_event_dispatcher'):
+            await self.forest.forest_event_dispatcher.emit(f"external_input_{channel}", source="external", data=data)
+            print(f"External input event emitted for channel '{channel}'")
     
     async def external_output(self, channel: str, data: Any) -> None:
         """

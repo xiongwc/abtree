@@ -385,17 +385,28 @@ class CommExternalInput(Action):
         # Get event dispatcher for waiting for external input events
         event_dispatcher = self.get_event_dispatcher()
         if not event_dispatcher:
-            logger.error("No event dispatcher found for external input")
-            return Status.FAILURE
+            logger.error(f"No event dispatcher found for external input node '{self.name}'")
+            # Try to get event dispatcher from blackboard directly
+            if self.blackboard:
+                event_dispatcher = self.blackboard.get("__event_dispatcher")
+                if event_dispatcher:
+                    logger.info(f"Found event dispatcher in blackboard for node '{self.name}'")
+                else:
+                    logger.error(f"No event dispatcher in blackboard for node '{self.name}'")
+            if not event_dispatcher:
+                return Status.FAILURE
         
         try:
+            event_name = f"external_input_{channel}"            
             # Wait for external input event with timeout
-            event_triggered = await event_dispatcher.wait_for(f"external_input_{channel}", timeout=timeout)
-            if event_triggered:
+            event_triggered = await event_dispatcher.wait_for(event_name, timeout=timeout)
+            if event_triggered:                
                 # Get the event info containing the external input data
-                event_info = event_dispatcher.get_event_info(f"external_input_{channel}")
+                event_info = event_dispatcher.get_event_info(event_name)
                 if event_info and event_info.data:
                     received_data = event_info.data
+                    logger.info(f"Received external input data: {received_data}")
+                    
                     # Store the data in blackboard if data parameter is specified
                     if data and self.blackboard is not None:
                         self.blackboard.set(data, received_data)
@@ -406,18 +417,19 @@ class CommExternalInput(Action):
                         self.set_port("channel", channel)
                     if "status" in self._param_mappings:
                         self.set_port("status", "received")
+                    
                     return Status.SUCCESS
                 else:
                     logger.warning(f"No data found in external input event for channel: {channel}")
                     return Status.FAILURE
             else:
                 if timeout and timeout > 0:
-                    logger.warning(f"Timeout waiting for external input event: external_input_{channel}")
+                    logger.warning(f"Timeout waiting for external input event: {event_name}")
                     return Status.FAILURE
                 else:
                     return Status.RUNNING
         except Exception as e:
-            logger.error(f"External input error: {e}")
+            logger.error(f"External input error in node '{self.name}': {e}")
             return Status.FAILURE
     
     def set_channel(self, channel: str) -> None:

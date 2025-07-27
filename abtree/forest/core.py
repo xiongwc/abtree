@@ -9,6 +9,7 @@ import asyncio
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Callable, Dict, List, Optional, Set, Union
+import time
 
 from ..core.status import Status
 from ..engine.behavior_tree import BehaviorTree
@@ -359,12 +360,10 @@ class BehaviorForest:
         Args:
             middleware: Middleware instance to add
         """
+        if hasattr(middleware, "initialize"):
+            middleware.initialize(self)
         self.middleware.append(middleware)
         
-        # Initialize middleware with forest
-        if hasattr(middleware, 'initialize'):
-            middleware.initialize(self)
-    
     def remove_middleware(self, middleware: Any) -> bool:
         """
         Remove communication middleware
@@ -584,6 +583,9 @@ class BehaviorForest:
             self.forest_blackboard = loaded_forest.forest_blackboard
             self.forest_event_dispatcher = loaded_forest.forest_event_dispatcher
             
+            # Initialize middleware and setup shared event dispatcher for all nodes
+            self._initialize_middleware_and_shared_events()
+            
         except Exception as e:
             raise ValueError(f"Failed to load forest from XML string: {e}")
     
@@ -613,30 +615,60 @@ class BehaviorForest:
             self.forest_blackboard = loaded_forest.forest_blackboard
             self.forest_event_dispatcher = loaded_forest.forest_event_dispatcher
             
+            # Initialize middleware and setup shared event dispatcher for all nodes
+            self._initialize_middleware_and_shared_events()
+            
         except FileNotFoundError as e:
             raise FileNotFoundError(f"XML configuration file not found: {file_path}")
         except Exception as e:
-            raise ValueError(f"Failed to load forest from XML file: {e}")   
-
+            raise ValueError(f"Failed to load forest from XML file: {e}")
+    
+    def _initialize_middleware_and_shared_events(self) -> None:
+        """Initialize middleware and setup shared event dispatcher for all nodes"""
+        # Initialize all middleware
+        for middleware in self.middleware:
+            if hasattr(middleware, 'initialize'):
+                middleware.initialize(self)
+        
+        # Setup shared event dispatcher for all existing nodes
+        for node_name, node in self.nodes.items():
+            self._setup_shared_event_dispatcher_for_node(node)
+    
    
     
     # ==================== ExternalIO Methods ====================
     
     async def input(self, channel: str, data: Any) -> None:
         """
-        Process external input data through middleware and trigger events
+        Process external input data through event system only
         
         Args:
             channel: Input channel name
             data: Input data
         """
-        # Process through middleware (which will also trigger events)
-        for middleware in self.middleware:
-            if hasattr(middleware, 'external_input'):
-                await middleware.external_input(channel, data)
-                break
+        # Create input info for handlers
+        input_info = {
+            "channel": channel,
+            "data": data,
+            "source": "external",
+            "timestamp": time.time()
+        }
         
-        print(f"External input processed for channel '{channel}' and event triggered")
+        # Call on_input handlers for monitoring
+        if hasattr(self, '_input_handlers') and channel in self._input_handlers:
+            for handler in self._input_handlers[channel]:
+                try:
+                    if asyncio.iscoroutinefunction(handler):
+                        await handler(input_info)
+                    else:
+                        handler(input_info)
+                except Exception as e:
+                    print(f"Error in on_input handler for channel '{channel}': {e}")
+        
+        # Emit event directly through the forest's event dispatcher
+        await self.forest_event_dispatcher.emit(f"external_input_{channel}", source="external", data=data)
+        
+        print(f"External input event emitted for channel '{channel}'")
     
     async def output(self, channel: str) -> Any:
         """
@@ -659,18 +691,18 @@ class BehaviorForest:
     
     def on_input(self, channel: str, handler: Callable) -> None:
         """
-        Register input handler for external data
+        Register input handler for external data (only for monitoring input calls)
         
         Args:
             channel: Input channel name
             handler: Handler function to process incoming data
         """
-        for middleware in self.middleware:
-            if hasattr(middleware, 'register_input_handler'):
-                middleware.register_input_handler(channel, handler)
-                return
-        
-        print(f"Warning: No communication middleware found for registering input handler to channel '{channel}'")
+        # Store handler for monitoring input calls
+        if not hasattr(self, '_input_handlers'):
+            self._input_handlers = {}
+        if channel not in self._input_handlers:
+            self._input_handlers[channel] = []
+        self._input_handlers[channel].append(handler)
     
     def on_output(self, channel: str, handler: Callable) -> None:
         """
