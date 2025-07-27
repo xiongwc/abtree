@@ -46,8 +46,8 @@ class RobotAction(Action):
 class PatrolAction(RobotAction):
     """Patrol action for robots"""
     
-    async def execute(self, blackboard):
-        await super().execute(blackboard)
+    async def execute(self):
+        await super().execute(self.blackboard)
         print(f"   📍 {self.robot_id} is patrolling area")
         await asyncio.sleep(0.01)
         return Status.SUCCESS
@@ -56,12 +56,12 @@ class PatrolAction(RobotAction):
 class ChargeAction(RobotAction):
     """Charging action for robots"""
     
-    async def execute(self, blackboard):
-        await super().execute(blackboard)
-        battery_level = blackboard.get("battery_level", 50)
+    async def execute(self):
+        await super().execute(self.blackboard)
+        battery_level = self.blackboard.get("battery_level", 50)
         if battery_level < 30:
             print(f"   🔋 {self.robot_id} is charging (battery: {battery_level}%)")
-            blackboard.set("battery_level", min(100, battery_level + 20))
+            self.blackboard.set("battery_level", min(100, battery_level + 20))
             await asyncio.sleep(0.01)
             return Status.SUCCESS
         else:
@@ -72,8 +72,8 @@ class ChargeAction(RobotAction):
 class EmergencyResponseAction(RobotAction):
     """Emergency response action"""
     
-    async def execute(self, blackboard):
-        await super().execute(blackboard)
+    async def execute(self):
+        await super().execute(self.blackboard)
         print(f"   🚨 {self.robot_id} responding to emergency!")
         await asyncio.sleep(0.01)
         return Status.SUCCESS
@@ -86,8 +86,8 @@ class TaskExecutionAction(RobotAction):
         super().__init__(name, robot_id)
         self.task_type = task_type
     
-    async def execute(self, blackboard):
-        await super().execute(blackboard)
+    async def execute(self):
+        await super().execute(self.blackboard)
         print(f"   📋 {self.robot_id} executing {self.task_type} task")
         await asyncio.sleep(0.01)
         return Status.SUCCESS
@@ -101,8 +101,8 @@ class BatteryCheckCondition(Condition):
         self.robot_id = robot_id
         self.threshold = threshold
     
-    async def evaluate(self, blackboard):
-        battery_level = blackboard.get("battery_level", 50)
+    async def evaluate(self):
+        battery_level = self.blackboard.get("battery_level", 50)
         is_low = battery_level < self.threshold
         print(f"   🔋 {self.robot_id} battery check: {battery_level}% (low: {is_low})")
         return is_low
@@ -115,8 +115,8 @@ class EmergencyCheckCondition(Condition):
         super().__init__(name)
         self.robot_id = robot_id
     
-    async def evaluate(self, blackboard):
-        emergency_active = blackboard.get("emergency_active", False)
+    async def evaluate(self):
+        emergency_active = self.blackboard.get("emergency_active", False)
         print(f"   🚨 {self.robot_id} emergency check: {emergency_active}")
         return emergency_active
 
@@ -128,8 +128,8 @@ class TaskAvailableCondition(Condition):
         super().__init__(name)
         self.robot_id = robot_id
     
-    async def evaluate(self, blackboard):
-        available_tasks = blackboard.get("available_tasks", 0)
+    async def evaluate(self):
+        available_tasks = self.blackboard.get("available_tasks", 0)
         print(f"   📋 {self.robot_id} task check: {available_tasks} tasks available")
         return available_tasks > 0
 

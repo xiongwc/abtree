@@ -62,8 +62,8 @@ class InitializeSystemAction(Action):
 class CheckSystemStatusCondition(Condition):
     """Check system status"""
     
-    async def evaluate(self, blackboard):
-        initialized = blackboard.get("system_initialized", False)
+    async def evaluate(self):
+        initialized = self.blackboard.get("system_initialized", False)
         print(f"Checking system status: {'Initialized' if initialized else 'Not initialized'}")
         return initialized
 
@@ -71,7 +71,7 @@ class CheckSystemStatusCondition(Condition):
 class LoadConfigurationAction(Action):
     """Load configuration"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Step 2: Loading configuration file...")
         await asyncio.sleep(0.01)
         
@@ -79,8 +79,8 @@ class LoadConfigurationAction(Action):
         config_loaded = random.random() > 0.2  # 80% success rate
         
         if config_loaded:
-            blackboard.set("config_loaded", True)
-            blackboard.set("init_step", 2)
+            self.blackboard.set("config_loaded", True)
+            self.blackboard.set("init_step", 2)
             print("Configuration loaded successfully")
             return Status.SUCCESS
         else:
@@ -91,8 +91,8 @@ class LoadConfigurationAction(Action):
 class CheckConfigCondition(Condition):
     """Check configuration status"""
     
-    async def evaluate(self, blackboard):
-        config_loaded = blackboard.get("config_loaded", False)
+    async def evaluate(self):
+        config_loaded = self.blackboard.get("config_loaded", False)
         print(f"Checking configuration status: {'Loaded' if config_loaded else 'Not loaded'}")
         return config_loaded
 
@@ -100,7 +100,7 @@ class CheckConfigCondition(Condition):
 class StartServicesAction(Action):
     """Start services"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Step 3: Starting system services...")
         await asyncio.sleep(0.01)
         
@@ -108,8 +108,8 @@ class StartServicesAction(Action):
         services_started = random.random() > 0.1  # 90% success rate
         
         if services_started:
-            blackboard.set("services_running", True)
-            blackboard.set("init_step", 3)
+            self.blackboard.set("services_running", True)
+            self.blackboard.set("init_step", 3)
             print("Services started successfully")
             return Status.SUCCESS
         else:
@@ -120,8 +120,8 @@ class StartServicesAction(Action):
 class CheckServicesCondition(Condition):
     """Check services status"""
     
-    async def evaluate(self, blackboard):
-        services_running = blackboard.get("services_running", False)
+    async def evaluate(self):
+        services_running = self.blackboard.get("services_running", False)
         print(f"Checking services status: {'Running' if services_running else 'Not running'}")
         return services_running
 
@@ -129,7 +129,7 @@ class CheckServicesCondition(Condition):
 class HealthCheckAction(Action):
     """Health check"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Step 4: Performing health check...")
         await asyncio.sleep(0.01)
         
@@ -137,8 +137,8 @@ class HealthCheckAction(Action):
         health_ok = random.random() > 0.05  # 95% success rate
         
         if health_ok:
-            blackboard.set("health_check_passed", True)
-            blackboard.set("init_step", 4)
+            self.blackboard.set("health_check_passed", True)
+            self.blackboard.set("init_step", 4)
             print("Health check passed")
             return Status.SUCCESS
         else:
@@ -154,7 +154,7 @@ class RetryAction(Action):
         self.max_retries = max_retries
         self.retry_count = 0
     
-    async def execute(self, blackboard):
+    async def execute(self):
         self.retry_count += 1
         print(f"Retry operation {self.name}: {self.retry_count}/{self.max_retries} times")
         
@@ -178,13 +178,13 @@ class RetryAction(Action):
 class FallbackAction(Action):
     """Fallback operation"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Executing fallback operation...")
         await asyncio.sleep(0.01)
         
         # Set fallback state
-        blackboard.set("fallback_used", True)
-        blackboard.set("system_status", "fallback_mode")
+        self.blackboard.set("fallback_used", True)
+        self.blackboard.set("system_status", "fallback_mode")
         
         print("Fallback operation completed")
         return Status.SUCCESS
@@ -193,8 +193,8 @@ class FallbackAction(Action):
 class SystemReadyCondition(Condition):
     """Check if system is ready"""
     
-    async def evaluate(self, blackboard):
-        step = blackboard.get("init_step", 0)
+    async def evaluate(self):
+        step = self.blackboard.get("init_step", 0)
         ready = step >= 4
         
         print(f"Checking system readiness: step {step}/4, {'Ready' if ready else 'Not ready'}")
@@ -204,9 +204,9 @@ class SystemReadyCondition(Condition):
 class LogStatusAction(Action):
     """Log status"""
     
-    async def execute(self, blackboard):
-        step = blackboard.get("init_step", 0)
-        fallback_used = blackboard.get("fallback_used", False)
+    async def execute(self):
+        step = self.blackboard.get("init_step", 0)
+        fallback_used = self.blackboard.get("fallback_used", False)
         
         print(f"Logging system status: step {step}, fallback mode: {fallback_used}")
         await asyncio.sleep(0.01)

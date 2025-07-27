@@ -332,8 +332,8 @@ class ApplySceneModeAction(Action):
 class EnergyOptimizationAction(Action):
     """Energy optimization action"""
     
-    async def execute(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def execute(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return Status.FAILURE
         
@@ -371,8 +371,8 @@ class EnergyOptimizationAction(Action):
 class SecurityMonitoringAction(Action):
     """Security monitoring action"""
     
-    async def execute(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def execute(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return Status.FAILURE
         
@@ -395,8 +395,8 @@ class SecurityMonitoringAction(Action):
 class UserComfortAction(Action):
     """User comfort action"""
     
-    async def execute(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def execute(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return Status.FAILURE
         
@@ -429,8 +429,8 @@ class UserComfortAction(Action):
 class MaintenanceCheckAction(Action):
     """Maintenance check action"""
     
-    async def execute(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def execute(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return Status.FAILURE
         
@@ -457,8 +457,8 @@ class MaintenanceCheckAction(Action):
 class GenerateReportAction(Action):
     """Generate report action"""
     
-    async def execute(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def execute(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return Status.FAILURE
         
@@ -495,10 +495,10 @@ class GenerateReportAction(Action):
 class HandleSecurityEventAction(Action):
     """Handle security event action"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("🚨 Handling security event...")
         
-        security_events = blackboard.get("security_events", [])
+        security_events = self.blackboard.get("security_events", [])
         if security_events:
             for event in security_events:
                 print(f"  📢 Security event: {event.description}")
@@ -512,29 +512,29 @@ class HandleSecurityEventAction(Action):
 class HasSecurityAlertCondition(Condition):
     """Has security alert condition"""
     
-    async def evaluate(self, blackboard):
-        return blackboard.get("security_alert", False)
+    async def evaluate(self):
+        return self.blackboard.get("security_alert", False)
 
 
 class SceneChangedCondition(Condition):
     """Scene changed condition"""
     
-    async def evaluate(self, blackboard):
-        return blackboard.get("scene_changed", False)
+    async def evaluate(self):
+        return self.blackboard.get("scene_changed", False)
 
 
 class NeedsMaintenanceCondition(Condition):
     """Needs maintenance condition"""
     
-    async def evaluate(self, blackboard):
-        return blackboard.get("maintenance_needed", False)
+    async def evaluate(self):
+        return self.blackboard.get("maintenance_needed", False)
 
 
 class HasLowBatteryCondition(Condition):
     """Has low battery condition"""
     
-    async def evaluate(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def evaluate(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return False
         
@@ -549,8 +549,8 @@ class HasLowBatteryCondition(Condition):
 class IsEnergySavingModeCondition(Condition):
     """Is energy saving mode condition"""
     
-    async def evaluate(self, blackboard):
-        system = blackboard.get("smart_home_system")
+    async def evaluate(self):
+        system = self.blackboard.get("smart_home_system")
         if system is None:
             return False
         

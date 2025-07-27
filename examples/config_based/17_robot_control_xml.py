@@ -120,9 +120,9 @@ class SensorDataAction(Action):
         self.name = name
         self.robot_controller = robot_controller
     
-    async def execute(self, blackboard):
+    async def execute(self):
         if self.robot_controller is None:
-            self.robot_controller = blackboard.get("robot_controller")
+            self.robot_controller = self.blackboard.get("robot_controller")
         
         if self.robot_controller is None:
             print(f"Error: Robot controller not found")
@@ -132,11 +132,11 @@ class SensorDataAction(Action):
         sensor_data = self.robot_controller.get_sensor_data()
         
         # Update blackboard data
-        blackboard.set("sensor_data", sensor_data)
-        blackboard.set("battery_level", sensor_data['battery_level'])
-        blackboard.set("obstacle_distance", sensor_data['obstacle_distance'])
-        blackboard.set("temperature", sensor_data['temperature'])
-        blackboard.set("position", sensor_data['position'])
+        self.blackboard.set("sensor_data", sensor_data)
+        self.blackboard.set("battery_level", sensor_data['battery_level'])
+        self.blackboard.set("obstacle_distance", sensor_data['obstacle_distance'])
+        self.blackboard.set("temperature", sensor_data['temperature'])
+        self.blackboard.set("position", sensor_data['position'])
         
         print(f"Processing sensor data: {self.name}")
         print(f"  Battery level: {sensor_data['battery_level']:.1f}%")
@@ -156,9 +156,9 @@ class BatteryCheckCondition(Condition):
         self.threshold = threshold
         self.robot_controller = robot_controller
     
-    async def evaluate(self, blackboard):
+    async def evaluate(self):
         if self.robot_controller is None:
-            self.robot_controller = blackboard.get("robot_controller")
+            self.robot_controller = self.blackboard.get("robot_controller")
         
         if self.robot_controller is None:
             return False
@@ -178,9 +178,9 @@ class ObstacleCheckCondition(Condition):
         self.safe_distance = safe_distance
         self.robot_controller = robot_controller
     
-    async def evaluate(self, blackboard):
+    async def evaluate(self):
         if self.robot_controller is None:
-            self.robot_controller = blackboard.get("robot_controller")
+            self.robot_controller = self.blackboard.get("robot_controller")
         
         if self.robot_controller is None:
             return False
@@ -199,9 +199,9 @@ class MovementAction(Action):
         self.name = name
         self.robot_controller = robot_controller
     
-    async def execute(self, blackboard):
+    async def execute(self):
         if self.robot_controller is None:
-            self.robot_controller = blackboard.get("robot_controller")
+            self.robot_controller = self.blackboard.get("robot_controller")
         
         if self.robot_controller is None:
             print(f"Error: Robot controller not found")
@@ -215,7 +215,7 @@ class MovementAction(Action):
         
         if target_reached:
             print(f"✅ Target position reached")
-            blackboard.set("target_reached", True)
+            self.blackboard.set("target_reached", True)
             return Status.SUCCESS
         else:
             print(f"🔄 Moving...")
@@ -229,9 +229,9 @@ class BatteryChargingAction(Action):
         self.name = name
         self.robot_controller = robot_controller
     
-    async def execute(self, blackboard):
+    async def execute(self):
         if self.robot_controller is None:
-            self.robot_controller = blackboard.get("robot_controller")
+            self.robot_controller = self.blackboard.get("robot_controller")
         
         if self.robot_controller is None:
             print(f"Error: Robot controller not found")
@@ -249,7 +249,7 @@ class BatteryChargingAction(Action):
             print(f"  Charging progress: {self.robot_controller.battery_level:.1f}%")
         
         print(f"✅ Charging complete")
-        blackboard.set("charging_complete", True)
+        self.blackboard.set("charging_complete", True)
         return Status.SUCCESS
 
 
@@ -260,9 +260,9 @@ class TaskSchedulingAction(Action):
         self.name = name
         self.robot_controller = robot_controller
     
-    async def execute(self, blackboard):
+    async def execute(self):
         if self.robot_controller is None:
-            self.robot_controller = blackboard.get("robot_controller")
+            self.robot_controller = self.blackboard.get("robot_controller")
         
         if self.robot_controller is None:
             print(f"Error: Robot controller not found")
@@ -291,7 +291,7 @@ class TaskSchedulingAction(Action):
                 print(f"  ✅ Task completed: {task['name']}")
                 break
         
-        blackboard.set("task_scheduled", True)
+        self.blackboard.set("task_scheduled", True)
         return Status.SUCCESS
 
 

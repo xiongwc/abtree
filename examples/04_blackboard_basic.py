@@ -19,9 +19,9 @@ class CheckValueCondition(Condition):
         super().__init__(name)
         self.params = kwargs
     
-    async def evaluate(self, blackboard):
-        threshold = blackboard.get("threshold", 50)
-        value = blackboard.get("current_value", 0)
+    async def evaluate(self):
+        threshold = self.blackboard.get("threshold", 50)
+        value = self.blackboard.get("current_value", 0)
         
         print(f"Check: {value} > {threshold} = {value > threshold}")
         return value > threshold
@@ -34,12 +34,12 @@ class UpdateValueAction(Action):
         super().__init__(name)
         self.params = kwargs
     
-    async def execute(self, blackboard):
-        increment = blackboard.get("increment", 10)
-        current = blackboard.get("current_value", 0)
+    async def execute(self):
+        increment = self.blackboard.get("increment", 10)
+        current = self.blackboard.get("current_value", 0)
         
         new_value = current + increment
-        blackboard.set("current_value", new_value)
+        self.blackboard.set("current_value", new_value)
         
         print(f"Update: {current} + {increment} = {new_value}")
         return Status.SUCCESS
@@ -52,11 +52,11 @@ class SetConfigAction(Action):
         super().__init__(name)
         self.params = kwargs
     
-    async def execute(self, blackboard):
-        config_name = blackboard.get("config_name", "default")
-        config_value = blackboard.get("config_value", {})
+    async def execute(self):
+        config_name = self.blackboard.get("config_name", "default")
+        config_value = self.blackboard.get("config_value", {})
         
-        blackboard.set(f"config_{config_name}", config_value)
+        self.blackboard.set(f"config_{config_name}", config_value)
         print(f"Set config '{config_name}': {config_value}")
         return Status.SUCCESS
 

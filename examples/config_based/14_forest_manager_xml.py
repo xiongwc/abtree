@@ -42,7 +42,7 @@ class SystemAction(Action):
         self.name = name
         self.system_id = system_id
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print(f"🏢 {self.system_id}: {self.name}")
         return Status.SUCCESS
 
@@ -50,8 +50,8 @@ class SystemAction(Action):
 class DataProcessingAction(SystemAction):
     """Data processing action"""
     
-    async def execute(self, blackboard):
-        await super().execute(blackboard)
+    async def execute(self):
+        await super().execute(self.blackboard)
         print(f"   📊 {self.system_id} processing data")
         await asyncio.sleep(0.03)
         return Status.SUCCESS
@@ -60,7 +60,7 @@ class DataProcessingAction(SystemAction):
 class AlertAction(SystemAction):
     """Alert action"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         await super().execute(blackboard)
         print(f"   ⚠️ {self.system_id} sending alert")
         await asyncio.sleep(0.02)
@@ -70,8 +70,8 @@ class AlertAction(SystemAction):
 class MaintenanceAction(SystemAction):
     """Maintenance action"""
     
-    async def execute(self, blackboard):
-        await super().execute(blackboard)
+    async def execute(self):
+        await super().execute(self.blackboard)
         print(f"   🔧 {self.system_id} performing maintenance")
         await asyncio.sleep(0.05)
         return Status.SUCCESS
@@ -84,8 +84,8 @@ class SystemCheckCondition(Condition):
         self.name = name
         self.system_id = system_id
     
-    async def evaluate(self, blackboard):
-        health_status = blackboard.get("system_health", "good")
+    async def evaluate(self):
+        health_status = self.blackboard.get("system_health", "good")
         is_healthy = health_status in ["good", "excellent"]
         print(f"   🏥 {self.system_id} health check: {health_status} (healthy: {is_healthy})")
         return is_healthy
@@ -98,8 +98,8 @@ class AlertCheckCondition(Condition):
         self.name = name
         self.system_id = system_id
     
-    async def evaluate(self, blackboard):
-        has_alerts = blackboard.get("has_alerts", False)
+    async def evaluate(self):
+        has_alerts = self.blackboard.get("has_alerts", False)
         print(f"   ⚠️ {self.system_id} alert check: {has_alerts}")
         return has_alerts
 
@@ -111,8 +111,8 @@ class MaintenanceCheckCondition(Condition):
         self.name = name
         self.system_id = system_id
     
-    async def evaluate(self, blackboard):
-        needs_maintenance = blackboard.get("needs_maintenance", False)
+    async def evaluate(self):
+        needs_maintenance = self.blackboard.get("needs_maintenance", False)
         print(f"   🔧 {self.system_id} maintenance check: {needs_maintenance}")
         return needs_maintenance
 

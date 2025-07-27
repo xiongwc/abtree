@@ -43,7 +43,7 @@ class CustomRobotAction(Action):
         self.robot_id = robot_id
         self.action_type = action_type
         
-    async def execute(self, blackboard):
+    async def execute(self):
         print(f"🤖 Robot {self.robot_id} performing {self.action_type}")
         await asyncio.sleep(0.01)  # Fast simulation
         return Status.SUCCESS
@@ -57,8 +57,8 @@ class CustomCondition(Condition):
         self.check_key = check_key
         self.expected_value = expected_value
         
-    async def evaluate(self, blackboard):
-        value = blackboard.get(self.check_key, False)
+    async def evaluate(self):
+        value = self.blackboard.get(self.check_key, False)
         return value == self.expected_value
 
 

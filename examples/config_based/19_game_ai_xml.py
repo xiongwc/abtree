@@ -246,8 +246,8 @@ class HealthCheckCondition(Condition):
         self.name = name
         self.threshold = threshold
     
-    async def evaluate(self, blackboard):
-        entity = blackboard.get("current_entity")
+    async def evaluate(self):
+        entity = self.blackboard.get("current_entity")
         if entity is None:
             return False
         
@@ -265,9 +265,9 @@ class EnemyNearbyCondition(Condition):
         self.name = name
         self.detection_range = detection_range
     
-    async def evaluate(self, blackboard):
-        entity = blackboard.get("current_entity")
-        world = blackboard.get("game_world")
+    async def evaluate(self):
+        entity = self.blackboard.get("current_entity")
+        world = self.blackboard.get("game_world")
         
         if entity is None or world is None:
             return False
@@ -278,7 +278,7 @@ class EnemyNearbyCondition(Condition):
         if enemy_detected:
             distance = entity.position.distance_to(nearest_enemy.position)
             print(f"👹 Enemy detection {self.name}: {distance:.1f}m")
-            blackboard.set("nearest_enemy", nearest_enemy)
+            self.blackboard.set("nearest_enemy", nearest_enemy)
         else:
             print(f"👹 Enemy detection {self.name}: No enemies nearby")
         
@@ -292,9 +292,9 @@ class AllyNearbyCondition(Condition):
         self.name = name
         self.detection_range = detection_range
     
-    async def evaluate(self, blackboard):
-        entity = blackboard.get("current_entity")
-        world = blackboard.get("game_world")
+    async def evaluate(self,):
+        entity = self.blackboard.get("current_entity")
+        world = self.blackboard.get("game_world")
         
         if entity is None or world is None:
             return False
@@ -305,7 +305,7 @@ class AllyNearbyCondition(Condition):
         if ally_detected:
             distance = entity.position.distance_to(nearest_ally.position)
             print(f"🤝 Ally detection {self.name}: {distance:.1f}m")
-            blackboard.set("nearest_ally", nearest_ally)
+            self.blackboard.set("nearest_ally", nearest_ally)
         else:
             print(f"🤝 Ally detection {self.name}: No allies nearby")
         
@@ -350,9 +350,9 @@ class MoveToTargetAction(Action):
     def __init__(self, name, **kwargs):
         self.name = name
     
-    async def execute(self, blackboard):
-        entity = blackboard.get("current_entity")
-        target = blackboard.get("nearest_enemy")
+    async def execute(self):
+        entity = self.blackboard.get("current_entity")
+        target = self.blackboard.get("nearest_enemy")
         
         if entity is None or target is None:
             return Status.FAILURE
@@ -381,9 +381,9 @@ class RetreatAction(Action):
     def __init__(self, name, **kwargs):
         self.name = name
     
-    async def execute(self, blackboard):
-        entity = blackboard.get("current_entity")
-        world = blackboard.get("game_world")
+    async def execute(self):
+        entity = self.blackboard.get("current_entity")
+        world = self.blackboard.get("game_world")
         
         if entity is None or world is None:
             return Status.FAILURE
@@ -413,7 +413,7 @@ class HealAction(Action):
         self.name = name
     
     async def execute(self, blackboard):
-        entity = blackboard.get("current_entity")
+        entity = self.blackboard.get("current_entity")
         
         if entity is None:
             return Status.FAILURE
@@ -472,9 +472,9 @@ class TeamCoordinationAction(Action):
     def __init__(self, name, **kwargs):
         self.name = name
     
-    async def execute(self, blackboard):
-        entity = blackboard.get("current_entity")
-        world = blackboard.get("game_world")
+    async def execute(self):
+        entity = self.blackboard.get("current_entity")
+        world = self.blackboard.get("game_world")
         
         if entity is None or world is None:
             return Status.FAILURE

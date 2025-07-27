@@ -22,7 +22,7 @@ from abtree.core import Status
 class SimpleCondition(Condition):
     """Simple condition node - always returns True"""
     
-    async def evaluate(self, blackboard):
+    async def evaluate(self):
         print(f"Checking simple condition: {self.name}")
         return True
 
@@ -36,8 +36,8 @@ class ThresholdCondition(Condition):
         self.threshold = threshold
         self.operator = operator
     
-    async def evaluate(self, blackboard):
-        value = blackboard.get(self.key, 0)
+    async def evaluate(self):
+        value = self.blackboard.get(self.key, 0)
         print(f"Checking threshold condition: {self.name} - {self.key}={value} {self.operator} {self.threshold}")
         
         if self.operator == ">":
@@ -62,7 +62,7 @@ class TimeBasedCondition(Condition):
         self.start_time = start_time
         self.end_time = end_time
     
-    async def evaluate(self, blackboard):
+    async def evaluate(self):
         current_time = time.time()
         
         # Check if within specified time range

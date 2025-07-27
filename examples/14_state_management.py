@@ -147,7 +147,7 @@ class StateTransitionAction(Action):
         self.target_state = target_state
         self.condition_func = condition_func
     
-    async def execute(self, blackboard):
+    async def execute(self):
         if self.state_manager is None:
             print(f"State transition action {self.name}: No state manager")
             return Status.FAILURE
@@ -155,7 +155,7 @@ class StateTransitionAction(Action):
         print(f"State transition action {self.name}: Attempting to transition to {self.target_state}")
         
         # Check transition conditions
-        if self.condition_func and not self.condition_func(blackboard):
+        if self.condition_func and not self.condition_func(self.blackboard):
             print(f"State transition action {self.name}: Transition conditions not met")
             return Status.FAILURE
         
@@ -177,7 +177,7 @@ class StateCondition(Condition):
         self.expected_state = expected_state
         self.duration_check = duration_check  # Minimum duration
     
-    async def evaluate(self, blackboard):
+    async def evaluate(self):
         if self.state_manager is None:
             print(f"State condition {self.name}: No state manager")
             return False
@@ -202,7 +202,7 @@ class StateMonitoringAction(Action):
         super().__init__(name, **kwargs)
         self.state_manager = state_manager
     
-    async def execute(self, blackboard):
+    async def execute(self):
         if self.state_manager is None:
             print(f"State monitoring action {self.name}: No state manager")
             return Status.FAILURE
@@ -219,8 +219,8 @@ class StateMonitoringAction(Action):
         }
         
         # Update blackboard
-        blackboard.set("state_info", state_info)
-        blackboard.set("last_monitoring", time.time())
+        self.blackboard.set("state_info", state_info)
+        self.blackboard.set("last_monitoring", time.time())
         
         print(f"State monitoring action {self.name}: State information updated")
         return Status.SUCCESS
@@ -234,7 +234,7 @@ class StateRecoveryAction(Action):
         self.state_manager = state_manager
         self.recovery_state = recovery_state
     
-    async def execute(self, blackboard):
+    async def execute(self):
         if self.state_manager is None:
             print(f"State recovery action {self.name}: No state manager")
             return Status.FAILURE
@@ -246,11 +246,11 @@ class StateRecoveryAction(Action):
             # Attempt recovery
             if self.state_manager.transition_to(self.recovery_state):
                 print(f"State recovery action {self.name}: Recovery successful")
-                blackboard.set("recovery_successful", True)
+                self.blackboard.set("recovery_successful", True)
                 return Status.SUCCESS
             else:
                 print(f"State recovery action {self.name}: Recovery failed")
-                blackboard.set("recovery_successful", False)
+                self.blackboard.set("recovery_successful", False)
                 return Status.FAILURE
         else:
             print(f"State recovery action {self.name}: Current state is not error, no recovery needed")
@@ -265,7 +265,7 @@ class StatePersistenceAction(Action):
         self.state_manager = state_manager
         self.filepath = filepath
     
-    async def execute(self, blackboard):
+    async def execute(self):
         if self.state_manager is None:
             print(f"State persistence action {self.name}: No state manager")
             return Status.FAILURE
@@ -273,7 +273,7 @@ class StatePersistenceAction(Action):
         print(f"State persistence action {self.name}: Saving state to {self.filepath}")
         
         success = self.state_manager.save_state(self.filepath)
-        blackboard.set("state_saved", success)
+        self.blackboard.set("state_saved", success)
         
         if success:
             print(f"State persistence action {self.name}: Save successful")
@@ -291,7 +291,7 @@ class StateLoadAction(Action):
         self.state_manager = state_manager
         self.filepath = filepath
     
-    async def execute(self, blackboard):
+    async def execute(self):
         if self.state_manager is None:
             print(f"State load action {self.name}: No state manager")
             return Status.FAILURE
@@ -299,7 +299,7 @@ class StateLoadAction(Action):
         print(f"State load action {self.name}: Loading state from {self.filepath}")
         
         success = self.state_manager.load_state(self.filepath)
-        blackboard.set("state_loaded", success)
+        self.blackboard.set("state_loaded", success)
         
         if success:
             print(f"State load action {self.name}: Load successful")
@@ -316,8 +316,8 @@ class ErrorDetectionCondition(Condition):
         super().__init__(name)
         self.error_threshold = error_threshold
     
-    async def evaluate(self, blackboard):
-        error_count = blackboard.get("error_count", 0)
+    async def evaluate(self):
+        error_count = self.blackboard.get("error_count", 0)
         print(f"Error detection condition {self.name}: Error count={error_count}, Threshold={self.error_threshold}")
         return error_count >= self.error_threshold
 
@@ -329,8 +329,8 @@ class MaintenanceRequiredCondition(Condition):
         super().__init__(name)
         self.maintenance_interval = maintenance_interval
     
-    async def evaluate(self, blackboard):
-        last_maintenance = blackboard.get("last_maintenance", 0)
+    async def evaluate(self):
+        last_maintenance = self.blackboard.get("last_maintenance", 0)
         current_time = time.time()
         time_since_maintenance = current_time - last_maintenance
         
@@ -341,19 +341,19 @@ class MaintenanceRequiredCondition(Condition):
 class WorkingStateAction(Action):
     """Working state action"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Executing working state action...")
         await asyncio.sleep(0.01)  # Fast simulation
         
         # Simulate work process
-        work_progress = blackboard.get("work_progress", 0)
+        work_progress = self.blackboard.get("work_progress", 0)
         work_progress += random.randint(5, 15)
-        blackboard.set("work_progress", work_progress)
+        self.blackboard.set("work_progress", work_progress)
         
         # Simulate possible errors
         if random.random() < 0.1:  # 10% error probability
-            error_count = blackboard.get("error_count", 0) + 1
-            blackboard.set("error_count", error_count)
+            error_count = self.blackboard.get("error_count", 0) + 1
+            self.blackboard.set("error_count", error_count)
             print(f"Error occurred during work process, error count: {error_count}")
         
         print(f"Work progress: {work_progress}%")
@@ -363,14 +363,14 @@ class WorkingStateAction(Action):
 class MaintenanceAction(Action):
     """Maintenance action"""
     
-    async def execute(self, blackboard):
+    async def execute(self):
         print("Executing maintenance action...")
         await asyncio.sleep(0.01)  # Fast simulation
         
         # Execute maintenance
-        blackboard.set("last_maintenance", time.time())
-        blackboard.set("maintenance_count", blackboard.get("maintenance_count", 0) + 1)
-        blackboard.set("error_count", 0)  # Reset error count
+        self.blackboard.set("last_maintenance", time.time())
+        self.blackboard.set("maintenance_count", self.blackboard.get("maintenance_count", 0) + 1)
+        self.blackboard.set("error_count", 0)  # Reset error count
         
         print("Maintenance completed")
         return Status.SUCCESS
