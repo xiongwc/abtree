@@ -132,10 +132,46 @@ class XMLParser:
         Returns:
             Root node or None if not found
         """
+        root_node = None
+        child_nodes = []
+        
         for child in element:
             if child.tag != "Root":  # Skip Root tags
-                return self._parse_node(child)
-        return None
+                child_nodes.append(child)
+        
+        if not child_nodes:
+            return None
+        
+        # First check if any nodes are unregistered
+        registry = get_global_registry()
+        unregistered_nodes = []
+        for child in child_nodes:
+            if not registry.is_registered(child.tag):
+                unregistered_nodes.append(child.tag)
+        
+        if unregistered_nodes:
+            registered_nodes = registry.get_registered()
+            registered_nodes_str = ", ".join(sorted(registered_nodes)) if registered_nodes else "none"
+            raise ValueError(
+                f"Node type(s) {unregistered_nodes} are not registered in the node registry. "
+                f"Available registered node types: {registered_nodes_str}. "
+                f"To register a custom node type, use: "
+                f"from abtree.registry.node_registry import register_node; "
+                f"register_node('{unregistered_nodes[0]}', YourNodeClass)"
+            )
+        
+        if len(child_nodes) > 1:
+            # Multiple direct child nodes found - this is not allowed
+            child_node_names = [child.tag for child in child_nodes]
+            raise ValueError(
+                f"BehaviorTree can only have one root node. Found multiple direct child nodes: {child_node_names}. "
+                f"Please wrap multiple nodes in a composite node (like Sequence, Selector, or Parallel) "
+                f"or use only one root node."
+            )
+        
+        # Parse the single root node
+        root_node = self._parse_node(child_nodes[0])
+        return root_node
 
     # ============================================================================
     # Behavior Forest Parsing

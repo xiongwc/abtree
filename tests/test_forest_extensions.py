@@ -204,7 +204,7 @@ class TestExtensionErrorHandling:
         from abtree.forest import extensions
         assert extensions is not None
         
-        # 验证可用性标志存在
+        # Verify availability flags exist
         assert hasattr(extensions, 'PLUGIN_SYSTEM_AVAILABLE')
         assert hasattr(extensions, 'PERFORMANCE_MONITORING_AVAILABLE')
     

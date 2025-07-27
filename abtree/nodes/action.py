@@ -405,7 +405,8 @@ class CommExternalInput(Action):
                 event_info = event_dispatcher.get_event_info(event_name)
                 if event_info and event_info.data:
                     received_data = event_info.data
-                    logger.info(f"Received external input data: {received_data}")
+                    self.set_port("data", received_data)
+                    # logger.info(f"Received external input data: {received_data}")
                     
                     # Store the data in blackboard if data parameter is specified
                     if data and self.blackboard is not None:
