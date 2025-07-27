@@ -40,7 +40,7 @@
 
 | 🚀 **Async Engine** | 🎯 **Node System** | 💾 **Data Management** | 🌲 **Behavior Forest** |
 |:---:|:---:|:---:|:---:|
-| Based on asyncio<br/>High Performance Concurrency | Rich Node Types<br/>Dynamic Registration | Blackboard System<br/>Event Driven | Multi-tree Collaboration<br/>Internal Communication Modes |
+| Based on asyncio<br/>High Performance Concurrency | Rich Node Types<br/>Dynamic Registration | Blackboard System<br/>Event Driven | Multi-tree Collaboration<br/>Internal & External Communication |
 
 </div>
 
@@ -65,7 +65,7 @@
 
 ### 🌲 Behavior Forest Collaboration
 - **Multi-tree Coordination** - Multiple behavior trees working together as a forest
-- **Communication Modes** - Pub/Sub, Req/Resp, Shared Blackboard, State Monitoring, Behavior Invocation, Task Board
+- **Communication Modes** - Pub/Sub, Req/Resp, Shared Blackboard, State Monitoring, Behavior Invocation, Task Board, External IO
 - **Forest Management** - Centralized forest configuration and lifecycle management
 - **Performance Monitoring** - Real-time performance analysis and optimization suggestions
 
@@ -284,13 +284,6 @@ abtree/
 | **XML Processing** | xml.etree | Built-in |
 | **Testing** | pytest | 7.0+ |
 | **Type Checking** | mypy | 1.0+ |
-
-### 📋 Code Standards
-
-- Follow **PEP 8** coding standards
-- Use **Google style** docstrings
-- Add **type annotations** for all functions
-- Write **unit tests** for key functionality
 
 ---
 
