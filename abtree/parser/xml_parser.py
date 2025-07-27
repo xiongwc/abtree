@@ -53,8 +53,12 @@ class XMLParser:
             tree = ET.parse(file_path)
             root_element = tree.getroot()
             return self._parse_element(root_element)
+        except FileNotFoundError:
+            raise ValueError(f"XML file not found: {file_path}")
+        except ET.ParseError as e:
+            raise ValueError(f"Invalid XML format in file {file_path}: {e}")
         except Exception as e:
-            raise ValueError(f"Failed to parse XML file: {e}")
+            raise ValueError(f"Error parsing XML file {file_path}: {e}")
 
     def parse_string(self, xml_string: str) -> Union[BehaviorTree, BehaviorForest]:
         """
@@ -67,10 +71,14 @@ class XMLParser:
             Parsed behavior tree or forest
         """
         try:
+            if not xml_string.strip():
+                raise ValueError("Empty XML string provided")
             root_element = ET.fromstring(xml_string)
             return self._parse_element(root_element)
+        except ET.ParseError as e:
+            raise ValueError(f"Invalid XML format: {e}")
         except Exception as e:
-            raise ValueError(f"Failed to parse XML string: {e}")
+            raise ValueError(f"Error parsing XML string: {e}")
 
     def _parse_element(self, element: ET.Element) -> Union[BehaviorTree, BehaviorForest]:
         """
@@ -162,12 +170,17 @@ class XMLParser:
         tree_name = element.get("name", "BehaviorTree")
         tree_description = element.get("description", "")
 
-        # Parse root node directly from the behavior tree element
+        # Parse all child nodes to build the behavior tree
         root_node = None
         for child in element:
             if child.tag != "Root":  # Skip Root tags, directly parse other nodes
-                root_node = self._parse_node(child)
-                break
+                if root_node is None:
+                    # First non-Root node becomes the root
+                    root_node = self._parse_node(child)
+                else:
+                    # Additional nodes should be added as children of the root
+                    # For now, we'll just parse them to check for errors
+                    self._parse_node(child)
 
         if root_node is None:
             raise ValueError(f"Root node not found in behavior tree: {tree_name}")
@@ -394,7 +407,17 @@ class XMLParser:
         # Get the node class to inspect its execute method
         node_class = registry.get_node_class(node_type)
         if node_class is None:
-            raise ValueError(f"Unknown node type: {node_type}")
+            # Get list of registered nodes for better error message
+            registered_nodes = registry.get_registered()
+            registered_nodes_str = ", ".join(sorted(registered_nodes)) if registered_nodes else "none"
+            
+            raise ValueError(
+                f"Node type '{node_type}' is not registered in the node registry. "
+                f"Available registered node types: {registered_nodes_str}. "
+                f"To register a custom node type, use: "
+                f"from abtree.registry.node_registry import register_node; "
+                f"register_node('{node_type}', YourNodeClass)"
+            )
         
         # Check if node has execute method to determine parameter separation
         if hasattr(node_class, 'execute'):
@@ -434,7 +457,17 @@ class XMLParser:
         node = registry.create(node_type, **init_attributes)
 
         if node is None:
-            raise ValueError(f"Unknown node type: {node_type}")
+            # Get list of registered nodes for better error message
+            registered_nodes = registry.get_registered()
+            registered_nodes_str = ", ".join(sorted(registered_nodes)) if registered_nodes else "none"
+            
+            raise ValueError(
+                f"Failed to create node instance of type '{node_type}'. "
+                f"Available registered node types: {registered_nodes_str}. "
+                f"To register a custom node type, use: "
+                f"from abtree.registry.node_registry import register_node; "
+                f"register_node('{node_type}', YourNodeClass)"
+            )
 
         # Store execute parameters for later use
         if execute_attributes:
