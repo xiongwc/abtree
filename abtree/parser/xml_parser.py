@@ -36,6 +36,7 @@ class CommunicationConfig:
     states: Optional[Dict[str, List[str]]] = None  # state_name -> [watchers]
     calls: Optional[Dict[str, Dict[str, List[str]]]] = None  # call_name -> {providers: [], callers: []}
     tasks: Optional[Dict[str, Dict[str, Union[str, List[str]]]]] = None  # task_name -> {publisher: str, claimants: []}
+    external_io: Optional[Dict[str, Dict[str, List[str]]]] = None  # channel_name -> {inputs: [], outputs: []}
     
     def __post_init__(self) -> None:
         if self.topics is None:
@@ -50,6 +51,8 @@ class CommunicationConfig:
             self.calls = {}
         if self.tasks is None:
             self.tasks = {}
+        if self.external_io is None:
+            self.external_io = {}
 
 
 @dataclass
@@ -263,6 +266,8 @@ class XMLParser:
                 self._parse_call(child, config)
             elif child.tag == "CommTask":
                 self._parse_task(child, config)
+            elif child.tag == "CommExternalIO":
+                self._parse_external_io(child, config)
         
         return config
 
@@ -371,6 +376,28 @@ class XMLParser:
                 "publisher": publisher,
                 "claimants": claimants
             }
+    
+    def _parse_external_io(self, element: ET.Element, config: CommunicationConfig) -> None:
+        """Parse external IO configuration"""
+        channel_name = element.get("name", "")
+        inputs: List[str] = []
+        outputs: List[str] = []
+        
+        for child in element:
+            if child.tag == "CommExternalInput":
+                service = child.get("service", "")
+                if service:
+                    inputs.append(service)
+            elif child.tag == "CommExternalOutput":
+                service = child.get("service", "")
+                if service:
+                    outputs.append(service)
+        
+        if config.external_io is not None:
+            config.external_io[channel_name] = {
+                "inputs": inputs,
+                "outputs": outputs
+            }
 
     def _setup_communication(self, forest: BehaviorForest, config: CommunicationConfig) -> None:
         """
@@ -382,7 +409,7 @@ class XMLParser:
         """
         # Setup unified communication middleware
         if (config.topics or config.services or config.shared_keys or 
-            config.states or config.calls or config.tasks):
+            config.states or config.calls or config.tasks or config.external_io):
             communication = CommunicationMiddleware("ForestCommunication")
             forest.add_middleware(communication)
 

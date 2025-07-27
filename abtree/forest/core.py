@@ -8,7 +8,7 @@ and ForestNode that enable multiple behavior trees to work together.
 import asyncio
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 from ..core.status import Status
 from ..engine.behavior_tree import BehaviorTree
@@ -201,17 +201,34 @@ class BehaviorForest:
             pass
     
     def _setup_shared_event_dispatcher_for_node(self, node: ForestNode) -> None:
-        """Setup shared EventSystem for a specific node through middleware"""
-        # Store forest reference in the tree's blackboard for external communication nodes
+        """Setup shared EventSystem for a specific node"""
         if node.tree.blackboard:
-            node.tree.blackboard.set("__forest", self)
-        
-        # Find CommunicationMiddleware and setup shared EventSystem
-        for middleware in self.middleware:
-            if hasattr(middleware, 'add_tree_to_shared_event_dispatcher'):
-                middleware.add_tree_to_shared_event_dispatcher(node.name, node.tree)
-                break 
-
+            # Store shared EventSystem in tree's blackboard
+            node.tree.blackboard.set("__event_dispatcher", self.forest_event_dispatcher)
+            # Also set the tree's event_dispatcher to the shared one
+            node.tree.event_dispatcher = self.forest_event_dispatcher
+            # Set tree's blackboard to forest's shared blackboard
+            node.tree.blackboard = self.forest_blackboard
+            
+            # Create a custom emit method that also triggers middleware publish
+            original_emit = self.forest_event_dispatcher.emit
+            
+            async def enhanced_emit(event_name: str, source: Optional[str] = None, data: Optional[Any] = None) -> None:
+                # Call original emit
+                await original_emit(event_name, source, data)
+                
+                # If this is a topic event, also trigger middleware publish
+                if event_name.startswith("topic_"):
+                    topic = event_name[6:]  # Remove "topic_" prefix
+                    # Find communication middleware and trigger publish
+                    for middleware in self.middleware:
+                        if hasattr(middleware, 'publish'):
+                            await middleware.publish(topic, data, source or node.name)
+                            break
+            
+            # Replace the emit method
+            self.forest_event_dispatcher.emit = enhanced_emit
+    
     def remove_node(self, node_name: str) -> bool:
         """
         Remove node from the forest
@@ -589,9 +606,9 @@ class BehaviorForest:
             raise ValueError(f"Failed to load forest from XML file: {e}")
     
 
-    async def sub_external(self, topic: str, data: Any, source: str = "external") -> None:
+    async def subscribe_external(self, topic: str, data: Any, source: str = "external") -> None:
         """
-        Receive data from external world and send to CommSubExternal nodes
+        Receive data from external world and send to CommSubscriber nodes
         
         Args:
             topic: Topic of the received data
@@ -600,13 +617,13 @@ class BehaviorForest:
         """
         # Find communication middleware
         for middleware in self.middleware:
-            if hasattr(middleware, 'sub_external'):
-                await middleware.sub_external(topic, data, source)
+            if hasattr(middleware, 'subscribe_external'):
+                await middleware.subscribe_external(topic, data, source)
                 return
         
         print(f"Warning: No communication middleware found for external subscription to topic '{topic}'")
     
-    def register_external_publisher(self, topic: str, callback) -> None:
+    def register_publisher(self, topic: str, callback) -> None:
         """
         Register external publisher callback
         
@@ -615,13 +632,13 @@ class BehaviorForest:
             callback: Callback function to execute when data is published externally
         """
         for middleware in self.middleware:
-            if hasattr(middleware, 'register_external_publisher'):
-                middleware.register_external_publisher(topic, callback)
+            if hasattr(middleware, 'register_publisher'):
+                middleware.register_publisher(topic, callback)
                 return
         
         print(f"Warning: No communication middleware found for registering external publisher to topic '{topic}'")
     
-    def register_external_subscriber(self, topic: str, callback) -> None:
+    def register_subscriber(self, topic: str, callback) -> None:
         """
         Register external subscriber callback
         
@@ -630,12 +647,13 @@ class BehaviorForest:
             callback: Callback function to execute when external data is received
         """
         for middleware in self.middleware:
-            if hasattr(middleware, 'register_external_subscriber'):
-                middleware.register_external_subscriber(topic, callback)
+            if hasattr(middleware, 'register_subscriber'):
+                middleware.register_subscriber(topic, callback)
                 return
         
         print(f"Warning: No communication middleware found for registering external subscriber to topic '{topic}'")
     
+ 
     def get_external_communication_stats(self) -> Dict[str, Any]:
         """
         Get external communication statistics
@@ -646,6 +664,83 @@ class BehaviorForest:
         for middleware in self.middleware:
             if hasattr(middleware, 'get_external_communication_stats'):
                 return middleware.get_external_communication_stats()
+        
+        return {"error": "No communication middleware found"}
+    
+    # ==================== ExternalIO Methods ====================
+    
+    async def input(self, channel: str, data: Any, source: str = "external") -> None:
+        """
+        Process external input data through middleware
+        
+        Args:
+            channel: Input channel name
+            data: Input data
+            source: Source identifier (default: "external")
+        """
+        for middleware in self.middleware:
+            if hasattr(middleware, 'input'):
+                await middleware.input(channel, data, source)
+                return
+        
+        print(f"Warning: No communication middleware found for external input to channel '{channel}'")
+    
+    async def output(self, channel: str, data: Any, source: str = "internal") -> None:
+        """
+        Process external output data through middleware
+        
+        Args:
+            channel: Output channel name
+            data: Output data
+            source: Source identifier (default: "internal")
+        """
+        for middleware in self.middleware:
+            if hasattr(middleware, 'output'):
+                await middleware.output(channel, data, source)
+                return
+        
+        print(f"Warning: No communication middleware found for external output to channel '{channel}'")
+    
+    def on_input(self, channel: str, handler: Callable) -> None:
+        """
+        Register input handler for external data
+        
+        Args:
+            channel: Input channel name
+            handler: Handler function to process incoming data
+        """
+        for middleware in self.middleware:
+            if hasattr(middleware, 'register_input_handler'):
+                middleware.register_input_handler(channel, handler)
+                return
+        
+        print(f"Warning: No communication middleware found for registering input handler to channel '{channel}'")
+    
+    def on_output(self, channel: str, handler: Callable) -> None:
+        """
+        Register output handler for external data
+        
+        Args:
+            channel: Output channel name
+            handler: Handler function to process outgoing data
+        """
+        for middleware in self.middleware:
+            if hasattr(middleware, 'register_output_handler'):
+                middleware.register_output_handler(channel, handler)
+                return
+        
+        print(f"Warning: No communication middleware found for registering output handler to channel '{channel}'")
+    
+    def get_external_io_stats(self) -> Dict[str, Any]:
+        """
+        Get external IO statistics
+        
+        Returns:
+            External IO statistics dictionary
+        """
+        for middleware in self.middleware:
+            if hasattr(middleware, 'get_external_io_stats'):
+                return middleware.get_external_io_stats()
         
         return {"error": "No communication middleware found"}
     

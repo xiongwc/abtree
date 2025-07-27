@@ -95,6 +95,24 @@ class BaseNode(ABC):
         if self.blackboard is not None:
             return self.blackboard.get("__event_dispatcher")
         return None
+    
+    def get_tree(self):
+        """
+        Get the behavior tree that contains this node
+        
+        Returns:
+            BehaviorTree instance or None if not found
+        """
+        # Traverse up the parent chain to find the tree
+        current = self
+        while current is not None:
+            if hasattr(current, 'tree'):
+                return current.tree
+            # Check if current is a BehaviorTree
+            if hasattr(current, 'root') and hasattr(current, 'blackboard'):
+                return current
+            current = current.parent
+        return None
 
     def set_param_mapping(self, node_attr: str, blackboard_key: str) -> None:
         """

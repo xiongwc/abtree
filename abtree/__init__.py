@@ -48,8 +48,8 @@ from .nodes import (
     Wait,
     CommPublisher,
     CommSubscriber,
-    CommPubExternal,
-    CommSubExternal,
+    CommExternalInput,
+    CommExternalOutput,
 )
 from .parser.tree_builder import TreeBuilder
 from .parser.xml_parser import XMLParser
@@ -80,7 +80,7 @@ from .utils.logger import get_logger, get_abtree_logger, ABTreeLogger, LoggerCon
 # Register all built-in node types
 def _register_builtin_nodes() -> None:
     """Register all built-in node types"""
-    from .nodes.action import Action, Log, SetBlackboard, Wait, CommPublisher, CommSubscriber, CommPubExternal, CommSubExternal
+    from .nodes.action import Action, Log, SetBlackboard, Wait, CommPublisher, CommSubscriber
     from .nodes.composite import Parallel, Selector, Sequence
     from .nodes.condition import (
         AlwaysFalse,
@@ -118,8 +118,8 @@ def _register_builtin_nodes() -> None:
     register_node("SetBlackboard", SetBlackboard, is_builtin=True)
     register_node("CommPublisher", CommPublisher, is_builtin=True)
     register_node("CommSubscriber", CommSubscriber, is_builtin=True)
-    register_node("CommPubExternal", CommPubExternal, is_builtin=True)
-    register_node("CommSubExternal", CommSubExternal, is_builtin=True)
+    register_node("CommExternalInput", CommExternalInput, is_builtin=True)
+    register_node("CommExternalOutput", CommExternalOutput, is_builtin=True)
 
     # Register condition nodes
     # register_node("Condition", Condition)  # Condition is abstract, cannot be registered
@@ -272,8 +272,8 @@ __all__ = [
     "SetBlackboard",
     "CommPublisher",
     "CommSubscriber",
-    "CommPubExternal",
-    "CommSubExternal",
+    "CommExternalInput",
+    "CommExternalOutput",
     "CheckBlackboard",
     "IsTrue",
     "IsFalse",

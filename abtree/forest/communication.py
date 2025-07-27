@@ -35,7 +35,7 @@ class CommunicationType(Enum):
     STATE_WATCHING = auto()
     BEHAVIOR_CALL = auto()
     TASK_BOARD = auto()
-    PUB_SUB_EXTERNAL = auto()
+    EXTERNAL_IO = auto()
 
 
 @dataclass
@@ -133,10 +133,17 @@ class CommunicationMiddleware:
         self.claim_callbacks: Dict[str, List[Callable]] = {}
         
         # External Communication components - using direct references
-        self.external_publishers: Dict[str, List[Callable]] = {}
-        self.external_subscribers: Dict[str, List[Callable]] = {}
-        self.external_data_queue: List[Dict[str, Any]] = []
-        self.max_external_queue_size = 1000
+        self.out_publishers: Dict[str, List[Callable]] = {}
+        self.in_subscribers: Dict[str, List[Callable]] = {}
+        self.incoming_queue: List[Dict[str, Any]] = []
+        self.max_incoming_queue_size = 1000
+        
+        # ExternalIO components - using direct references
+        self.external_input_handlers: Dict[str, List[Callable]] = {}
+        self.external_output_handlers: Dict[str, List[Callable]] = {}
+        self.input_queue: List[Dict[str, Any]] = []
+        self.output_queue: List[Dict[str, Any]] = []
+        self.max_io_queue_size = 1000
     
     def initialize(self, forest: BehaviorForest) -> None:
         """Initialize middleware with forest and setup shared EventSystem"""
@@ -229,7 +236,7 @@ class CommunicationMiddleware:
         if len(self.event_history) > self.max_history:
             self.event_history.pop(0)
         
-        # Execute callbacks with direct event info reference
+        # Execute internal callbacks with direct event info reference
         if topic in self.subscribers:
             tasks = []
             for callback in self.subscribers[topic]:
@@ -237,6 +244,19 @@ class CommunicationMiddleware:
                     task = asyncio.create_task(callback(event_info))
                 else:
                     task = asyncio.create_task(self._run_sync_callback(callback, event_info))
+                tasks.append(task)
+            
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Also trigger external communication callbacks if registered
+        if topic in self.out_publishers:
+            tasks = []
+            for callback in self.out_publishers[topic]:
+                if asyncio.iscoroutinefunction(callback):
+                    task = asyncio.create_task(callback(event_info))
+                else:
+                    task = asyncio.create_task(self._run_sync_external_callback(callback, event_info))
                 tasks.append(task)
             
             if tasks:
@@ -833,7 +853,7 @@ class CommunicationMiddleware:
     
     # ==================== External Communication Methods - Zero-Copy Optimized ====================
     
-    def register_external_publisher(self, topic: str, callback: Callable) -> None:
+    def register_publisher(self, topic: str, callback: Callable) -> None:
         """
         Register external publisher callback - zero-copy optimized
         
@@ -841,11 +861,11 @@ class CommunicationMiddleware:
             topic: Topic for external publishing
             callback: Callback function to execute when data is published externally
         """
-        if topic not in self.external_publishers:
-            self.external_publishers[topic] = []
-        self.external_publishers[topic].append(callback)
+        if topic not in self.out_publishers:
+            self.out_publishers[topic] = []
+        self.out_publishers[topic].append(callback)
     
-    def unregister_external_publisher(self, topic: str, callback: Callable) -> bool:
+    def unregister_publisher(self, topic: str, callback: Callable) -> bool:
         """
         Unregister external publisher callback - zero-copy optimized
         
@@ -856,12 +876,12 @@ class CommunicationMiddleware:
         Returns:
             True if callback was found and removed
         """
-        if topic in self.external_publishers and callback in self.external_publishers[topic]:
-            self.external_publishers[topic].remove(callback)
+        if topic in self.out_publishers and callback in self.out_publishers[topic]:
+            self.out_publishers[topic].remove(callback)
             return True
         return False
     
-    async def pub_external(self, topic: str, data: Any, source: str) -> None:
+    async def publish_to_external(self, topic: str, data: Any, source: str) -> None:
         """
         Publish data to external world - zero-copy optimized
         
@@ -882,9 +902,9 @@ class CommunicationMiddleware:
         }
         
         # Execute external publisher callbacks with direct data reference
-        if topic in self.external_publishers:
+        if topic in self.out_publishers:
             tasks = []
-            for callback in self.external_publishers[topic]:
+            for callback in self.out_publishers[topic]:
                 if asyncio.iscoroutinefunction(callback):
                     task = asyncio.create_task(callback(publish_info))
                 else:
@@ -901,7 +921,7 @@ class CommunicationMiddleware:
         except Exception as e:
             print(f"External publisher callback error: {e}")
     
-    def register_external_subscriber(self, topic: str, callback: Callable) -> None:
+    def register_subscriber(self, topic: str, callback: Callable) -> None:
         """
         Register external subscriber callback - zero-copy optimized
         
@@ -909,9 +929,9 @@ class CommunicationMiddleware:
             topic: Topic for external subscription
             callback: Callback function to execute when external data is received
         """
-        if topic not in self.external_subscribers:
-            self.external_subscribers[topic] = []
-        self.external_subscribers[topic].append(callback)
+        if topic not in self.in_subscribers:
+            self.in_subscribers[topic] = []
+        self.in_subscribers[topic].append(callback)
     
     def unregister_external_subscriber(self, topic: str, callback: Callable) -> bool:
         """
@@ -924,12 +944,12 @@ class CommunicationMiddleware:
         Returns:
             True if callback was found and removed
         """
-        if topic in self.external_subscribers and callback in self.external_subscribers[topic]:
-            self.external_subscribers[topic].remove(callback)
+        if topic in self.in_subscribers and callback in self.in_subscribers[topic]:
+            self.in_subscribers[topic].remove(callback)
             return True
         return False
     
-    async def sub_external(self, topic: str, data: Any, source: str = "external") -> None:
+    async def subscribe_external(self, topic: str, data: Any, source: str = "external") -> None:
         """
         Receive data from external world - zero-copy optimized
         
@@ -950,16 +970,16 @@ class CommunicationMiddleware:
         }
         
         # Add to external data queue for processing
-        self.external_data_queue.append(subscription_info)
+        self.incoming_queue.append(subscription_info)
         
         # Trim queue if needed
-        if len(self.external_data_queue) > self.max_external_queue_size:
-            self.external_data_queue.pop(0)
+        if len(self.incoming_queue) > self.max_incoming_queue_size:
+            self.incoming_queue.pop(0)
         
         # Execute external subscriber callbacks with direct data reference
-        if topic in self.external_subscribers:
+        if topic in self.in_subscribers:
             tasks = []
-            for callback in self.external_subscribers[topic]:
+            for callback in self.in_subscribers[topic]:
                 if asyncio.iscoroutinefunction(callback):
                     task = asyncio.create_task(callback(subscription_info))
                 else:
@@ -976,30 +996,213 @@ class CommunicationMiddleware:
         except Exception as e:
             print(f"External subscriber callback error: {e}")
     
-    def get_external_data_queue(self, topic: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get external data queue - zero-copy optimized"""
+    def get_incoming_queue(self, topic: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get incoming data queue - zero-copy optimized"""
         if topic is None:
-            return self.external_data_queue  # Direct reference
-        return [entry for entry in self.external_data_queue if entry["topic"] == topic]
+            return self.incoming_queue  # Direct reference
+        return [entry for entry in self.incoming_queue if entry["topic"] == topic]
     
-    def get_external_publishers(self, topic: str) -> List[Callable]:
-        """Get external publishers for a topic - zero-copy optimized"""
-        return self.external_publishers.get(topic, [])
+    def get_out_publishers(self, topic: str) -> List[Callable]:
+        """Get out publishers for a topic - zero-copy optimized"""
+        return self.out_publishers.get(topic, [])
     
-    def get_external_subscribers(self, topic: str) -> List[Callable]:
-        """Get external subscribers for a topic - zero-copy optimized"""
-        return self.external_subscribers.get(topic, [])
+    def get_in_subscribers(self, topic: str) -> List[Callable]:
+        """Get in subscribers for a topic - zero-copy optimized"""
+        return self.in_subscribers.get(topic, [])
     
-    def clear_external_data_queue(self) -> None:
-        """Clear external data queue - zero-copy optimized"""
-        self.external_data_queue.clear()
+    def clear_incoming_queue(self) -> None:
+        """Clear incoming data queue - zero-copy optimized"""
+        self.incoming_queue.clear()
     
     def get_external_communication_stats(self) -> Dict[str, Any]:
         """Get external communication statistics - zero-copy optimized"""
         return {
-            "external_publishers": len(self.external_publishers),
-            "external_subscribers": len(self.external_subscribers),
-            "external_data_queue_size": len(self.external_data_queue),
-            "publisher_topics": list(self.external_publishers.keys()),
-            "subscriber_topics": list(self.external_subscribers.keys())
+            "out_publishers": len(self.out_publishers),
+            "in_subscribers": len(self.in_subscribers),
+            "incoming_queue_size": len(self.incoming_queue),
+            "publisher_topics": list(self.out_publishers.keys()),
+            "subscriber_topics": list(self.in_subscribers.keys())
+        }
+    
+    # ==================== ExternalIO Methods - Zero-Copy Optimized ====================
+    
+    def register_input_handler(self, channel: str, handler: Callable) -> None:
+        """
+        Register external input handler - zero-copy optimized
+        
+        Args:
+            channel: Input channel name
+            handler: Handler function to process incoming data
+        """
+        if channel not in self.external_input_handlers:
+            self.external_input_handlers[channel] = []
+        self.external_input_handlers[channel].append(handler)
+    
+    def unregister_input_handler(self, channel: str, handler: Callable) -> bool:
+        """
+        Unregister external input handler - zero-copy optimized
+        
+        Args:
+            channel: Input channel name
+            handler: Handler function to remove
+            
+        Returns:
+            True if handler was found and removed
+        """
+        if channel in self.external_input_handlers and handler in self.external_input_handlers[channel]:
+            self.external_input_handlers[channel].remove(handler)
+            return True
+        return False
+    
+    def register_output_handler(self, channel: str, handler: Callable) -> None:
+        """
+        Register external output handler - zero-copy optimized
+        
+        Args:
+            channel: Output channel name
+            handler: Handler function to process outgoing data
+        """
+        if channel not in self.external_output_handlers:
+            self.external_output_handlers[channel] = []
+        self.external_output_handlers[channel].append(handler)
+    
+    def unregister_output_handler(self, channel: str, handler: Callable) -> bool:
+        """
+        Unregister external output handler - zero-copy optimized
+        
+        Args:
+            channel: Output channel name
+            handler: Handler function to remove
+            
+        Returns:
+            True if handler was found and removed
+        """
+        if channel in self.external_output_handlers and handler in self.external_output_handlers[channel]:
+            self.external_output_handlers[channel].remove(handler)
+            return True
+        return False
+    
+    async def input(self, channel: str, data: Any, source: str = "external") -> None:
+        """
+        Process external input data - zero-copy optimized
+        
+        Args:
+            channel: Input channel name
+            data: Input data (passed by reference, no copying)
+            source: Source identifier (default: "external")
+        """
+        if not self.enabled:
+            return
+        
+        # Create input info with direct reference to data (no copying)
+        input_info = {
+            "channel": channel,
+            "data": data,
+            "source": source,
+            "timestamp": time.time()
+        }
+        
+        # Add to input queue for processing
+        self.input_queue.append(input_info)
+        
+        # Trim queue if needed
+        if len(self.input_queue) > self.max_io_queue_size:
+            self.input_queue.pop(0)
+        
+        # Execute input handlers with direct data reference
+        if channel in self.external_input_handlers:
+            tasks = []
+            for handler in self.external_input_handlers[channel]:
+                if asyncio.iscoroutinefunction(handler):
+                    task = asyncio.create_task(handler(input_info))
+                else:
+                    task = asyncio.create_task(self._run_sync_input_handler(handler, input_info))
+                tasks.append(task)
+            
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+    
+    async def output(self, channel: str, data: Any, source: str = "internal") -> None:
+        """
+        Process external output data - zero-copy optimized
+        
+        Args:
+            channel: Output channel name
+            data: Output data (passed by reference, no copying)
+            source: Source identifier (default: "internal")
+        """
+        if not self.enabled:
+            return
+        
+        # Create output info with direct reference to data (no copying)
+        output_info = {
+            "channel": channel,
+            "data": data,
+            "source": source,
+            "timestamp": time.time()
+        }
+        
+        # Add to output queue for processing
+        self.output_queue.append(output_info)
+        
+        # Trim queue if needed
+        if len(self.output_queue) > self.max_io_queue_size:
+            self.output_queue.pop(0)
+        
+        # Execute output handlers with direct data reference
+        if channel in self.external_output_handlers:
+            tasks = []
+            for handler in self.external_output_handlers[channel]:
+                if asyncio.iscoroutinefunction(handler):
+                    task = asyncio.create_task(handler(output_info))
+                else:
+                    task = asyncio.create_task(self._run_sync_output_handler(handler, output_info))
+                tasks.append(task)
+            
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+    
+    async def _run_sync_input_handler(self, handler: Callable, input_info: Dict[str, Any]) -> None:
+        """Run synchronous input handler in async context - zero-copy optimized"""
+        try:
+            handler(input_info)  # Direct input_info reference
+        except Exception as e:
+            print(f"External input handler error: {e}")
+    
+    async def _run_sync_output_handler(self, handler: Callable, output_info: Dict[str, Any]) -> None:
+        """Run synchronous output handler in async context - zero-copy optimized"""
+        try:
+            handler(output_info)  # Direct output_info reference
+        except Exception as e:
+            print(f"External output handler error: {e}")
+    
+    def get_input_queue(self, channel: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get input data queue - zero-copy optimized"""
+        if channel is None:
+            return self.input_queue  # Direct reference
+        return [entry for entry in self.input_queue if entry["channel"] == channel]
+    
+    def get_output_queue(self, channel: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get output data queue - zero-copy optimized"""
+        if channel is None:
+            return self.output_queue  # Direct reference
+        return [entry for entry in self.output_queue if entry["channel"] == channel]
+    
+    def clear_input_queue(self) -> None:
+        """Clear input data queue - zero-copy optimized"""
+        self.input_queue.clear()
+    
+    def clear_output_queue(self) -> None:
+        """Clear output data queue - zero-copy optimized"""
+        self.output_queue.clear()
+    
+    def get_external_io_stats(self) -> Dict[str, Any]:
+        """Get external IO statistics - zero-copy optimized"""
+        return {
+            "input_handlers": len(self.external_input_handlers),
+            "output_handlers": len(self.external_output_handlers),
+            "input_queue_size": len(self.input_queue),
+            "output_queue_size": len(self.output_queue),
+            "input_channels": list(self.external_input_handlers.keys()),
+            "output_channels": list(self.external_output_handlers.keys())
         } 

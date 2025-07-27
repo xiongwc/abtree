@@ -2,15 +2,15 @@
 """
 External Communication Example - Simplified version
 
-This example shows how to use CommPubExternal and CommSubExternal nodes to communicate
+This example shows how to use CommPublisher and CommSubscriber nodes to communicate
 with external systems through the behavior forest.
 """
 
 import asyncio
 from abtree import (
     BehaviorForest,
-    CommPubExternal,
-    CommSubExternal,
+    CommPublisher,
+    CommSubscriber,
     create_tree,
 )
 
@@ -25,26 +25,22 @@ async def main():
     forest = BehaviorForest(name="ExternalCommForest")
     
     # Register external communication callbacks
-    forest.register_external_publisher("sensor_data", external_publisher_callback)
-    forest.register_external_subscriber("commands", external_subscriber_callback)
+    forest.register_publisher("sensor_data", external_publisher_callback)
+    forest.register_subscriber("commands", external_subscriber_callback)
     
     # Create publisher behavior tree
     publisher_tree = create_tree(
         name="PubTree",
-        root=CommPubExternal(
-            name="PublishSensorData",
-            topic="sensor_data",
-            data={"temperature": 25.5, "humidity": 60.2}
+        root=CommPublisher(
+            name="PublishSensorData"
         )
     )
     
     # Create subscriber behavior tree
     subscriber_tree = create_tree(
         name="SubTree",
-        root=CommSubExternal(
-            name="SubscribeCommands",
-            topic="commands",
-            timeout=3.0
+        root=CommSubscriber(
+            name="SubscribeCommands"
         )
     )
     
@@ -57,7 +53,7 @@ async def main():
     await forest.start()
     
     # Simulate external data injection
-    await forest.sub_external("commands", {"action": "move", "direction": "forward"})
+    await forest.subscribe_external("commands", {"action": "move", "direction": "forward"})
     
     # Run one tick
     results = await forest.tick()

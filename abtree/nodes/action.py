@@ -348,195 +348,155 @@ class CommSubscriber(Action):
         return Status.SUCCESS
 
 
-class CommPubExternal(Action):
-    """External publisher action that publishes data to external world through forest"""
+class CommExternalInput(Action):
+    """External input action that processes data from external sources"""
     
-    def __init__(self, name: str, topic: str = "", data: Any = None):
+    def __init__(self, name: str, channel: str = ""):
         super().__init__(name)
-        self.topic = topic
-        self.data = data
+        self.channel = channel
     
-    async def execute(self, topic: str = None, data: Any = None) -> Status:
+    async def execute(self, channel: str = None, timeout: float = None):
         """
-        Execute external publishing
+        Execute external input processing
         
         Args:
-            topic: Topic to publish to external world (optional, uses instance topic if not provided)
-            data: Data to publish (optional, uses instance data if not provided)
+            channel: Input channel name (optional, uses self.channel if not provided)
+            timeout: Timeout for waiting for input (optional)
             
         Returns:
             Execution status
         """
-        # Use provided parameters or fall back to instance attributes
-        publish_topic = topic if topic is not None else self.topic
-        publish_data = data if data is not None else self.data
+        if channel is None:
+            channel = self.channel
         
-        if not publish_topic:
-            logger.error("No topic specified for external publishing")
+        if not channel:
+            logger.error("No channel specified for external input")
             return Status.FAILURE
         
+        # Get the forest through the behavior tree
+        tree = self.get_tree()
+        if tree is None:
+            logger.error("No behavior tree found for external input")
+            return Status.FAILURE
+        
+        # Get the forest from the tree's metadata or parent
+        forest = None
+        if hasattr(tree, 'forest'):
+            forest = tree.forest
+        elif hasattr(tree, 'metadata') and 'forest' in tree.metadata:
+            forest = tree.metadata['forest']
+        
+        if forest is None:
+            logger.error("No forest found for external input")
+            return Status.FAILURE
+        
+        # Wait for input data from the specified channel
+        # This is a simplified implementation - in practice, you might want to
+        # implement a more sophisticated waiting mechanism
         try:
-            # Get forest from blackboard
-            forest = self.blackboard.get("__forest") if self.blackboard else None
-            if not forest:
-                logger.error("No forest found in blackboard")
-                return Status.FAILURE
-            
-            # Get communication middleware from forest
-            comm_middleware = None
-            for middleware in forest.middleware:
-                if hasattr(middleware, 'pub_external'):
-                    comm_middleware = middleware
-                    break
-            
-            if not comm_middleware:
-                logger.error("No communication middleware found in forest")
-                return Status.FAILURE
-            
-            # Publish to external world through middleware
-            await comm_middleware.pub_external(publish_topic, publish_data, self.name)
-            logger.info(f"Published to external topic '{publish_topic}': {publish_data}")
-            return Status.SUCCESS
-        except Exception as e:
-            logger.error(f"Error publishing to external topic '{publish_topic}': {e}")
-            return Status.FAILURE
-    
-    def set_topic_data(self, topic: str, data: Any) -> None:
-        """
-        Set topic and data for external publishing
-        
-        Args:
-            topic: Topic to publish to
-            data: Data to publish
-        """
-        self.topic = topic
-        self.data = data
-
-
-class CommSubExternal(Action):
-    """External subscriber action that receives data from external world through forest"""
-    
-    def __init__(self, name: str, topic: str = "", timeout: float = None):
-        super().__init__(name)
-        self.topic = topic
-        self.timeout = timeout
-        self._received_data = None
-        self._data_received = False
-    
-    async def execute(self, topic: str = None, timeout: float = None) -> Status:
-        """
-        Execute external subscription
-        
-        Args:
-            topic: Topic to subscribe to (optional, uses instance topic if not provided)
-            timeout: Timeout for waiting for data (optional, uses instance timeout if not provided)
-            
-        Returns:
-            Execution status
-        """
-        # Use provided parameters or fall back to instance attributes
-        subscribe_topic = topic if topic is not None else self.topic
-        subscribe_timeout = timeout if timeout is not None else self.timeout
-        
-        if not subscribe_topic:
-            logger.error("No topic specified for external subscription")
-            return Status.FAILURE
-        
-        try:
-            # Get forest from blackboard
-            forest = self.blackboard.get("__forest") if self.blackboard else None
-            if not forest:
-                logger.error("No forest found in blackboard")
-                return Status.FAILURE
-            
-            # Get communication middleware from forest
-            comm_middleware = None
-            for middleware in forest.middleware:
-                if hasattr(middleware, 'get_external_data_queue'):
-                    comm_middleware = middleware
-                    break
-            
-            if not comm_middleware:
-                logger.error("No communication middleware found in forest")
-                return Status.FAILURE
-            
-            # Check for external data in the queue
-            external_data = comm_middleware.get_external_data_queue(subscribe_topic)
-            
-            if external_data:
-                # Get the most recent data
-                latest_data = external_data[-1]
-                self._received_data = latest_data["data"]
-                self._data_received = True
-                
-                # Store received data in blackboard for other nodes to access
-                if self.blackboard:
-                    self.blackboard.set(f"external_data_{subscribe_topic}", self._received_data)
-                    self.blackboard.set(f"external_data_source_{subscribe_topic}", latest_data["source"])
-                    self.blackboard.set(f"external_data_timestamp_{subscribe_topic}", latest_data["timestamp"])
-                
-                logger.info(f"Received external data from topic '{subscribe_topic}': {self._received_data}")
+            # For now, we'll just check if there's data in the input queue
+            input_queue = forest.get_external_io_stats().get("input_queue_size", 0)
+            if input_queue > 0:
+                # Process the input data
+                self.set_mapped_value("channel", channel)
+                self.set_mapped_value("status", "received")
                 return Status.SUCCESS
             else:
-                if subscribe_timeout is not None and subscribe_timeout > 0:
-                    # Wait for data with timeout
-                    import asyncio
-                    await asyncio.sleep(subscribe_timeout)
-                    # Check again after timeout
-                    external_data = comm_middleware.get_external_data_queue(subscribe_topic)
-                    if external_data:
-                        latest_data = external_data[-1]
-                        self._received_data = latest_data["data"]
-                        self._data_received = True
-                        
-                        if self.blackboard:
-                            self.blackboard.set(f"external_data_{subscribe_topic}", self._received_data)
-                            self.blackboard.set(f"external_data_source_{subscribe_topic}", latest_data["source"])
-                            self.blackboard.set(f"external_data_timestamp_{subscribe_topic}", latest_data["timestamp"])
-                        
-                        logger.info(f"Received external data from topic '{subscribe_topic}' after timeout: {self._received_data}")
-                        return Status.SUCCESS
-                    else:
-                        logger.warning(f"Timeout waiting for external data from topic '{subscribe_topic}'")
-                        return Status.FAILURE
+                if timeout and timeout > 0:
+                    # Wait for a short time before checking again
+                    await asyncio.sleep(min(timeout, 0.1))
+                    return Status.RUNNING
                 else:
-                    logger.warning(f"No external data available for topic '{subscribe_topic}'")
                     return Status.FAILURE
-                    
         except Exception as e:
-            logger.error(f"Error subscribing to external topic '{subscribe_topic}': {e}")
+            logger.error(f"External input error: {e}")
             return Status.FAILURE
     
-    def get_received_data(self) -> Any:
+    def set_channel(self, channel: str) -> None:
         """
-        Get the last received external data
-        
-        Returns:
-            The received data or None if no data was received
-        """
-        return self._received_data
-    
-    def has_received_data(self) -> bool:
-        """
-        Check if data was received
-        
-        Returns:
-            True if data was received, False otherwise
-        """
-        return self._data_received
-    
-    def set_topic_timeout(self, topic: str, timeout: float) -> None:
-        """
-        Set topic and timeout for external subscription
+        Set input channel
         
         Args:
-            topic: Topic to subscribe to
-            timeout: Timeout for waiting for data
+            channel: Input channel name
         """
-        self.topic = topic
-        self.timeout = timeout
+        self.channel = channel
+
+
+class CommExternalOutput(Action):
+    """External output action that sends data to external destinations"""
     
-    def reset_received_data(self) -> None:
-        """Reset received data state"""
-        self._received_data = None
-        self._data_received = False
+    def __init__(self, name: str, channel: str = ""):
+        super().__init__(name)
+        self.channel = channel
+    
+    async def execute(self, channel: str = None, data: Any = None):
+        """
+        Execute external output processing
+        
+        Args:
+            channel: Output channel name (optional, uses self.channel if not provided)
+            data: Data to output (optional, uses mapped data if not provided)
+            
+        Returns:
+            Execution status
+        """
+        if channel is None:
+            channel = self.channel
+        
+        if not channel:
+            logger.error("No channel specified for external output")
+            return Status.FAILURE
+        
+        # Get the data to output
+        if data is None:
+            data = self.get_mapped_value("data")
+        
+        if data is None:
+            logger.error("No data specified for external output")
+            return Status.FAILURE
+        
+        # Get the forest through the behavior tree
+        tree = self.get_tree()
+        if tree is None:
+            logger.error("No behavior tree found for external output")
+            return Status.FAILURE
+        
+        # Get the forest from the tree's metadata or parent
+        forest = None
+        if hasattr(tree, 'forest'):
+            forest = tree.forest
+        elif hasattr(tree, 'metadata') and 'forest' in tree.metadata:
+            forest = tree.metadata['forest']
+        
+        if forest is None:
+            logger.error("No forest found for external output")
+            return Status.FAILURE
+        
+        try:
+            # Send data to external output
+            await forest.output(channel, data, source=self.name)
+            self.set_mapped_value("channel", channel)
+            self.set_mapped_value("data", data)
+            self.set_mapped_value("status", "sent")
+            return Status.SUCCESS
+        except Exception as e:
+            logger.error(f"External output error: {e}")
+            return Status.FAILURE
+    
+    def set_channel(self, channel: str) -> None:
+        """
+        Set output channel
+        
+        Args:
+            channel: Output channel name
+        """
+        self.channel = channel
+    
+    def set_data(self, data: Any) -> None:
+        """
+        Set output data
+        
+        Args:
+            data: Data to output
+        """
+        self.set_mapped_value("data", data)

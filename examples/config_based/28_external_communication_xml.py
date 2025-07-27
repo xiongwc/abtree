@@ -1,45 +1,67 @@
 #!/usr/bin/env python3
 """
-External Communication XML Example - Simplified version
+External Communication XML Example - ExternalIO Mode
 
-This example shows how to use CommPubExternal and CommSubExternal nodes in XML configuration
-to communicate with external systems through the behavior forest.
+This example shows how to use CommExternalInput and CommExternalOutput nodes in XML configuration
+to communicate with external systems through the behavior forest using the new ExternalIO pattern.
 """
 
 import asyncio
 from abtree import BehaviorForest, load_tree_from_string
 
-async def external_publisher_callback(publish_info):
-    print(f"🔗 External system received: {publish_info}")
+async def external_input_handler(input_info):
+    print(f"🔗 External input received: {input_info}")
+
+async def external_output_handler(output_info):
+    print(f"🔗 External output sent: {output_info}")
 
 async def main():
-    # XML configuration for external communication
+    # XML configuration for external communication using ExternalIO pattern
     xml_config = """
-    <BehaviorForest name="ExternalCommForest">
-        <BehaviorTree name="PubTree">
-            <CommPubExternal name="PublishSensorData" topic="sensor_data" data="Hello, World!"/>
+    <BehaviorForest name="ExternalIOForest">
+        <BehaviorTree name="InputTree">
+            <CommExternalInput name="ProcessSensorData" channel="sensor_data" timeout="3.0"/>
         </BehaviorTree>
         
-        <BehaviorTree name="SubTree">
-            <CommSubExternal name="SubscribeCommands" topic="commands" timeout="3.0"/>
+        <BehaviorTree name="OutputTree">
+            <CommExternalOutput name="SendCommands" channel="command_data" data="Hello, External World!"/>
         </BehaviorTree>
+        
+        <Communication>
+            <CommExternalIO name="sensor_data">
+                <CommExternalInput service="InputTree" />
+            </CommExternalIO>
+            <CommExternalIO name="command_data">
+                <CommExternalOutput service="OutputTree" />
+            </CommExternalIO>
+        </Communication>
     </BehaviorForest>
     """
     
     # Load forest from XML
     forest = load_tree_from_string(xml_config)
     
-    # Register external communication callbacks
-    forest.register_external_publisher("sensor_data", external_publisher_callback)
+    # Register external IO handlers
+    forest.on_input("sensor_data", external_input_handler)
+    forest.on_output("command_data", external_output_handler)
     
-    await forest.start()    
+    await forest.start()
 
-    # Simulate external system pushing data through forest.sub_external
-    print("📡 External system is pushing data...")
-    await forest.sub_external("commands", {"action": "move", "direction": "forward"}, "external_system")
-    print("✅ External data has been pushed to forest")
+    # Simulate external system sending input data
+    print("📡 External system is sending input data...")
+    await forest.input("sensor_data", {"temperature": 25.5, "humidity": 60.0}, "sensor_system")
+    print("✅ External input data has been processed")
+
+    # Simulate external system receiving output data
+    print("📡 External system is receiving output data...")
+    await forest.output("command_data", {"action": "move", "direction": "forward"}, "control_system")
+    print("✅ External output data has been sent")
 
     await asyncio.sleep(1)
+    
+    # Get external IO statistics
+    io_stats = forest.get_external_io_stats()
+    print(f"📊 External IO Statistics: {io_stats}")
     
     await forest.stop()
 

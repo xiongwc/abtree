@@ -82,6 +82,17 @@ class EventDispatcher:
             # Also trigger global listeners
             for global_event in self._global_listeners:
                 global_event.set()
+            
+            # Trigger middleware publish if this is a topic event
+            if event_name.startswith("topic_"):
+                topic = event_name[6:]  # Remove "topic_" prefix
+                # Try to find middleware through blackboard
+                try:
+                    # This is a bit of a hack, but we need to access the middleware
+                    # We'll let the forest handle this through its own mechanism
+                    pass
+                except Exception:
+                    pass
 
     async def wait_for(self, event_name: str, timeout: Optional[float] = None) -> bool:
         """
