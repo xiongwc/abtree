@@ -139,7 +139,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from abtree import load_tree_from_string
+from abtree import load_from_xml_string
 
 # Declarative XML: Express behavior logic in a readable, structured format
 xml_string = '''<BehaviorTree name="Robot Decision">
@@ -153,7 +153,7 @@ xml_string = '''<BehaviorTree name="Robot Decision">
 </BehaviorTree>'''
 
 # Load behavior tree from declarative XML configuration
-tree = load_tree_from_string(xml_string)
+tree = load_from_xml_string(xml_string)
 
 # Execute
 async def main():

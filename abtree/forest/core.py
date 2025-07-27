@@ -229,6 +229,15 @@ class BehaviorForest:
                         if hasattr(middleware, 'publish'):
                             await middleware.publish(topic, data, source or node.name)
                             break
+                
+                # If this is an external_output event, also trigger middleware external_output
+                elif event_name.startswith("external_output_"):
+                    channel = event_name[16:]  # Remove "external_output_" prefix
+                    # Find communication middleware and trigger external_output
+                    for middleware in self.middleware:
+                        if hasattr(middleware, 'external_output'):
+                            await middleware.external_output(channel, data)
+                            break
             
             # Replace the emit method
             setattr(self.forest_event_dispatcher, 'emit', enhanced_emit)

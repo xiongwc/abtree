@@ -7,7 +7,7 @@ to communicate with external systems through the behavior forest using the new E
 """
 
 import asyncio
-from abtree import BehaviorForest, load_tree_from_string
+from abtree import BehaviorForest, load_from_xml_string
 
 async def external_input_handler(input_info):
     print(f"🔗 External input received: {input_info}")
@@ -21,6 +21,7 @@ async def main():
     <BehaviorForest name="ExternalIOForest">
         <BehaviorTree name="InputTree">
             <CommExternalInput name="ProcessSensorData" channel="sensor_data" timeout="3.0" data="{external_data}"/>
+            <Log message="{external_data}" />
         </BehaviorTree>
         
         <BehaviorTree name="OutputTree">
@@ -31,7 +32,7 @@ async def main():
     """
     
     # Load forest from XML
-    forest = load_tree_from_string(xml_config)
+    forest = load_from_xml_string(xml_config)
     
     # Register external IO handlers
     forest.on_input("sensor_data", external_input_handler)

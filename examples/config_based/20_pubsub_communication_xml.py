@@ -30,7 +30,7 @@ def create_pubsub_xml() -> str:
     
     <BehaviorTree name="Publisher" description="Publisher Service">
         <Sequence name="Publisher Behavior">
-            <CommPublisher name="Publish Event" topic="news" message="I am a publisher." />            
+            <CommPublisher name="Publish Event" topic="news" message="Hello world!" />            
         </Sequence>
     </BehaviorTree>   
 

@@ -137,7 +137,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from abtree import load_tree_from_string
+from abtree import load_from_xml_string
 
 # 声明式XML：以可读、结构化的格式表达行为逻辑
 xml_string = '''<BehaviorTree name="机器人决策">
@@ -151,7 +151,7 @@ xml_string = '''<BehaviorTree name="机器人决策">
 </BehaviorTree>'''
 
 # 从声明式XML配置加载行为树
-tree = load_tree_from_string(xml_string)
+tree = load_from_xml_string(xml_string)
 
 # 执行
 async def main():

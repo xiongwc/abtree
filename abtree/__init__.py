@@ -181,7 +181,7 @@ def create_tree(
     return tree
 
 
-def load_tree_from_string(xml_string: str) -> Union[BehaviorTree, BehaviorForest]:
+def load_from_xml_string(xml_string: str) -> Union[BehaviorTree, BehaviorForest]:
     """
     Load behavior tree or forest from XML string
 
@@ -295,7 +295,7 @@ __all__ = [
     "XMLParser",
     "TreeBuilder",
     "create_tree",
-    "load_tree_from_string",
+    "load_from_xml_string",
     "load_from_xml_file",
     "export_to_xml_string",
     "export_to_xml_file",
