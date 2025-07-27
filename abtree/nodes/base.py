@@ -124,36 +124,7 @@ class BaseNode(ABC):
         """
         self._param_mappings[node_attr] = blackboard_key
 
-    def get_mapped_value(self, attr_name: str, default: Any = None) -> Any:
-        """
-        Get mapped value, prioritize from blackboard, if not set then use default value
-        
-        Args:
-            attr_name: Node member variable name
-            default: Default value
-            
-        Returns:
-            Mapped value
-        """
-        if attr_name in self._param_mappings and self.blackboard is not None:
-            blackboard_key = self._param_mappings[attr_name]
-            # Get value from blackboard, if not set then use default value
-            value = self.blackboard.get(blackboard_key, default)
-            return value
-        return getattr(self, attr_name, default)
 
-    def set_mapped_value(self, attr_name: str, value: Any) -> None:
-        """
-        Set mapped value, update blackboard and internal attributes
-        
-        Args:
-            attr_name: Node member variable name
-            value: Value to set
-        """
-        if attr_name in self._param_mappings and self.blackboard is not None:
-            blackboard_key = self._param_mappings[attr_name]
-            # Update blackboard
-            self.blackboard.set(blackboard_key, value)
 
     def get_param_mappings(self) -> Dict[str, str]:
         """
@@ -174,9 +145,9 @@ class BaseNode(ABC):
         Returns:
             Value from blackboard or None if not found
         """
-        if variable_name in self._param_mappings:
-            mapped_value = self.get_mapped_value(variable_name)
-            return mapped_value
+        if variable_name in self._param_mappings and self.blackboard is not None:
+            blackboard_key = self._param_mappings[variable_name]
+            return self.blackboard.get(blackboard_key)
         else:
             # If not found, raise an error
             raise ValueError(f"Variable '{variable_name}' is not mapped to blackboard")
@@ -189,8 +160,9 @@ class BaseNode(ABC):
             variable_name: Name of the variable to set
             value: Value to set
         """
-        if variable_name in self._param_mappings:
-            self.set_mapped_value(variable_name, value)
+        if variable_name in self._param_mappings and self.blackboard is not None:
+            blackboard_key = self._param_mappings[variable_name]
+            self.blackboard.set(blackboard_key, value)
         else:
             # If not found, raise an error
             raise ValueError(f"Variable '{variable_name}' is not mapped to blackboard")

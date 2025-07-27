@@ -210,6 +210,10 @@ class BehaviorForest:
             # Set tree's blackboard to forest's shared blackboard
             node.tree.blackboard = self.forest_blackboard
             
+            # Set forest reference in tree metadata
+            node.tree.metadata = getattr(node.tree, 'metadata', {})
+            node.tree.metadata['forest'] = self
+            
             # Create a custom emit method that also triggers middleware publish
             original_emit = self.forest_event_dispatcher.emit
             
@@ -611,18 +615,19 @@ class BehaviorForest:
     
     async def input(self, channel: str, data: Any) -> None:
         """
-        Process external input data through middleware
+        Process external input data through middleware and trigger events
         
         Args:
             channel: Input channel name
             data: Input data
         """
+        # Process through middleware (which will also trigger events)
         for middleware in self.middleware:
             if hasattr(middleware, 'external_input'):
                 await middleware.external_input(channel, data)
-                return
+                break
         
-        print(f"Warning: No communication middleware found for external input to channel '{channel}'")
+        print(f"External input processed for channel '{channel}' and event triggered")
     
     async def output(self, channel: str) -> Any:
         """

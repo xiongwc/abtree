@@ -828,19 +828,20 @@ class CommunicationMiddleware:
         """Get list of trees using shared EventSystem - zero-copy optimized"""
         return list(self.event_dispatcher_nodes.keys())
     
-    def emit_shared_event(self, event_name: str, source: str) -> None:
+    def emit_shared_event(self, event_name: str, source: str, data: Any = None) -> None:
         """
         Emit event through shared EventSystem - zero-copy optimized
         
         Args:
             event_name: Name of the event to emit
             source: Source node name
+            data: Optional data to include with the event
         """
         if not self.enabled:
             return
         
         asyncio.create_task(
-            self.shared_event_dispatcher.emit(event_name, source=source)
+            self.shared_event_dispatcher.emit(event_name, source=source, data=data)
         )
     
     def get_shared_event_dispatcher_stats(self) -> Dict[str, Any]:
@@ -1120,6 +1121,10 @@ class CommunicationMiddleware:
             
             if tasks:
                 await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Emit shared event with data for CommExternalInput nodes
+        if hasattr(self, 'emit_shared_event'):
+            self.emit_shared_event(f"external_input_{channel}", source="external", data=data)
     
     async def external_output(self, channel: str, data: Any) -> None:
         """

@@ -65,7 +65,11 @@ class Action(BaseNode):
                         if stored_value is None:
                             # If stored value is None, it might be a blackboard mapping
                             # Try to get mapped value from blackboard
-                            mapped_value = self.get_mapped_value(param_name, None)
+                            if param_name in self._param_mappings and self.blackboard is not None:
+                                blackboard_key = self._param_mappings[param_name]
+                                mapped_value = self.blackboard.get(blackboard_key, None)
+                            else:
+                                mapped_value = None
                             node_args.append(mapped_value)
                         else:
                             node_args.append(stored_value)
@@ -171,7 +175,11 @@ class Wait(Action):
             Execution status
         """
         # Get wait time from blackboard, if not set then use default value
-        wait_duration = self.get_mapped_value("duration", self.duration)
+        if "duration" in self._param_mappings and self.blackboard is not None:
+            blackboard_key = self._param_mappings["duration"]
+            wait_duration = self.blackboard.get(blackboard_key, self.duration)
+        else:
+            wait_duration = self.duration
 
         # Check if this is the first tick
         if self.elapsed == 0.0:
@@ -355,13 +363,14 @@ class CommExternalInput(Action):
         super().__init__(name)
         self.channel = channel
     
-    async def execute(self, channel: str = None, timeout: float = None):
+    async def execute(self, channel: str = None, timeout: float = None, data: str = None):
         """
         Execute external input processing
         
         Args:
             channel: Input channel name (optional, uses self.channel if not provided)
             timeout: Timeout for waiting for input (optional)
+            data: Blackboard key to store external input data (optional)
             
         Returns:
             Execution status
@@ -373,41 +382,40 @@ class CommExternalInput(Action):
             logger.error("No channel specified for external input")
             return Status.FAILURE
         
-        # Get the forest through the behavior tree
-        tree = self.get_tree()
-        if tree is None:
-            logger.error("No behavior tree found for external input")
+        # Get event dispatcher for waiting for external input events
+        event_dispatcher = self.get_event_dispatcher()
+        if not event_dispatcher:
+            logger.error("No event dispatcher found for external input")
             return Status.FAILURE
         
-        # Get the forest from the tree's metadata or parent
-        forest = None
-        if hasattr(tree, 'forest'):
-            forest = tree.forest
-        elif hasattr(tree, 'metadata') and 'forest' in tree.metadata:
-            forest = tree.metadata['forest']
-        
-        if forest is None:
-            logger.error("No forest found for external input")
-            return Status.FAILURE
-        
-        # Wait for input data from the specified channel
-        # This is a simplified implementation - in practice, you might want to
-        # implement a more sophisticated waiting mechanism
         try:
-            # For now, we'll just check if there's data in the input queue
-            input_queue = forest.get_external_io_stats().get("input_queue_size", 0)
-            if input_queue > 0:
-                # Process the input data
-                self.set_mapped_value("channel", channel)
-                self.set_mapped_value("status", "received")
-                return Status.SUCCESS
+            # Wait for external input event with timeout
+            event_triggered = await event_dispatcher.wait_for(f"external_input_{channel}", timeout=timeout)
+            if event_triggered:
+                # Get the event info containing the external input data
+                event_info = event_dispatcher.get_event_info(f"external_input_{channel}")
+                if event_info and event_info.data:
+                    received_data = event_info.data
+                    # Store the data in blackboard if data parameter is specified
+                    if data and self.blackboard is not None:
+                        self.blackboard.set(data, received_data)
+                        logger.info(f"External input data stored in blackboard key '{data}': {received_data}")
+                    
+                    # Set mapped values for channel and status
+                    if "channel" in self._param_mappings:
+                        self.set_port("channel", channel)
+                    if "status" in self._param_mappings:
+                        self.set_port("status", "received")
+                    return Status.SUCCESS
+                else:
+                    logger.warning(f"No data found in external input event for channel: {channel}")
+                    return Status.FAILURE
             else:
                 if timeout and timeout > 0:
-                    # Wait for a short time before checking again
-                    await asyncio.sleep(min(timeout, 0.1))
-                    return Status.RUNNING
-                else:
+                    logger.warning(f"Timeout waiting for external input event: external_input_{channel}")
                     return Status.FAILURE
+                else:
+                    return Status.RUNNING
         except Exception as e:
             logger.error(f"External input error: {e}")
             return Status.FAILURE
@@ -449,41 +457,34 @@ class CommExternalOutput(Action):
         
         # Get the data to output
         if data is None:
-            data = self.get_mapped_value("data")
+            if "data" in self._param_mappings and self.blackboard is not None:
+                blackboard_key = self._param_mappings["data"]
+                data = self.blackboard.get(blackboard_key)
+            else:
+                data = None
         
         if data is None:
             logger.error("No data specified for external output")
             return Status.FAILURE
         
-        # Get the forest through the behavior tree
-        tree = self.get_tree()
-        if tree is None:
-            logger.error("No behavior tree found for external output")
-            return Status.FAILURE
-        
-        # Get the forest from the tree's metadata or parent
-        forest = None
-        if hasattr(tree, 'forest'):
-            forest = tree.forest
-        elif hasattr(tree, 'metadata') and 'forest' in tree.metadata:
-            forest = tree.metadata['forest']
-        
-        if forest is None:
-            logger.error("No forest found for external output")
+        # Get event dispatcher for emitting external output events
+        event_dispatcher = self.get_event_dispatcher()
+        if not event_dispatcher:
+            logger.error("No event dispatcher found for external output")
             return Status.FAILURE
         
         try:
-            # Send data to external output through middleware
-            for middleware in forest.middleware:
-                if hasattr(middleware, 'external_output'):
-                    await middleware.external_output(channel, data)
-                    self.set_mapped_value("channel", channel)
-                    self.set_mapped_value("data", data)
-                    self.set_mapped_value("status", "sent")
-                    return Status.SUCCESS
+            # Emit external output event with data
+            await event_dispatcher.emit(f"external_output_{channel}", source=self.name, data=data)
             
-            logger.error("No middleware found with external_output method")
-            return Status.FAILURE
+            # Set mapped values for channel and status
+            if "channel" in self._param_mappings:
+                self.set_port("channel", channel)
+            if "data" in self._param_mappings:
+                self.set_port("data", data)
+            if "status" in self._param_mappings:
+                self.set_port("status", "sent")
+            return Status.SUCCESS
         except Exception as e:
             logger.error(f"External output error: {e}")
             return Status.FAILURE
@@ -504,4 +505,4 @@ class CommExternalOutput(Action):
         Args:
             data: Data to output
         """
-        self.set_mapped_value("data", data)
+        self.set_port("data", data)

@@ -24,7 +24,11 @@ class CheckValueCondition(Condition):
             return False
             
         if threshold is None:
-            threshold = self.get_mapped_value("threshold", 50)
+            if "threshold" in self._param_mappings and self.blackboard is not None:
+                blackboard_key = self._param_mappings["threshold"]
+                threshold = self.blackboard.get(blackboard_key, 50)
+            else:
+                threshold = 50
         value = self.blackboard.get("current_value", 0)
         
         print(f"Check: {value} > {threshold} = {value > threshold}")
@@ -40,7 +44,7 @@ class UpdateValueAction(Action):
     
     async def execute(self, increment=None):
         if increment is None:
-            increment = self.get_mapped_value("increment", 10)
+            increment = self.blackboard.get("increment", 10)
         current = self.blackboard.get("current_value", 0)
         
         new_value = current + increment
@@ -60,7 +64,7 @@ class SetConfigAction(Action):
     async def execute(self, config_value=None):
         config_name = self.blackboard.get("config_name", "default")
         if config_value is None:
-            config_value = self.get_mapped_value("config_value", {})
+            config_value = self.blackboard.get("config_dict", {})
         
         self.blackboard.set(f"config_{config_name}", config_value)
         print(f"Set config '{config_name}': {config_value}")

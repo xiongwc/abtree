@@ -20,7 +20,7 @@ async def main():
     xml_config = """
     <BehaviorForest name="ExternalIOForest">
         <BehaviorTree name="InputTree">
-            <CommExternalInput name="ProcessSensorData" channel="sensor_data" timeout="3.0"/>
+            <CommExternalInput name="ProcessSensorData" channel="sensor_data" timeout="3.0" data="{external_data}"/>
         </BehaviorTree>
         
         <BehaviorTree name="OutputTree">
@@ -44,24 +44,11 @@ async def main():
     await forest.input("sensor_data", {"temperature": 25.5, "humidity": 60.0})
     print("✅ External input data has been processed")
 
-    # Simulate external system receiving output data
-    print("📡 External system is receiving output data...")
-    
-    # First add some data to the output queue
-    for middleware in forest.middleware:
-        if hasattr(middleware, 'external_output'):
-            await middleware.external_output("command_data", {"action": "move", "direction": "forward"})
-            break
-    
-    # Now get the output data
-    output_data = await forest.output("command_data")
-    print(f"✅ External output data received: {output_data}")
-
     await asyncio.sleep(1)
-    
-    # Get external IO statistics
-    io_stats = forest.get_external_io_stats()
-    print(f"📊 External IO Statistics: {io_stats}")
+
+    print("📡 External system is receiving output data...") 
+    output_data = await forest.output("command_data")
+    print(f"✅ External output data received: {output_data}")    
     
     await forest.stop()
 
