@@ -581,17 +581,7 @@ Behavior Forest:
                 <Log name="Timer Log" message="Timer triggered" />
             </Sequence>
         </Selector>
-    </BehaviorTree>
-    
-    <Communication>
-        <CommTopic name="service_events">
-            <CommPublisher service="TriggerService" />
-            <CommSubscriber service="MonitorService" />
-        </CommTopic>
-        <CommShared>
-            <ComKey name="robots_enabled" />
-            <ComKey name="timer_enabled" />
-        </CommShared>
-    </Communication>
+    </BehaviorTree>    
+
 </BehaviorForest>
 """ 

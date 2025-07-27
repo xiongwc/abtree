@@ -96,7 +96,7 @@ class BaseNode(ABC):
             return self.blackboard.get("__event_dispatcher")
         return None
     
-    def get_tree(self):
+    def get_tree(self) -> Optional[Any]:
         """
         Get the behavior tree that contains this node
         
@@ -104,7 +104,7 @@ class BaseNode(ABC):
             BehaviorTree instance or None if not found
         """
         # Traverse up the parent chain to find the tree
-        current = self
+        current: Optional[Any] = self
         while current is not None:
             if hasattr(current, 'tree'):
                 return current.tree

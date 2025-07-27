@@ -195,71 +195,8 @@ def create_robot_forest_xml() -> str:
             <Log name="Monitor Active" message="Monitor is active" />
             <Wait name="Monitor Wait" duration="2.0" />
         </Sequence>
-    </BehaviorTree>
-    
-    <!-- Communication Configuration -->
-    <Communication>
-        <!-- Pub/Sub Communication -->
-        <CommTopic name="emergency_events">
-            <CommPublisher service="Coordinator" />
-            <CommSubscriber service="Robot_001" />
-            <CommSubscriber service="Robot_002" />
-        </CommTopic>
-        <CommTopic name="task_events">
-            <CommPublisher service="Coordinator" />
-            <CommSubscriber service="Robot_001" />
-            <CommSubscriber service="Robot_002" />
-        </CommTopic>
-        
-        <!-- Request/Response Communication -->
-        <CommService name="battery_status">
-            <ComServer service="Robot_001" />
-            <ComServer service="Robot_002" />
-            <ComClient service="Coordinator" />
-        </CommService>
-        <CommService name="task_status">
-            <ComServer service="Coordinator" />
-            <ComClient service="Robot_001" />
-            <ComClient service="Robot_002" />
-        </CommService>
-        
-        <!-- Shared Blackboard -->
-        <CommShared>
-            <ComKey name="emergency" />
-            <ComKey name="battery_level" />
-            <ComKey name="task_available" />
-            <ComKey name="system_status" />
-        </CommShared>
-        
-        <!-- State Watching -->
-        <CommState name="emergency_state">
-            <CommWatcher service="Monitor" />
-            <CommWatcher service="Coordinator" />
-        </CommState>
-        <CommState name="battery_state">
-            <CommWatcher service="Monitor" />
-            <CommWatcher service="Coordinator" />
-        </CommState>
-        
-        <!-- Behavior Calls -->
-        <CommCall name="patrol_behavior">
-            <CommProvider service="Robot_001" />
-            <CommProvider service="Robot_002" />
-            <CommCaller service="Coordinator" />
-        </CommCall>
-        
-        <!-- Task Board -->
-        <CommTask name="patrol_task">
-            <CommPublisher service="Coordinator" />
-            <ComClaimant service="Robot_001" />
-            <ComClaimant service="Robot_002" />
-        </CommTask>
-        <CommTask name="maintenance_task">
-            <CommPublisher service="Coordinator" />
-            <ComClaimant service="Robot_001" />
-            <ComClaimant service="Robot_002" />
-        </CommTask>
-    </Communication>
+    </BehaviorTree>   
+ 
     
 </BehaviorForest>'''
 

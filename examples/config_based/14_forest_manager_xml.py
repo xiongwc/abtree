@@ -138,29 +138,8 @@ def create_production_forest_xml() -> str:
                 <DataProcessingAction name="Process Data" system_id="PROD" />
             </Sequence>
         </Selector>
-    </BehaviorTree>
-    
-    <!-- Communication Configuration -->
-    <Communication>
-        <!-- Pub/Sub Communication -->
-        <CommTopic name="production_events">
-            <CommPublisher service="Production_System" />
-            <CommSubscriber service="Monitoring_System" />
-        </CommTopic>
-        
-        <!-- Shared Blackboard -->
-        <CommShared>
-            <ComKey name="system_health" />
-            <ComKey name="has_alerts" />
-            <ComKey name="needs_maintenance" />
-        </CommShared>
-        
-        <!-- State Watching -->
-        <CommState name="production_state">
-            <CommWatcher service="Monitoring_System" />
-            <CommWatcher service="Coordination_System" />
-        </CommState>
-    </Communication>
+    </BehaviorTree>   
+
     
 </BehaviorForest>'''
 
@@ -178,26 +157,6 @@ def create_monitoring_forest_xml() -> str:
         </Sequence>
     </BehaviorTree>
     
-    <!-- Communication Configuration -->
-    <Communication>
-        <!-- Pub/Sub Communication -->
-        <CommTopic name="monitoring_events">
-            <CommPublisher service="Monitoring_System" />
-            <CommSubscriber service="Coordination_System" />
-        </CommTopic>
-        
-        <!-- Shared Blackboard -->
-        <CommShared>
-            <ComKey name="monitoring_status" />
-            <ComKey name="alert_level" />
-        </CommShared>
-        
-        <!-- State Watching -->
-        <CommState name="monitoring_state">
-            <CommWatcher service="Coordination_System" />
-        </CommState>
-    </Communication>
-    
 </BehaviorForest>'''
 
 
@@ -212,36 +171,8 @@ def create_coordination_forest_xml() -> str:
             <Log name="Coordinator Active" message="Coordination system is active" />
             <Wait name="Coordinator Wait" duration="1.5" />
         </Sequence>
-    </BehaviorTree>
-    
-    <!-- Communication Configuration -->
-    <Communication>
-        <!-- Pub/Sub Communication -->
-        <CommTopic name="coordination_events">
-            <CommPublisher service="Coordination_System" />
-            <CommSubscriber service="Production_System" />
-            <CommSubscriber service="Monitoring_System" />
-        </CommTopic>
-        
-        <!-- Request/Response Communication -->
-        <CommService name="system_status">
-            <ComServer service="Coordination_System" />
-            <ComClient service="Production_System" />
-            <ComClient service="Monitoring_System" />
-        </CommService>
-        
-        <!-- Shared Blackboard -->
-        <CommShared>
-            <ComKey name="coordination_status" />
-            <ComKey name="system_status" />
-        </CommShared>
-        
-        <!-- Task Board -->
-        <CommTask name="maintenance_task">
-            <CommPublisher service="Coordination_System" />
-            <ComClaimant service="Production_System" />
-        </CommTask>
-    </Communication>
+    </BehaviorTree>    
+
     
 </BehaviorForest>'''
 

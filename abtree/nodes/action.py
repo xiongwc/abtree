@@ -473,12 +473,17 @@ class CommExternalOutput(Action):
             return Status.FAILURE
         
         try:
-            # Send data to external output
-            await forest.output(channel, data, source=self.name)
-            self.set_mapped_value("channel", channel)
-            self.set_mapped_value("data", data)
-            self.set_mapped_value("status", "sent")
-            return Status.SUCCESS
+            # Send data to external output through middleware
+            for middleware in forest.middleware:
+                if hasattr(middleware, 'external_output'):
+                    await middleware.external_output(channel, data)
+                    self.set_mapped_value("channel", channel)
+                    self.set_mapped_value("data", data)
+                    self.set_mapped_value("status", "sent")
+                    return Status.SUCCESS
+            
+            logger.error("No middleware found with external_output method")
+            return Status.FAILURE
         except Exception as e:
             logger.error(f"External output error: {e}")
             return Status.FAILURE

@@ -60,14 +60,8 @@ def create_reqresp_xml() -> str:
             <ServerAction name="Serve Request" service="data" />
             <Wait name="Server Wait" duration="1.0" />
         </Sequence>
-    </BehaviorTree>
-    
-    <Communication>
-        <CommService name="data">
-            <ComServer service="Server" />
-            <ComClient service="Client" />
-        </CommService>
-    </Communication>
+    </BehaviorTree>   
+
     
 </BehaviorForest>'''
 

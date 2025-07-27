@@ -227,7 +227,7 @@ class BehaviorForest:
                             break
             
             # Replace the emit method
-            self.forest_event_dispatcher.emit = enhanced_emit
+            setattr(self.forest_event_dispatcher, 'emit', enhanced_emit)
     
     def remove_node(self, node_name: str) -> bool:
         """
@@ -609,37 +609,39 @@ class BehaviorForest:
     
     # ==================== ExternalIO Methods ====================
     
-    async def input(self, channel: str, data: Any, source: str = "external") -> None:
+    async def input(self, channel: str, data: Any) -> None:
         """
         Process external input data through middleware
         
         Args:
             channel: Input channel name
             data: Input data
-            source: Source identifier (default: "external")
         """
         for middleware in self.middleware:
-            if hasattr(middleware, 'input'):
-                await middleware.input(channel, data, source)
+            if hasattr(middleware, 'external_input'):
+                await middleware.external_input(channel, data)
                 return
         
         print(f"Warning: No communication middleware found for external input to channel '{channel}'")
     
-    async def output(self, channel: str, data: Any, source: str = "internal") -> None:
+    async def output(self, channel: str) -> Any:
         """
-        Process external output data through middleware
+        Get external output data from middleware
         
         Args:
             channel: Output channel name
-            data: Output data
-            source: Source identifier (default: "internal")
+            
+        Returns:
+            Output data from the channel
         """
         for middleware in self.middleware:
-            if hasattr(middleware, 'output'):
-                await middleware.output(channel, data, source)
-                return
+            if hasattr(middleware, 'get_output_queue'):
+                output_queue = middleware.get_output_queue(channel)
+                if output_queue:
+                    return output_queue[-1]["data"]  # Return the latest data
         
-        print(f"Warning: No communication middleware found for external output to channel '{channel}'")
+        print(f"Warning: No communication middleware found for external output from channel '{channel}'")
+        return None
     
     def on_input(self, channel: str, handler: Callable) -> None:
         """
@@ -680,7 +682,11 @@ class BehaviorForest:
         """
         for middleware in self.middleware:
             if hasattr(middleware, 'get_external_io_stats'):
-                return middleware.get_external_io_stats()
+                result = middleware.get_external_io_stats()
+                if isinstance(result, dict):
+                    return result
+                else:
+                    return {"error": "Invalid middleware stats format"}
         
         return {"error": "No communication middleware found"}
     

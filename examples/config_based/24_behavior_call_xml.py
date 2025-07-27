@@ -60,14 +60,8 @@ def create_behavior_call_xml() -> str:
             <ProviderAction name="Provide Behavior" behavior="process" />
             <Wait name="Provider Wait" duration="1.0" />
         </Sequence>
-    </BehaviorTree>
-    
-    <Communication>
-        <CommCall name="process">
-            <CommProvider service="Provider" />
-            <CommCaller service="Caller" />
-        </CommCall>
-    </Communication>
+    </BehaviorTree>   
+
     
 </BehaviorForest>'''
 

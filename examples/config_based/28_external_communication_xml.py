@@ -25,8 +25,7 @@ async def main():
         
         <BehaviorTree name="OutputTree">
             <CommExternalOutput name="SendCommands" channel="command_data" data="Hello, External World!"/>
-        </BehaviorTree>
-        
+        </BehaviorTree>        
 
     </BehaviorForest>
     """
@@ -42,13 +41,21 @@ async def main():
 
     # Simulate external system sending input data
     print("📡 External system is sending input data...")
-    await forest.input("sensor_data", {"temperature": 25.5, "humidity": 60.0}, "sensor_system")
+    await forest.input("sensor_data", {"temperature": 25.5, "humidity": 60.0})
     print("✅ External input data has been processed")
 
     # Simulate external system receiving output data
     print("📡 External system is receiving output data...")
-    await forest.output("command_data", {"action": "move", "direction": "forward"}, "control_system")
-    print("✅ External output data has been sent")
+    
+    # First add some data to the output queue
+    for middleware in forest.middleware:
+        if hasattr(middleware, 'external_output'):
+            await middleware.external_output("command_data", {"action": "move", "direction": "forward"})
+            break
+    
+    # Now get the output data
+    output_data = await forest.output("command_data")
+    print(f"✅ External output data received: {output_data}")
 
     await asyncio.sleep(1)
     

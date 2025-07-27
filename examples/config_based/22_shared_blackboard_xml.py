@@ -61,14 +61,8 @@ def create_shared_blackboard_xml() -> str:
             <ReaderAction name="Read Data" key="status" />
             <Wait name="Reader Wait" duration="1.0" />
         </Sequence>
-    </BehaviorTree>
-    
-    <Communication>
-        <CommShared>
-            <ComKey name="status" />
-            <ComKey name="data" />
-        </CommShared>
-    </Communication>
+    </BehaviorTree>   
+
     
 </BehaviorForest>'''
 

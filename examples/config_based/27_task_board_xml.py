@@ -60,14 +60,8 @@ def create_task_board_xml() -> str:
             <TaskClaimantAction name="Claim Task" task="work" />
             <Wait name="Claimant Wait" duration="1.0" />
         </Sequence>
-    </BehaviorTree>
-    
-    <Communication>
-        <CommTask name="work">
-            <CommPublisher service="Publisher" />
-            <ComClaimant service="Claimant" />
-        </CommTask>
-    </Communication>
+    </BehaviorTree>   
+
     
 </BehaviorForest>'''
 

@@ -1082,14 +1082,13 @@ class CommunicationMiddleware:
             return True
         return False
     
-    async def input(self, channel: str, data: Any, source: str = "external") -> None:
+    async def external_input(self, channel: str, data: Any) -> None:
         """
         Process external input data - zero-copy optimized
         
         Args:
             channel: Input channel name
             data: Input data (passed by reference, no copying)
-            source: Source identifier (default: "external")
         """
         if not self.enabled:
             return
@@ -1098,7 +1097,7 @@ class CommunicationMiddleware:
         input_info = {
             "channel": channel,
             "data": data,
-            "source": source,
+            "source": "external",
             "timestamp": time.time()
         }
         
@@ -1122,14 +1121,13 @@ class CommunicationMiddleware:
             if tasks:
                 await asyncio.gather(*tasks, return_exceptions=True)
     
-    async def output(self, channel: str, data: Any, source: str = "internal") -> None:
+    async def external_output(self, channel: str, data: Any) -> None:
         """
         Process external output data - zero-copy optimized
         
         Args:
             channel: Output channel name
             data: Output data (passed by reference, no copying)
-            source: Source identifier (default: "internal")
         """
         if not self.enabled:
             return
@@ -1138,7 +1136,7 @@ class CommunicationMiddleware:
         output_info = {
             "channel": channel,
             "data": data,
-            "source": source,
+            "source": "internal",
             "timestamp": time.time()
         }
         

@@ -60,13 +60,8 @@ def create_state_watching_xml() -> str:
             <StateWatcherAction name="Watch State" state="status" />
             <Wait name="Watcher Wait" duration="1.0" />
         </Sequence>
-    </BehaviorTree>
-    
-    <Communication>
-        <CommState name="status">
-            <CommWatcher service="Watcher" />
-        </CommState>
-    </Communication>
+    </BehaviorTree>   
+
     
 </BehaviorForest>'''
 

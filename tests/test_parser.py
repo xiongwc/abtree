@@ -56,12 +56,6 @@ FOREST_WITH_COMMUNICATION_XML = '''
             <AlwaysTrue name="SubscriberCond"/>
         </Sequence>
     </BehaviorTree>
-    <Communication>
-        <CommTopic name="test_topic">
-            <CommPublisher service="PublisherTree"/>
-            <CommSubscriber service="SubscriberTree"/>
-        </CommTopic>
-    </Communication>
 </BehaviorForest>
 '''
 
