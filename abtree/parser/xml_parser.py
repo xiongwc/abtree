@@ -27,32 +27,7 @@ from ..registry.node_registry import get_global_registry
 from ..core.status import Status
 
 
-@dataclass
-class CommunicationConfig:
-    """Communication configuration container"""
-    topics: Optional[Dict[str, Dict[str, List[str]]]] = None  # topic_name -> {publishers: [], subscribers: []}
-    services: Optional[Dict[str, Dict[str, Union[str, List[str]]]]] = None  # service_name -> {server: str, clients: []}
-    shared_keys: Optional[Set[str]] = None
-    states: Optional[Dict[str, List[str]]] = None  # state_name -> [watchers]
-    calls: Optional[Dict[str, Dict[str, List[str]]]] = None  # call_name -> {providers: [], callers: []}
-    tasks: Optional[Dict[str, Dict[str, Union[str, List[str]]]]] = None  # task_name -> {publisher: str, claimants: []}
-    external_io: Optional[Dict[str, Dict[str, List[str]]]] = None  # channel_name -> {inputs: [], outputs: []}
-    
-    def __post_init__(self) -> None:
-        if self.topics is None:
-            self.topics = {}
-        if self.services is None:
-            self.services = {}
-        if self.shared_keys is None:
-            self.shared_keys = set()
-        if self.states is None:
-            self.states = {}
-        if self.calls is None:
-            self.calls = {}
-        if self.tasks is None:
-            self.tasks = {}
-        if self.external_io is None:
-            self.external_io = {}
+
 
 
 @dataclass
@@ -166,17 +141,13 @@ class XMLParser:
         # Create behavior forest
         forest = BehaviorForest(name=forest_name)
 
-        # Parse behavior trees and communication
-        communication_config = CommunicationConfig()
-        
+        # Parse behavior trees and automatically detect communication patterns
         for child in element:
             if child.tag == "BehaviorTree":
                 self._parse_forest_behavior_tree(child, forest)
-            elif child.tag == "Communication":
-                communication_config = self._parse_communication(child)
 
-        # Setup communication middleware
-        self._setup_communication(forest, communication_config)
+        # Automatically setup communication middleware based on detected patterns
+        self._auto_setup_communication(forest)
 
         return forest
 
@@ -241,177 +212,70 @@ class XMLParser:
         else:
             return ForestNodeType.WORKER
 
-    def _parse_communication(self, element: ET.Element) -> CommunicationConfig:
+
+
+    def _auto_setup_communication(self, forest: BehaviorForest) -> None:
         """
-        Parse communication configuration
-
-        Args:
-            element: Communication XML element
-
-        Returns:
-            Communication configuration
-        """
-        config = CommunicationConfig()
-        
-        for child in element:
-            if child.tag == "CommTopic":
-                self._parse_topic(child, config)
-            elif child.tag == "CommService":
-                self._parse_service(child, config)
-            elif child.tag == "CommShared":
-                self._parse_shared(child, config)
-            elif child.tag == "CommState":
-                self._parse_state(child, config)
-            elif child.tag == "CommCall":
-                self._parse_call(child, config)
-            elif child.tag == "CommTask":
-                self._parse_task(child, config)
-            elif child.tag == "CommExternalIO":
-                self._parse_external_io(child, config)
-        
-        return config
-
-    def _parse_topic(self, element: ET.Element, config: CommunicationConfig) -> None:
-        """Parse topic configuration"""
-        topic_name = element.get("name", "")
-        publishers: List[str] = []
-        subscribers: List[str] = []
-        
-        for child in element:
-            if child.tag == "CommPublisher":
-                service = child.get("service", "")
-                if service:
-                    publishers.append(service)
-            elif child.tag == "CommSubscriber":
-                service = child.get("service", "")
-                if service:
-                    subscribers.append(service)
-        
-        if config.topics is not None:
-            config.topics[topic_name] = {
-                "publishers": publishers,
-                "subscribers": subscribers
-            }
-
-    def _parse_service(self, element: ET.Element, config: CommunicationConfig) -> None:
-        """Parse service configuration"""
-        service_name = element.get("name", "")
-        server = ""
-        clients: List[str] = []
-        
-        for child in element:
-            if child.tag == "ComServer":
-                server = child.get("service", "")
-            elif child.tag == "ComClient":
-                service = child.get("service", "")
-                if service:
-                    clients.append(service)
-        
-        if config.services is not None:
-            config.services[service_name] = {
-                "server": server,
-                "clients": clients
-            }
-
-    def _parse_shared(self, element: ET.Element, config: CommunicationConfig) -> None:
-        """Parse shared blackboard configuration"""
-        for child in element:
-            if child.tag == "ComKey":
-                key_name = child.get("name", "")
-                if key_name and config.shared_keys is not None:
-                    config.shared_keys.add(key_name)
-
-    def _parse_state(self, element: ET.Element, config: CommunicationConfig) -> None:
-        """Parse state watching configuration"""
-        state_name = element.get("name", "")
-        watchers: List[str] = []
-        
-        for child in element:
-            if child.tag == "CommWatcher":
-                service = child.get("service", "")
-                if service:
-                    watchers.append(service)
-        
-        if config.states is not None:
-            config.states[state_name] = watchers
-
-    def _parse_call(self, element: ET.Element, config: CommunicationConfig) -> None:
-        """Parse behavior call configuration"""
-        call_name = element.get("name", "")
-        providers: List[str] = []
-        callers: List[str] = []
-        
-        for child in element:
-            if child.tag == "CommProvider":
-                service = child.get("service", "")
-                if service:
-                    providers.append(service)
-            elif child.tag == "CommCaller":
-                service = child.get("service", "")
-                if service:
-                    callers.append(service)
-        
-        if config.calls is not None:
-            config.calls[call_name] = {
-                "providers": providers,
-                "callers": callers
-            }
-
-    def _parse_task(self, element: ET.Element, config: CommunicationConfig) -> None:
-        """Parse task board configuration"""
-        task_name = element.get("name", "")
-        publisher = ""
-        claimants: List[str] = []
-        
-        for child in element:
-            if child.tag == "CommPublisher":
-                publisher = child.get("service", "")
-            elif child.tag == "ComClaimant":
-                service = child.get("service", "")
-                if service:
-                    claimants.append(service)
-        
-        if config.tasks is not None:
-            config.tasks[task_name] = {
-                "publisher": publisher,
-                "claimants": claimants
-            }
-    
-    def _parse_external_io(self, element: ET.Element, config: CommunicationConfig) -> None:
-        """Parse external IO configuration"""
-        channel_name = element.get("name", "")
-        inputs: List[str] = []
-        outputs: List[str] = []
-        
-        for child in element:
-            if child.tag == "CommExternalInput":
-                service = child.get("service", "")
-                if service:
-                    inputs.append(service)
-            elif child.tag == "CommExternalOutput":
-                service = child.get("service", "")
-                if service:
-                    outputs.append(service)
-        
-        if config.external_io is not None:
-            config.external_io[channel_name] = {
-                "inputs": inputs,
-                "outputs": outputs
-            }
-
-    def _setup_communication(self, forest: BehaviorForest, config: CommunicationConfig) -> None:
-        """
-        Setup communication middleware based on configuration
+        Automatically setup communication middleware based on detected communication nodes
 
         Args:
             forest: Behavior forest
-            config: Communication configuration
         """
-        # Setup unified communication middleware
-        if (config.topics or config.services or config.shared_keys or 
-            config.states or config.calls or config.tasks or config.external_io):
-            communication = CommunicationMiddleware("ForestCommunication")
+        # Check if any communication nodes are present in the forest
+        has_communication_nodes = False
+        
+        for node_name, forest_node in forest.nodes.items():
+            if forest_node.tree and forest_node.tree.root:
+                # Check for communication nodes in the tree
+                if self._has_communication_nodes(forest_node.tree.root):
+                    has_communication_nodes = True
+                    break
+        
+        # Setup communication middleware if communication nodes are detected
+        if has_communication_nodes:
+            communication = CommunicationMiddleware("AutoDetectedCommunication")
             forest.add_middleware(communication)
+    
+    def _has_communication_nodes(self, node: BaseNode) -> bool:
+        """
+        Check if a node or its descendants contain communication nodes
+        
+        Args:
+            node: Node to check
+            
+        Returns:
+            True if communication nodes are found
+        """
+        # Check current node
+        if self._is_communication_node(node):
+            return True
+        
+        # Check children recursively
+        for child in node.children:
+            if self._has_communication_nodes(child):
+                return True
+        
+        return False
+    
+    def _is_communication_node(self, node: BaseNode) -> bool:
+        """
+        Check if a node is a communication node
+        
+        Args:
+            node: Node to check
+            
+        Returns:
+            True if node is a communication node
+        """
+        communication_node_types = {
+            'CommPublisher', 'CommSubscriber', 
+            'ComExternalInput', 'ComExternalOutput',
+            'CommService', 'CommClient',
+            'CommWatcher', 'CommProvider', 'CommCaller',
+            'CommTask', 'ComClaimant'
+        }
+        
+        return node.__class__.__name__ in communication_node_types
 
     def _validate_node_parameters(self, node: BaseNode, attributes: Dict[str, Any]) -> None:
         """

@@ -27,14 +27,7 @@ async def main():
             <CommExternalOutput name="SendCommands" channel="command_data" data="Hello, External World!"/>
         </BehaviorTree>
         
-        <Communication>
-            <CommExternalIO name="sensor_data">
-                <CommExternalInput service="InputTree" />
-            </CommExternalIO>
-            <CommExternalIO name="command_data">
-                <CommExternalOutput service="OutputTree" />
-            </CommExternalIO>
-        </Communication>
+
     </BehaviorForest>
     """
     
