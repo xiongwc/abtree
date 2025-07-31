@@ -1,3 +1,4 @@
 # Core dependencies
 typing-extensions>=4.0.0
 lxml>=4.6.0 
+click>=8.0.0
